@@ -41,7 +41,7 @@
       results_df
     Output
                                               fisheye_photo_path canopy_openness_pct
-      1 testdata/CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp            31.84485
+      1 testdata/R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp            31.84485
         mean_daily_extraterrestrial_irradiance_Wm2
       1                                   284.5328
         mean_daily_direct_irradiation_MJm2d mean_daily_diffuse_irradiation_MJm2d

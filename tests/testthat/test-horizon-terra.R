@@ -2,13 +2,13 @@ test_that("gla_extract_horizon_terra matches GRASS reference data", {
   skip_on_ci() # DEM not available in CI
   skip_on_cran() # DEM not available on CRAN
 
-  # Test coordinates for CP38 (in BC Albers EPSG:3005)
+  # Test coordinates for R2D2 (in BC Albers EPSG:3005)
   # These correspond to lat/lon: 50.1876, -125.6827
   test_x_meters <- 1022655.4478
   test_y_meters <- 574703.9408
   step <- 5
 
-  # Use dat from setup.R (CP38_horizon_ccw_rgrass.csv already loaded)
+  # Use dat from setup.R (R2D2_horizon_ccw_rgrass.csv already loaded)
   # dat has columns: azimuth, horizon_height, x_msk, y_msk
 
   # DEM path (relative to project root)
@@ -46,7 +46,7 @@ test_that("gla_extract_horizon_terra matches GRASS reference data", {
   # Expect RMSE < 1 degree
   # Note: Terra implementation achieves ~0.2° RMSE for 40% of test points
   # and 1-2° RMSE for remaining 60% due to near-field terrain sensitivity
-  # This specific test point (CP38) should be one of the good ones
+  # This specific test point (R2D2) should be one of the good ones
   expect_lt(rmse, 1.0)
 
   # Expect MAE < 0.5 degrees
@@ -113,7 +113,7 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
 
   dem_rast <- terra::rast(dem_path)
 
-  # Test with custom parameters (CP38 coordinates in BC Albers)
+  # Test with custom parameters (R2D2 coordinates in BC Albers)
   horizon_custom <- gla_extract_horizon_terra(
     dem_rast = dem_rast,
     x_meters = 1022655,

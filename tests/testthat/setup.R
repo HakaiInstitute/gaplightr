@@ -4,13 +4,13 @@ library(withr)
 
 # LOAD TOPO MASK
 dat <- read.csv(
-  test_path("testdata", "CP38_horizon_ccw_rgrass.csv"),
+  test_path("testdata", "R2D2_horizon_ccw_rgrass.csv"),
   colClasses = c("numeric", "numeric", "numeric", "numeric")
 )
 
 # LOAD AND PROCESS LiDAR POINTS
 csv_files <- list.files(
-  test_path("testdata", "CP38_hemi"),
+  test_path("testdata", "R2D2_hemi"),
   full.names = TRUE,
   pattern = "\\.csv$"
 )
@@ -28,7 +28,7 @@ gen_path <- gla_create_fisheye_photo_single(
   processed_lidar = df,
   x_msk = dat$x_msk,
   y_msk = dat$y_msk,
-  site_id = "CP38",
+  site_id = "R2D2",
   img_path = testthat::test_path(),
   max_cex = 0.3, # Symbol size for plotting
   min_cex = 0.05, # Symbol size for plotting
@@ -46,7 +46,7 @@ defer(unlink(gen_path), teardown_env())
 # Load reference image for comparison tests
 ref_path <- test_path(
   "testdata",
-  "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+  "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
 )
 ref_img <- imager::load.image(ref_path)
 gen_img <- imager::load.image(gen_path)
@@ -75,7 +75,7 @@ results_df <- gla_process_fisheye_photo_single(
   solar_data = solar_data,
   img_file = test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   ),
   lat_deg = 50.1876,
   long_deg = -125.6827,

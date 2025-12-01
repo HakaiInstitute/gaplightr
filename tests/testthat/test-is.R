@@ -51,7 +51,7 @@ test_that("is_img_binary errors on non-cimg input", {
 test_that("is_img_binary works with real thresholded test image", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   # Load and threshold

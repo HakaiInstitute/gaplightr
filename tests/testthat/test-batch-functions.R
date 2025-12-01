@@ -23,13 +23,13 @@ test_that("gla_process_fisheye_photos adds solar radiation columns", {
   # Reuse existing test photo from testdata
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   # Create minimal test points
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,
@@ -91,12 +91,12 @@ test_that("gla_process_fisheye_photos snapshot", {
 
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,
@@ -131,7 +131,7 @@ test_that("gla_process_fisheye_photos snapshot", {
 test_that("gla_extract_gap_fraction returns correct structure", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   result <- gla_extract_gap_fraction(
@@ -170,7 +170,7 @@ test_that("gla_extract_gap_fraction returns correct structure", {
 test_that("gla_extract_gap_fraction wrapper works", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   result <- gla_extract_gap_fraction(
@@ -191,12 +191,12 @@ test_that("gla_extract_gap_fraction wrapper works", {
 test_that("gla_process_fisheye_photos with keep_gap_fraction_data = TRUE", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,
@@ -237,12 +237,12 @@ test_that("gla_process_fisheye_photos with keep_gap_fraction_data = TRUE", {
 test_that("gla_process_fisheye_photos with keep_gap_fraction_data = FALSE", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,
@@ -273,7 +273,7 @@ test_that("gla_process_fisheye_photos with keep_gap_fraction_data = FALSE", {
 test_that("gap fraction values are consistent", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   # Extract gap fraction directly
@@ -287,7 +287,7 @@ test_that("gap fraction values are consistent", {
   # Extract via process function
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,
@@ -341,7 +341,7 @@ test_that("gla_lens_sigma_8mm returns correct structure", {
 test_that("gla_extract_gap_fraction works with custom radial calibration", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   # Extract with custom calibration
@@ -380,7 +380,7 @@ test_that("gla_extract_gap_fraction works with custom radial calibration", {
 test_that("gla_extract_gap_fraction with NULL radial_distortion uses polar", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   # These should be identical
@@ -405,12 +405,12 @@ test_that("gla_extract_gap_fraction with NULL radial_distortion uses polar", {
 test_that("gla_process_fisheye_photos works with radial_distortion", {
   test_photo <- test_path(
     "testdata",
-    "CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
   test_points <- sf::st_as_sf(
     data.frame(
-      stream = "CP38",
+      stream = "R2D2",
       x_meters = 1022655,
       y_meters = 574704,
       lat = 50.1876,

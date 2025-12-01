@@ -4,7 +4,7 @@
       as.data.frame(sf::st_drop_geometry(result))
     Output
                                               fisheye_photo_path stream     lat
-      1 testdata/CP38_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp   CP38 50.1876
+      1 testdata/R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp   R2D2 50.1876
               lon elevation canopy_openness_pct
       1 -125.6827    238.44            31.84485
         mean_daily_extraterrestrial_irradiance_Wm2
