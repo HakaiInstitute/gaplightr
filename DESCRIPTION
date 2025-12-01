@@ -1,11 +1,30 @@
 Package: gaplightr
-Title: What the Package Does (One Line, Title Case)
+Title: Gap Light Analysis of Virtual and Real Fisheye Photography
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R:
     c(person("Gord", "Frazer", email = "gordonwfrazer@gmail.com", role = "aut", comment = "Conceptualization and original code"),
-    person("Sam", "Albers", email = "sam.albers@hakai.org", role = c("aut", "cre")))
-Description: What the package does (one paragraph).
+    person("Sam", "Albers", email = "sam.albers@hakai.org", role = c("aut", "cre")),
+    person("Hakai Institute", , role = "cph"))
+Description: Analyzes forest canopy gap light transmission using LiDAR point cloud
+    data and hemispherical photography. Provides tools for processing LiDAR data,
+    computing horizon angles, and calculating gap light metrics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends: 
+    R (>= 4.2.0)
+Imports:
+    lidR,
+    plotrix,
+    imager,
+    terra,
+    here,
+    sf,
+    future.apply
+Suggests:
+    testthat (>= 3.0.0),
+    withr,
+    devtools,
+    future
+Config/testthat/edition: 3
