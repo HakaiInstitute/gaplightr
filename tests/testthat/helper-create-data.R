@@ -1,13 +1,5 @@
-#!/usr/bin/env Rscript
 # Script to create minimal test fixtures for end-to-end testing
 # Run this once to generate test data files
-#
-# Usage:
-#   Rscript create_minimal_fixtures.R [--crs EPSG_CODE] [--suffix SUFFIX]
-#
-# Examples:
-#   Rscript tests/testthat/testdata/create_minimal_fixtures.R --crs 3005 --suffix ""          # BC Albers (default)
-#   Rscript tests/testthat/testdata/create_minimal_fixtures.R --crs 26912 --suffix "_utm12n"  # Montana/Idaho
 
 library(terra)
 library(lidR)
@@ -63,7 +55,7 @@ create_minimal_dem <- function(target_crs, suffix) {
   }
 
   # Create raster
-  dem <- rast(
+  dem <- terra::rast(
     elev_matrix,
     extent = ext(min(x), max(x), min(y), max(y)),
     crs = paste0("EPSG:", target_crs)
@@ -71,10 +63,13 @@ create_minimal_dem <- function(target_crs, suffix) {
 
   names(dem) <- "elevation"
 
-  output_path <- paste0(
-    "tests/testthat/testdata/minimal_dem_",
-    target_crs,
-    ".tif"
+  output_path <- test_path(
+    "testdata",
+    paste0(
+      "minimal_dem_",
+      target_crs,
+      ".tif"
+    )
   )
   writeRaster(dem, output_path, overwrite = TRUE)
   cat("Created minimal DEM:", output_path, "\n")
@@ -128,7 +123,7 @@ create_minimal_las <- function(target_crs) {
   las <- LAS(las_data)
   lidR::projection(las) <- target_crs # Set CRS using lidR projection
 
-  las_dir <- file.path("tests/testthat/testdata/", target_crs)
+  las_dir <- test_path("testdata", target_crs)
 
   # Create directory if it doesn't exist
   if (!dir.exists(las_dir)) {
@@ -158,10 +153,9 @@ create_minimal_stream_network <- function(target_crs) {
     crs = target_crs
   )
 
-  output_path <- paste0(
-    "tests/testthat/testdata/minimal_stream_network_",
-    target_crs,
-    ".gpkg"
+  output_path <- test_path(
+    "testdata",
+    paste0("minimal_stream_network_", target_crs, ".gpkg")
   )
   st_write(stream_points, output_path, delete_dsn = TRUE, quiet = TRUE)
   cat("Created minimal stream network:", output_path, "\n")
@@ -169,12 +163,25 @@ create_minimal_stream_network <- function(target_crs) {
   output_path
 }
 
-# Run all
+# Generate fixtures and register cleanup
+# This runs when the helper file loads (before tests)
 
-dem_path <- create_minimal_dem(3005)
-las_path <- create_minimal_las(3005)
-stream_path <- create_minimal_stream_network(3005)
+# CRS 3005 (BC Albers)
+dem_path_3005 <- create_minimal_dem(3005)
+las_path_3005 <- create_minimal_las(3005)
+stream_path_3005 <- create_minimal_stream_network(3005)
 
-dem_path <- create_minimal_dem(26912)
-las_path <- create_minimal_las(26912)
-stream_path <- create_minimal_stream_network(26912)
+# CRS 26912 (UTM Zone 12N)
+dem_path_26912 <- create_minimal_dem(26912)
+las_path_26912 <- create_minimal_las(26912)
+stream_path_26912 <- create_minimal_stream_network(26912)
+
+# Store paths for cleanup in teardown.R
+.fixture_paths <- list(
+  dem_3005 = dem_path_3005,
+  las_3005 = las_path_3005,
+  stream_3005 = stream_path_3005,
+  dem_26912 = dem_path_26912,
+  las_26912 = las_path_26912,
+  stream_26912 = stream_path_26912
+)
