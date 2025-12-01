@@ -1,0 +1,11 @@
+Package: gaplightr
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    c(person("Gord", "Frazer", email = "gordonwfrazer@gmail.com", role = "aut", comment = "Conceptualization and original code"),
+    person("Sam", "Albers", email = "sam.albers@hakai.org", role = c("aut", "cre")))
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
