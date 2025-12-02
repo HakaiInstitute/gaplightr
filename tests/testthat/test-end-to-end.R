@@ -1,12 +1,14 @@
 test_that("End-to-end terra workflow completes successfully", {
-  skip_on_macos_ci()
-
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
   stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
-  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
+  )
 
   las_dir <- withr::local_tempdir()
   las_path <- file.path(las_dir, "minimal_plot_3005.las")
@@ -150,15 +152,16 @@ test_that("End-to-end terra workflow completes successfully", {
 })
 
 test_that("End-to-end workflow with resume=TRUE skips existing files", {
-  skip_on_cran()
-  skip_on_macos_ci()
-
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
   stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
-  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
+  )
 
   las_dir <- withr::local_tempdir()
   las_path <- file.path(las_dir, "minimal_plot_3005.las")
@@ -252,7 +255,11 @@ test_that("End-to-end workflow works with 26912", {
   create_test_dem(crs = 26912, output_path = dem_path)
 
   stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
-  create_test_points(crs = 26912, n_points = 2, output_path = stream_network_path)
+  create_test_points(
+    crs = 26912,
+    n_points = 2,
+    output_path = stream_network_path
+  )
 
   las_dir <- withr::local_tempdir()
   las_path <- file.path(las_dir, "minimal_plot_26912.las")

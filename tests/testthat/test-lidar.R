@@ -131,8 +131,6 @@ test_that("gla_create_virtual_plots validates points input", {
 })
 
 test_that("gla_create_virtual_plots handles empty output gracefully", {
-  skip_on_macos_ci()
-
   # Create minimal valid LAS file using fixture generator
   temp_las_dir <- withr::local_tempdir()
   temp_las <- file.path(temp_las_dir, "test.las")
@@ -175,8 +173,6 @@ test_that("gla_create_virtual_plots handles empty output gracefully", {
 })
 
 test_that("gla_create_virtual_plots snapshot", {
-  skip_on_macos_ci()
-
   # Create minimal test LAS file using fixture generator
   temp_las_dir <- withr::local_tempdir()
   temp_las <- file.path(temp_las_dir, "test.las")
@@ -216,8 +212,6 @@ test_that("gla_create_virtual_plots snapshot", {
 
 
 test_that("Resume logic handles partially created virtual plots", {
-  skip_on_macos_ci()
-
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)

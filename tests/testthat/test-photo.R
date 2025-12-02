@@ -62,8 +62,6 @@ test_that("gla_process_fisheye_photo_single output matches snapshot", {
 })
 
 test_that("gla_create_fisheye_photos generates expected filename format", {
-  skip_on_macos_ci()
-
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
