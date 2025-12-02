@@ -60,6 +60,10 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   invisible(NULL)
 }
 
+#' Load points
+#'
+#' @param path path to a any files that `sf::read_sf` can read
+#' @param dem_path a dem path
 #' @export
 gla_load_points <- function(path, dem_path) {
   points <- sf::read_sf(path)
