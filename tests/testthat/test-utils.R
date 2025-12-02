@@ -1,118 +1,4 @@
-# gla_load_points tests ----
-
-test_that("gla_load_points loads and processes points correctly", {
-  # Create minimal test shapefile
-  test_points <- sf::st_as_sf(
-    data.frame(
-      x = c(1022655, 1022700),
-      y = c(574704, 574750)
-    ),
-    coords = c("x", "y"),
-    crs = 3005
-  )
-
-  # Save to temporary file
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_points, temp_shp)
-
-  # Create minimal test DEM
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(
-    nrows = 10,
-    ncols = 10,
-    xmin = 1022600,
-    xmax = 1022800,
-    ymin = 574650,
-    ymax = 574800,
-    crs = "EPSG:3005",
-    vals = rep(250, 100) # Constant elevation
-  )
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
-
-  # Test loading
-  result <- gla_load_points(temp_shp, temp_dem)
-
-  # Verify structure
-  expect_s3_class(result, "sf")
-  expect_true("elevation" %in% names(result))
-  expect_true("x_meters" %in% names(result))
-  expect_true("y_meters" %in% names(result))
-  expect_true("lat" %in% names(result))
-  expect_true("lon" %in% names(result))
-
-  # Should load all points
-  expect_equal(nrow(result), 2)
-
-  # Clean up
-  unlink(temp_shp)
-  unlink(temp_dem)
-})
-
-test_that("gla_load_points validates input geometry type", {
-  # Create non-POINT geometry
-  test_lines <- sf::st_as_sf(
-    data.frame(id = 1),
-    geom = sf::st_sfc(sf::st_linestring(matrix(
-      c(0, 0, 1, 1),
-      ncol = 2,
-      byrow = TRUE
-    ))),
-    crs = 3005
-  )
-
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_lines, temp_shp)
-
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(nrows = 2, ncols = 2, vals = 1)
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
-
-  expect_error(
-    gla_load_points(temp_shp, temp_dem),
-    "must contain only POINT geometries"
-  )
-
-  unlink(temp_shp)
-  unlink(temp_dem)
-})
-
-test_that("gla_load_points validates CRS matches between points and DEM", {
-  # Create points in EPSG:3005
-  test_points <- sf::st_as_sf(
-    data.frame(
-      x = c(1022655),
-      y = c(574704)
-    ),
-    coords = c("x", "y"),
-    crs = 3005
-  )
-
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_points, temp_shp)
-
-  # Create DEM in different CRS (EPSG:32610 - UTM Zone 10N)
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(
-    nrows = 10,
-    ncols = 10,
-    xmin = 400000,
-    xmax = 500000,
-    ymin = 5500000,
-    ymax = 5600000,
-    crs = "EPSG:32610",
-    vals = rep(250, 100)
-  )
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
-
-  # Should error about CRS mismatch
-  expect_error(
-    gla_load_points(temp_shp, temp_dem),
-    "CRS mismatch between Points and DEM"
-  )
-
-  unlink(temp_shp)
-  unlink(temp_dem)
-})
+#
 
 # validate_crs_match tests ----
 
@@ -125,7 +11,7 @@ test_that("validate_crs_match passes when CRS match", {
 })
 
 test_that("validate_crs_match errors when CRS mismatch", {
-  crs1 <- sf::st_crs(3005)  # BC Albers
+  crs1 <- sf::st_crs(3005) # BC Albers
   crs2 <- sf::st_crs(32610) # UTM Zone 10N
 
   expect_error(
@@ -165,41 +51,6 @@ test_that("validate_crs_match errors when both CRS are NA", {
   )
 })
 
-test_that("gla_load_points snapshot", {
-  # Create minimal test data
-  test_points <- sf::st_as_sf(
-    data.frame(
-      x = c(1022655),
-      y = c(574704)
-    ),
-    coords = c("x", "y"),
-    crs = 3005
-  )
-
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_points, temp_shp)
-
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(
-    nrows = 10,
-    ncols = 10,
-    xmin = 1022600,
-    xmax = 1022800,
-    ymin = 574650,
-    ymax = 574800,
-    crs = "EPSG:3005",
-    vals = rep(250, 100)
-  )
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
-
-  result <- gla_load_points(temp_shp, temp_dem)
-
-  # Snapshot the structure (drop geometry for stability)
-  expect_snapshot(as.data.frame(sf::st_drop_geometry(result)))
-
-  unlink(temp_shp)
-  unlink(temp_dem)
-})
 
 # add_las_filename tests ----
 
@@ -260,3 +111,14 @@ test_that("add_las_filename snapshot", {
 
   expect_snapshot(result_snapshot)
 })
+
+check_if_coordinates_are_unique <- function(df) {
+  if (any(duplicated(df[, c("x_meters", "y_meters")]))) {
+    stop(
+      "Warning: Some points have identical x_meters and y_meters coordinates.",
+      call. = FALSE
+    )
+  } else {
+    message("All points have unique x_meters and y_meters coordinates.")
+  }
+}

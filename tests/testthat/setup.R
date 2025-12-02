@@ -1,9 +1,6 @@
 # Test setup - runs once before all tests
 # Provides fixture factory functions for on-demand test data generation
 
-library(testthat)
-library(withr)
-
 # Define coordinate extents for different CRS
 # These are typical coordinate ranges for each region in their respective CRS
 get_coordinate_extent <- function(epsg_code) {
