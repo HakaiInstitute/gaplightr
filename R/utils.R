@@ -60,6 +60,7 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   invisible(NULL)
 }
 
+#' @export
 gla_load_points <- function(path, dem_path) {
   points <- sf::read_sf(path)
 

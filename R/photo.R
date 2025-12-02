@@ -1,4 +1,5 @@
-# Function to create fisheye image (single)
+#' Create fisheye image (single point)
+#' @keywords internal
 gla_create_fisheye_photo_single <- function(
   processed_lidar,
   x_msk,
@@ -102,7 +103,8 @@ gla_create_fisheye_photo_single <- function(
 }
 
 
-# Function to compute solar positions and radiation values
+#' Compute solar positions and radiation values
+#' @keywords internal
 gla_compute_solar_positions <- function(
   lat_deg,
   long_deg,
@@ -474,7 +476,8 @@ gla_lens_sigma_8mm <- function() {
 }
 
 
-# Internal function to process single fisheye photo and calculate SSR
+#' Process single fisheye photo and calculate SSR
+#' @keywords internal
 gla_process_fisheye_photo_single <- function(
   solar_data,
   img_file,
@@ -712,10 +715,6 @@ gla_process_fisheye_photos <- function(
     stringsAsFactors = FALSE
   )
 
-  # Get path to R directory for sourcing in workers
-  pkg_root <- here::here()
-  r_dir <- file.path(pkg_root, "R")
-
   # Process each fisheye photo
   if (parallel) {
     results_list <- future.apply::future_lapply(
@@ -733,15 +732,8 @@ gla_process_fisheye_photos <- function(
         Kt,
         rotation_deg,
         keep_gap_fraction_data,
-        radial_distortion,
-        r_dir
+        radial_distortion
       ) {
-        # Source all R files in worker to make package functions available
-        r_files <- list.files(r_dir, pattern = "\\.R$", full.names = TRUE)
-        for (f in r_files) {
-          source(f, local = FALSE)
-        }
-
         # Compute solar data in worker (avoids passing large object)
         solar_data <- gla_compute_solar_positions(
           lat_deg = pts$lat[i],
@@ -782,7 +774,6 @@ gla_process_fisheye_photos <- function(
       keep_gap_fraction_data = keep_gap_fraction_data,
       radial_distortion = radial_distortion,
       rotation_deg = rotation_deg,
-      r_dir = r_dir,
       future.seed = TRUE
     )
   } else {
@@ -1036,10 +1027,6 @@ gla_create_fisheye_photos <- function(
   # (if resume=TRUE, some points may be skipped, so we subset from points$horizon_mask)
   horizon_list <- points$horizon_mask[points_to_process_indices]
 
-  # Get path to R directory for sourcing in parallel workers
-  pkg_root <- here::here()
-  r_dir <- file.path(pkg_root, "R")
-
   message(
     "Processing ",
     length(points_to_process_indices),
@@ -1052,12 +1039,6 @@ gla_create_fisheye_photos <- function(
       seq_along(points_to_process_indices),
       function(idx) {
         i <- points_to_process_indices[idx]
-        # Source all R files in worker to make package functions available
-        # TODO: this will not work in a package context
-        r_files <- list.files(r_dir, pattern = "\\.R$", full.names = TRUE)
-        for (f in r_files) {
-          source(f, local = FALSE) # Load into .GlobalEnv
-        }
 
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
