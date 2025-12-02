@@ -1,22 +1,3 @@
-# gla_create_fisheye_photos tests ----
-# Note: These tests are skipped by default as they require GRASS GIS
-# and are computationally intensive
-
-test_that("gla_create_fisheye_photos adds fisheye_photo_path column", {
-  skip("Requires GRASS GIS and is computationally intensive")
-  skip_if_not_installed("lidR")
-  skip_if_not_installed("rgrass")
-
-  # This test would verify that gla_create_fisheye_photos:
-  # 1. Accepts a points sf dataframe with required columns
-  # 2. Adds a fisheye_photo_path column
-  # 3. Returns an sf object with all original columns plus new column
-})
-
-test_that("gla_create_fisheye_photos snapshot", {
-  skip("Requires GRASS GIS and is computationally intensive")
-})
-
 # gla_process_fisheye_photos tests ----
 
 test_that("gla_process_fisheye_photos adds solar radiation columns", {
@@ -27,19 +8,7 @@ test_that("gla_process_fisheye_photos adds solar radiation columns", {
   )
 
   # Create minimal test points
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   # Run function (non-parallel, short date range for speed)
   result <- gla_process_fisheye_photos(
@@ -165,27 +134,6 @@ test_that("gla_extract_gap_fraction returns correct structure", {
   expect_true(all(result$total_pixels >= 0))
   expect_true(all(result$gap_pixels >= 0))
   expect_true(all(result$gap_pixels <= result$total_pixels))
-})
-
-test_that("gla_extract_gap_fraction wrapper works", {
-  test_photo <- test_path(
-    "testdata",
-    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
-  )
-
-  result <- gla_extract_gap_fraction(
-    img_file = test_photo,
-    elev_res = 5,
-    azi_res = 5,
-    rotation_deg = 0
-  )
-
-  # Should return same structure as compute_gap_fractions
-  expect_type(result, "list")
-  expect_named(
-    result,
-    c("gap_fraction", "total_pixels", "gap_pixels", "nRings", "nSectors")
-  )
 })
 
 test_that("gla_process_fisheye_photos with keep_gap_fraction_data = TRUE", {

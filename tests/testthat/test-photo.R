@@ -1,68 +1,18 @@
-# test_that("generated file exists", {
-#   expect_true(file.exists(gen_path))
-#   tmp_ref_path <- gsub("_cairo", "", basename(ref_path))
-#   expect_identical(
-#     basename(gen_path),
-#     tmp_ref_path
-#   )
-# })
-
-# test_that("files have same size", {
-#   expect_equal(file.size(ref_path), file.size(gen_path))
-# })
-
-# test_that("images have same dimensions", {
-#   expect_equal(imager::width(ref_img), imager::width(gen_img))
-#   expect_equal(imager::height(ref_img), imager::height(gen_img))
-#   expect_equal(imager::spectrum(ref_img), imager::spectrum(gen_img))
-# })
-
-# test_that("reference image values in valid range", {
-#   expect_true(all(ref_array >= 0 & ref_array <= 1))
-# })
-
-# test_that("generated image values in valid range", {
-#   expect_true(all(gen_array >= 0 & gen_array <= 1))
-# })
-
-# test_that("images have same dimensions", {
-#   expect_identical(dim(ref_array), dim(gen_array))
-# })
-
-# test_that("images are similar (low RMSE)", {
-#   rmse <- sqrt(mean((ref_array - gen_array)^2))
-#   expect_lt(rmse, 0.01)
-# })
-
-# test_that("images are highly correlated", {
-#   cor_val <- cor(as.vector(ref_array), as.vector(gen_array))
-#   expect_gte(cor_val, 0.999)
-# })
-
-# test_that("images are essentially identical", {
-#   expect_true(isTRUE(all.equal(ref_array, gen_array, tolerance = 0.1)))
-# })
-
-# test_that("maximum pixel difference is small", {
-#   max_diff <- max(abs(ref_array - gen_array))
-#   # Allow for small rounding differences in 0-1 scale
-#   expect_lt(max_diff, 0.05)
-# })
-
-# test_that("few pixels differ", {
-#   diff_count <- sum(ref_array != gen_array)
-#   total_pixels <- length(ref_array)
-#   diff_pct <- (diff_count / total_pixels) * 100
-#   expect_lt(diff_pct, 0.01)
-# })
-
-# test_that("images have similar min/max/sd", {
-#   expect_equal(min(ref_array), min(gen_array), tolerance = 1e-6)
-#   expect_equal(max(ref_array), max(gen_array), tolerance = 1e-6)
-#   expect_equal(sd(ref_array), sd(gen_array), tolerance = 1e-6)
-# })
-
 test_that("gla_compute_solar_positions returns expected structure", {
+  # Compute solar data locally for this test
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 50.1876,
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 2,
+    day_start = 1,
+    day_end = 365,
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5
+  )
+
   expect_snapshot({
     list(
       solar_mat_dim = dim(solar_data$solar_mat),
@@ -76,20 +26,120 @@ test_that("gla_compute_solar_positions returns expected structure", {
 })
 
 test_that("gla_process_fisheye_photo output matches snapshot", {
+  # Load reference image
+  ref_path <- test_path(
+    "testdata",
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+  )
+
+  # Compute solar data locally
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 50.1876,
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 2,
+    day_start = 1,
+    day_end = 365,
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5
+  )
+
+  # Process the photo
+  results_df <- gla_process_fisheye_photo_single(
+    solar_data = solar_data,
+    img_file = ref_path,
+    lat_deg = 50.1876,
+    long_deg = -125.6827,
+    Kt = 0.45,
+    elev_res = 5,
+    azi_res = 5,
+    rotation_deg = 0
+  )
+
   expect_snapshot(results_df)
 })
 
-test_that("gla_create_fisheye_photos expected filename format matches actual", {
-  # Test that the expected filename generation matches the actual format
-  site_id <- "1000_2000.0"
+test_that("gla_create_fisheye_photos generates expected filename format", {
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(crs = 3005, n_points = 1, output_path = stream_network_path)
+
+  las_dir <- withr::local_tempdir()
+  las_path <- file.path(las_dir, "minimal_plot_3005.las")
+  create_test_las(crs = 3005, n_points = 100, output_path = las_path)
+
+  output_dir_virtual_plots <- withr::local_tempdir()
+  output_dir_fisheye <- withr::local_tempdir()
+
+  # Load points
+  stream_points <- gla_load_points(stream_network_path, dem_path)
+
+  # Create virtual plots with larger radius to capture LAS points
+  stream_points <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = las_dir,
+    output_dir = output_dir_virtual_plots,
+    plot_radius = 50, # Match LAS point spread radius
+    chunk_size = 0,
+    resume = FALSE
+  )
+
+  # Verify we have valid LAS files
+  expect_true("las_files" %in% names(stream_points))
+  expect_true(!is.na(stream_points$las_files[1]))
+  expect_true(file.exists(stream_points$las_files[1]))
+
+  # Extract horizons
+  stream_points <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = withr::local_tempdir(),
+    step = 30,
+    max_search_distance = 1000,
+    verbose = FALSE
+  )
+
+  # Create fisheye photo with specific parameters
   pointsize <- 10
   dpi <- 300
   img_res <- 2800
   max_cex <- 0.2
 
+  stream_points <- gla_create_fisheye_photos(
+    points = stream_points,
+    output_dir = output_dir_fisheye,
+    cam_ht = 1.37,
+    min_dist = 1,
+    max_dist = 50,
+    img_res = img_res,
+    max_cex = max_cex,
+    min_cex = 0.05,
+    pointsize = pointsize,
+    dpi = dpi,
+    parallel = FALSE,
+    resume = FALSE
+  )
+
+  # Verify file was created
+  expect_true(file.exists(stream_points$fisheye_photo_path[1]))
+
+  # Get the actual filename
+  actual_filename <- basename(stream_points$fisheye_photo_path[1])
+
+  # Build expected filename format
+  site_id <- paste0(
+    stream_points$x_meters[1],
+    "_",
+    stream_points$y_meters[1]
+  )
   ss <- ifelse(max_cex == 0.2, "0pt2", ifelse(max_cex == 0.3, "0pt3", "0pt4"))
 
-  expected <- paste0(
+  expected_filename <- paste0(
     site_id,
     "_ps",
     pointsize,
@@ -103,9 +153,6 @@ test_that("gla_create_fisheye_photos expected filename format matches actual", {
     "px_polar.bmp"
   )
 
-  # This matches the format in gla_create_fisheye_photo_single
-  expect_equal(
-    expected,
-    "bad_test"
-  )
+  # Verify filename matches expected format
+  expect_equal(actual_filename, expected_filename)
 })
