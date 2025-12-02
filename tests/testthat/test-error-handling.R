@@ -312,21 +312,12 @@ test_that("gla_process_fisheye_photos errors on already processed points", {
   )
 
   # Create points with solar radiation columns already present
-  already_processed <- sf::st_as_sf(
-    data.frame(
-      stream = "CP38",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo,
-      canopy_openness_pct = 45.5,  # Already processed
-      transmitted_global_irradiation_MJm2d = 12.3,
-      light_penetration_index = 0.56
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
+  already_processed <- create_test_photo_points(
+    fisheye_photo_path = test_photo,
+    stream = "CP38",
+    canopy_openness_pct = 45.5,  # Already processed
+    transmitted_global_irradiation_MJm2d = 12.3,
+    light_penetration_index = 0.56
   )
 
   expect_error(

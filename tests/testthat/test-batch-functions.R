@@ -63,19 +63,7 @@ test_that("gla_process_fisheye_photos snapshot", {
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   result <- gla_process_fisheye_photos(
     points = test_points,
@@ -142,19 +130,7 @@ test_that("gla_process_fisheye_photos with keep_gap_fraction_data = TRUE", {
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   result <- gla_process_fisheye_photos(
     points = test_points,
@@ -188,19 +164,7 @@ test_that("gla_process_fisheye_photos with keep_gap_fraction_data = FALSE", {
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   result <- gla_process_fisheye_photos(
     points = test_points,
@@ -233,19 +197,7 @@ test_that("gap fraction values are consistent", {
   )
 
   # Extract via process function
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   process_result <- gla_process_fisheye_photos(
     points = test_points,
@@ -356,19 +308,7 @@ test_that("gla_process_fisheye_photos works with radial_distortion", {
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  test_points <- sf::st_as_sf(
-    data.frame(
-      stream = "R2D2",
-      x_meters = 1022655,
-      y_meters = 574704,
-      lat = 50.1876,
-      lon = -125.6827,
-      elevation = 238.44,
-      fisheye_photo_path = test_photo
-    ),
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
+  test_points <- create_test_photo_points(fisheye_photo_path = test_photo)
 
   # Process with Sigma lens calibration
   result <- gla_process_fisheye_photos(
