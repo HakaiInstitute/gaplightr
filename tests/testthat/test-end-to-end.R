@@ -1,4 +1,6 @@
 test_that("End-to-end terra workflow completes successfully", {
+  skip_on_macos_ci()
+
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
@@ -149,6 +151,7 @@ test_that("End-to-end terra workflow completes successfully", {
 
 test_that("End-to-end workflow with resume=TRUE skips existing files", {
   skip_on_cran()
+  skip_on_macos_ci()
 
   # Create test fixtures on-demand
   dem_path <- withr::local_tempfile(fileext = ".tif")

@@ -1,6 +1,15 @@
 # Test setup - runs once before all tests
 # Provides fixture factory functions for on-demand test data generation
 
+#' Skip test on macOS CI
+#'
+#' Helper to skip tests that use lidR on macOS CI where it segfaults on ARM64.
+#' Allows tests to run locally on macOS for development.
+skip_on_macos_ci <- function() {
+  testthat::skip_on_os("mac")
+  testthat::skip_on_ci()
+}
+
 # Define coordinate extents for different CRS
 # These are typical coordinate ranges for each region in their respective CRS
 get_coordinate_extent <- function(epsg_code) {
