@@ -44,7 +44,7 @@ jobs:
         if: runner.os == 'macOS'
         continue-on-error: true
         run: |
-          brew install pkg-config gdal udunits      
+          brew install pkg-config gdal proj udunits      
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
