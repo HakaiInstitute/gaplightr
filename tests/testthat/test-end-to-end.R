@@ -1,6 +1,4 @@
 test_that("End-to-end terra workflow completes successfully", {
-  skip_on_cran()
-
   # Setup paths to minimal test fixtures
   dem_path <- test_path("testdata", "minimal_dem_3005.tif")
   stream_network_path <- test_path(
