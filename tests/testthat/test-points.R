@@ -31,36 +31,19 @@ test_that("gla_load_points loads all points without filtering", {
 ## gla_load_points tests ----
 
 test_that("gla_load_points loads and processes points correctly", {
-  # Create minimal test shapefile
-  test_points <- sf::st_as_sf(
-    data.frame(
-      x = c(1022655, 1022700),
-      y = c(574704, 574750)
-    ),
-    coords = c("x", "y"),
-    crs = 3005
-  )
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
 
-  # Save to temporary file
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_points, temp_shp)
-
-  # Create minimal test DEM
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(
-    nrows = 10,
-    ncols = 10,
-    xmin = 1022600,
-    xmax = 1022800,
-    ymin = 574650,
-    ymax = 574800,
-    crs = "EPSG:3005",
-    vals = rep(250, 100) # Constant elevation
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
   )
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
 
   # Test loading
-  result <- gla_load_points(temp_shp, temp_dem)
+  result <- gla_load_points(stream_network_path, dem_path)
 
   # Verify structure
   expect_s3_class(result, "sf")
@@ -72,10 +55,6 @@ test_that("gla_load_points loads and processes points correctly", {
 
   # Should load all points
   expect_equal(nrow(result), 2)
-
-  # Clean up
-  unlink(temp_shp)
-  unlink(temp_dem)
 })
 
 test_that("gla_load_points validates input geometry type", {
@@ -90,38 +69,29 @@ test_that("gla_load_points validates input geometry type", {
     crs = 3005
   )
 
-  temp_shp <- tempfile(fileext = ".gpkg")
+  temp_shp <- withr::local_tempfile(fileext = ".gpkg")
   sf::write_sf(test_lines, temp_shp)
 
-  temp_dem <- tempfile(fileext = ".tif")
-  r <- terra::rast(nrows = 2, ncols = 2, vals = 1)
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
 
   expect_error(
-    gla_load_points(temp_shp, temp_dem),
+    gla_load_points(temp_shp, dem_path),
     "must contain only POINT geometries"
   )
-
-  unlink(temp_shp)
-  unlink(temp_dem)
 })
 
 test_that("gla_load_points validates CRS matches between points and DEM", {
   # Create points in EPSG:3005
-  test_points <- sf::st_as_sf(
-    data.frame(
-      x = c(1022655),
-      y = c(574704)
-    ),
-    coords = c("x", "y"),
-    crs = 3005
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 1,
+    output_path = stream_network_path
   )
 
-  temp_shp <- tempfile(fileext = ".gpkg")
-  sf::write_sf(test_points, temp_shp)
-
   # Create DEM in different CRS (EPSG:32610 - UTM Zone 10N)
-  temp_dem <- tempfile(fileext = ".tif")
+  dem_path <- withr::local_tempfile(fileext = ".tif")
   r <- terra::rast(
     nrows = 10,
     ncols = 10,
@@ -132,16 +102,13 @@ test_that("gla_load_points validates CRS matches between points and DEM", {
     crs = "EPSG:32610",
     vals = rep(250, 100)
   )
-  terra::writeRaster(r, temp_dem, overwrite = TRUE)
+  terra::writeRaster(r, dem_path, overwrite = TRUE)
 
   # Should error about CRS mismatch
   expect_error(
-    gla_load_points(temp_shp, temp_dem),
+    gla_load_points(stream_network_path, dem_path),
     "CRS mismatch between Points and DEM"
   )
-
-  unlink(temp_shp)
-  unlink(temp_dem)
 })
 
 
