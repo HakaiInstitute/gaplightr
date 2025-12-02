@@ -31,11 +31,13 @@ test_that("gla_extract_horizons handles missing DEM file", {
 })
 
 test_that("gla_create_fisheye_photos handles missing/invalid LAS files", {
-  dem_path <- test_path("testdata", "minimal_dem_3005.tif")
-  stream_network_path <- test_path(
-    "testdata",
-    "minimal_stream_network_3005.gpkg"
-  )
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+
   output_dir <- withr::local_tempdir()
 
   stream_points <- gla_load_points(
@@ -79,7 +81,9 @@ test_that("gla_create_fisheye_photos handles empty LAS file", {
 })
 
 test_that("gla_extract_horizon_terra handles point outside DEM extent", {
-  dem_path <- test_path("testdata", "minimal_dem_3005.tif")
+  # Create test fixture on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
   dem_rast <- terra::rast(dem_path)
 
   # Point way outside DEM extent (far from 1000, 2000)
@@ -105,11 +109,12 @@ test_that("gla_load_points handles missing stream network file", {
 })
 
 test_that("gla_load_points loads all points without filtering", {
-  dem_path <- test_path("testdata", "minimal_dem_3005.tif")
-  stream_network_path <- test_path(
-    "testdata",
-    "minimal_stream_network_3005.gpkg"
-  )
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
 
   # Load all points
   result <- gla_load_points(stream_network_path, dem_path)
@@ -158,12 +163,16 @@ test_that("gla_process_fisheye_photos handles corrupted image file", {
 test_that("Resume logic handles partially created virtual plots", {
   skip_on_cran()
 
-  dem_path <- test_path("testdata", "minimal_dem_3005.tif")
-  stream_network_path <- test_path(
-    "testdata",
-    "minimal_stream_network_3005.gpkg"
-  )
-  las_path <- test_path("testdata", "3005", "minimal_plot_3005.las")
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+
+  las_dir <- withr::local_tempdir()
+  las_path <- file.path(las_dir, "minimal_plot_3005.las")
+  create_test_las(crs = 3005, n_points = 100, output_path = las_path)
 
   output_dir_virtual_plots <- withr::local_tempdir()
 
@@ -244,7 +253,9 @@ test_that("gla_extract_horizons validates sf object", {
 })
 
 test_that("gla_extract_horizons extracts coordinates from geometry", {
-  dem_path <- test_path("testdata", "minimal_dem_3005.tif")
+  # Create test fixture on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
 
   # Create points WITHOUT lat/lon columns - should work now
   points_data <- data.frame(

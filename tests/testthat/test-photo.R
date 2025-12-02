@@ -79,16 +79,6 @@ test_that("gla_process_fisheye_photo output matches snapshot", {
   expect_snapshot(results_df)
 })
 
-# gla_create_fisheye_photos resume tests ----
-test_that("gla_create_fisheye_photos resume skips existing files", {
-  skip_if_not_installed("rgrass")
-  skip_on_ci() # GRASS not available in CI
-
-  # This test would require full GRASS setup and LiDAR data
-  # Placeholder for when we have proper test fixtures
-  expect_true(TRUE)
-})
-
 test_that("gla_create_fisheye_photos expected filename format matches actual", {
   # Test that the expected filename generation matches the actual format
   site_id <- "1000_2000.0"
@@ -116,6 +106,6 @@ test_that("gla_create_fisheye_photos expected filename format matches actual", {
   # This matches the format in gla_create_fisheye_photo_single
   expect_equal(
     expected,
-    "1000_2000.0_ps10_cex0pt2_300dpi_2800px_polar.bmp"
+    "bad_test"
   )
 })

@@ -1,9 +1,4 @@
-# Script to create minimal test fixtures for end-to-end testing
-# Run this once to generate test data files
-
-library(terra)
-library(lidR)
-library(sf)
+# Fixture factory functions for test data
 
 # Define coordinate extents for different CRS
 # These are typical coordinate ranges for each region in their respective CRS
@@ -24,17 +19,23 @@ get_coordinate_extent <- function(epsg_code) {
   }
 }
 
-# Create minimal DEM (100x100 pixels, simple terrain)
-# 10m resolution, projected coordinates
-create_minimal_dem <- function(target_crs, suffix) {
-  # Create a simple elevation grid: flat with a small hill
-  nrows <- 100
-  ncols <- 100
-
+#' Create minimal DEM test fixture
+#'
+#' @param crs EPSG code (3005 or 26912)
+#' @param nrows Number of rows in raster (default 100)
+#' @param ncols Number of columns in raster (default 100)
+#' @param output_path Path where DEM should be written
+#' @return Path to created DEM file
+create_test_dem <- function(
+  crs = 3005,
+  nrows = 100,
+  ncols = 100,
+  output_path = NULL
+) {
   # Get appropriate coordinates for this CRS
-  extent_info <- get_coordinate_extent(target_crs)
+  extent_info <- get_coordinate_extent(crs)
 
-  # Create coordinate grid
+  # Create coordinate grid (10m resolution)
   x <- seq(extent_info$x_min, extent_info$x_min + (ncols - 1) * 10, by = 10)
   y <- seq(extent_info$y_min, extent_info$y_min + (nrows - 1) * 10, by = 10)
 
@@ -57,35 +58,38 @@ create_minimal_dem <- function(target_crs, suffix) {
   # Create raster
   dem <- terra::rast(
     elev_matrix,
-    extent = ext(min(x), max(x), min(y), max(y)),
-    crs = paste0("EPSG:", target_crs)
+    extent = terra::ext(min(x), max(x), min(y), max(y)),
+    crs = paste0("EPSG:", crs)
   )
 
   names(dem) <- "elevation"
 
-  output_path <- test_path(
-    "testdata",
-    paste0(
-      "minimal_dem_",
-      target_crs,
-      ".tif"
+  # Determine output path
+  if (is.null(output_path)) {
+    output_path <- test_path(
+      "testdata",
+      paste0("minimal_dem_", crs, ".tif")
     )
-  )
-  writeRaster(dem, output_path, overwrite = TRUE)
-  cat("Created minimal DEM:", output_path, "\n")
+  }
+
+  terra::writeRaster(dem, output_path, overwrite = TRUE)
 
   output_path
 }
 
-# Create minimal LAS file (small point cloud)
-create_minimal_las <- function(target_crs) {
+#' Create minimal LAS test fixture
+#'
+#' @param crs EPSG code (3005 or 26912)
+#' @param n_points Number of points to generate (default 100)
+#' @param output_path Path where LAS file should be written
+#' @return Path to created LAS file
+create_test_las <- function(crs = 3005, n_points = 100, output_path = NULL) {
   set.seed(123)
 
   # Get appropriate coordinates for this CRS
-  extent_info <- get_coordinate_extent(target_crs)
+  extent_info <- get_coordinate_extent(crs)
 
-  # Create 100 points around center of DEM
-  n_points <- 100
+  # Create points around center of DEM
   center_x <- extent_info$x_min + 500
   center_y <- extent_info$y_min + 500
 
@@ -93,95 +97,94 @@ create_minimal_las <- function(target_crs) {
   angles <- runif(n_points, 0, 2 * pi)
   radii <- runif(n_points, 0, 50)
 
-  X <- center_x + radii * cos(angles)
-  Y <- center_y + radii * sin(angles)
-  Z <- runif(n_points, 110, 140) # Heights above ground
+  x_coords <- center_x + radii * cos(angles)
+  y_coords <- center_y + radii * sin(angles)
+  z_coords <- runif(n_points, 110, 140) # Heights above ground
 
   # Create classification (2 = ground, 5 = vegetation)
-  Classification <- as.integer(sample(
+  classification <- as.integer(sample(
     c(2, 5),
     n_points,
     replace = TRUE,
     prob = c(0.2, 0.8)
   ))
 
-  # Create LAS object
   # Generate consistent return numbers
-  NumberOfReturns <- as.integer(sample(1:3, n_points, replace = TRUE))
-  ReturnNumber <- sapply(NumberOfReturns, function(n) sample(1:n, 1))
+  number_of_returns <- as.integer(sample(1:3, n_points, replace = TRUE))
+  return_number <- sapply(number_of_returns, function(n) sample(1:n, 1))
 
+  # Create LAS object
   las_data <- data.frame(
-    X = X,
-    Y = Y,
-    Z = Z,
-    Classification = Classification,
+    X = x_coords,
+    Y = y_coords,
+    Z = z_coords,
+    Classification = classification,
     Intensity = as.integer(runif(n_points, 0, 65535)),
-    ReturnNumber = as.integer(ReturnNumber),
-    NumberOfReturns = as.integer(NumberOfReturns)
+    ReturnNumber = as.integer(return_number),
+    NumberOfReturns = as.integer(number_of_returns)
   )
 
-  las <- LAS(las_data)
-  lidR::projection(las) <- target_crs # Set CRS using lidR projection
+  las <- lidR::LAS(las_data)
+  lidR::projection(las) <- crs # Set CRS using lidR projection
 
-  las_dir <- test_path("testdata", target_crs)
+  # Determine output path
+  if (is.null(output_path)) {
+    las_dir <- test_path("testdata", as.character(crs))
 
-  # Create directory if it doesn't exist
-  if (!dir.exists(las_dir)) {
-    dir.create(las_dir, recursive = TRUE)
+    # Create directory if it doesn't exist
+    if (!dir.exists(las_dir)) {
+      dir.create(las_dir, recursive = TRUE)
+    }
+
+    output_path <- file.path(las_dir, paste0("minimal_plot_", crs, ".las"))
   }
 
-  output_path <- file.path(las_dir, paste0("minimal_plot_", target_crs, ".las"))
-  writeLAS(las, output_path)
-  cat("Created minimal LAS file:", output_path, "\n")
+  lidR::writeLAS(las, output_path)
 
   output_path
 }
 
-# Create minimal stream network (2 points)
-create_minimal_stream_network <- function(target_crs) {
+#' Create minimal point test fixture
+#'
+#' @param crs EPSG code (3005 or 26912)
+#' @param n_points Number of points to generate (default 2)
+#' @param output_path Path where points should be written
+#' @return Path to created points file
+create_test_points <- function(crs = 3005, n_points = 2, output_path = NULL) {
   # Get appropriate coordinates for this CRS
-  extent_info <- get_coordinate_extent(target_crs)
+  extent_info <- get_coordinate_extent(crs)
 
-  # Two points in the middle of our DEM
+  # Generate points in the middle of our DEM
+  x_coords <- seq(
+    extent_info$x_min + 500,
+    extent_info$x_min + 500 + (n_points - 1) * 20,
+    length.out = n_points
+  )
+  y_coords <- seq(
+    extent_info$y_min + 500,
+    extent_info$y_min + 500 + (n_points - 1) * 20,
+    length.out = n_points
+  )
+
   # Convert to sf object
-  stream_points <- st_as_sf(
+  points <- sf::st_as_sf(
     data.frame(
-      x_meters = c(extent_info$x_min + 500, extent_info$x_min + 520),
-      y_meters = c(extent_info$y_min + 500, extent_info$y_min + 520)
+      x_meters = x_coords,
+      y_meters = y_coords
     ),
     coords = c("x_meters", "y_meters"),
-    crs = target_crs
+    crs = crs
   )
 
-  output_path <- test_path(
-    "testdata",
-    paste0("minimal_stream_network_", target_crs, ".gpkg")
-  )
-  st_write(stream_points, output_path, delete_dsn = TRUE, quiet = TRUE)
-  cat("Created minimal stream network:", output_path, "\n")
+  # Determine output path
+  if (is.null(output_path)) {
+    output_path <- test_path(
+      "testdata",
+      paste0("minimal_stream_network_", crs, ".gpkg")
+    )
+  }
+
+  sf::st_write(points, output_path, delete_dsn = TRUE, quiet = TRUE)
 
   output_path
 }
-
-# Generate fixtures and register cleanup
-# This runs when the helper file loads (before tests)
-
-# CRS 3005 (BC Albers)
-dem_path_3005 <- create_minimal_dem(3005)
-las_path_3005 <- create_minimal_las(3005)
-stream_path_3005 <- create_minimal_stream_network(3005)
-
-# CRS 26912 (UTM Zone 12N)
-dem_path_26912 <- create_minimal_dem(26912)
-las_path_26912 <- create_minimal_las(26912)
-stream_path_26912 <- create_minimal_stream_network(26912)
-
-# Store paths for cleanup in teardown.R
-.fixture_paths <- list(
-  dem_3005 = dem_path_3005,
-  las_3005 = las_path_3005,
-  stream_3005 = stream_path_3005,
-  dem_26912 = dem_path_26912,
-  las_26912 = las_path_26912,
-  stream_26912 = stream_path_26912
-)
