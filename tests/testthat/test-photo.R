@@ -487,3 +487,146 @@ test_that("gla_process_fisheye_photos works with radial_distortion", {
     result$canopy_openness_pct > 0 && result$canopy_openness_pct < 100
   )
 })
+
+# Polar day/night edge case tests ----
+
+test_that("gla_compute_solar_positions handles polar night correctly", {
+  # Arctic winter: 80°N latitude, December 21 (day 356)
+  # At this latitude/date, cos_ws > 1 so sun never rises (24h darkness)
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 80, # Arctic latitude
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 60, # Hourly for simplicity
+    day_start = 356, # Dec 21 (winter solstice)
+    day_end = 356, # Just one day
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5
+  )
+
+  # Expected behavior for polar night:
+  # - day_mat should record: day number, day_length=0, Ho_Wm2=0, Ho_MJm2=0
+  # - solar_mat should have NO rows (k never increments, no solar positions)
+
+  # Check day_mat structure
+  expect_equal(nrow(solar_data$day_mat), 1)
+  expect_equal(ncol(solar_data$day_mat), 7)
+
+  # Check day_mat values
+  expect_equal(solar_data$day_mat[1, 1], 356) # Day number
+  expect_equal(solar_data$day_mat[1, 2], 0) # Day length = 0
+  expect_true(is.na(solar_data$day_mat[1, 3])) # Sunrise = NA
+  expect_true(is.na(solar_data$day_mat[1, 4])) # Sunset = NA
+  expect_equal(solar_data$day_mat[1, 5], 0) # numSolarPos = 0
+  expect_equal(solar_data$day_mat[1, 6], 0) # Ho_Wm2 = 0
+  expect_equal(solar_data$day_mat[1, 7], 0) # Ho_MJm2 = 0
+
+  # Check solar_mat - should be empty matrix (no solar positions calculated)
+  # Should maintain matrix structure with column names even when empty
+  expect_true(is.matrix(solar_data$solar_mat))
+  expect_equal(nrow(solar_data$solar_mat), 0)
+  expect_equal(ncol(solar_data$solar_mat), 11)
+
+  # Verify column names are preserved
+  expected_colnames <- c(
+    "DAY_NUM",
+    "ZENITH",
+    "AZIMUTH",
+    "X_SUN",
+    "Y_SUN",
+    "EoT_MIN",
+    "TIME_CORR_MIN",
+    "SOLAR_TIME_HR",
+    "LOCAL_STD_TIME_HR",
+    "EXTRA_Wm2",
+    "REL_BEAM"
+  )
+  expect_equal(colnames(solar_data$solar_mat), expected_colnames)
+})
+
+test_that("gla_compute_solar_positions handles polar day (midnight sun) correctly", {
+  # Arctic summer: 80°N latitude, June 21 (day 172)
+  # At this latitude/date, cos_ws < -1 so sun never sets (24h daylight)
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 80, # Arctic latitude
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 60, # Hourly for simplicity
+    day_start = 172, # June 21 (summer solstice)
+    day_end = 172, # Just one day
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5
+  )
+
+  # Expected behavior for polar day: code proceeds normally
+  # - day_mat should have day_length = 24 hours
+  # - Ho_Wm2 and Ho_MJm2 should be > 0 (we have sunlight!)
+  # - solar_mat should have ~24 rows (hourly time steps)
+
+  expect_equal(solar_data$day_mat[1, 1], 172) # Day number
+  expect_equal(solar_data$day_mat[1, 2], 24) # Day length = 24 hours
+  expect_gt(solar_data$day_mat[1, 6], 0) # Ho_Wm2 > 0
+  expect_gt(solar_data$day_mat[1, 7], 0) # Ho_MJm2 > 0
+
+  # Should have solar positions for all 24 hours
+  expect_gt(length(solar_data$solar_mat), 0) # Has data
+})
+
+test_that("gla_compute_solar_positions handles mixed polar day, normal, and polar night", {
+  # Arctic: 80°N latitude
+  # Test three specific days that span all conditions:
+  # - Day 172 (Jun 21): Polar day (midnight sun)
+  # - Day 264 (Sep 21): Normal equinox conditions
+  # - Day 356 (Dec 21): Polar night (no sun)
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 80, # Arctic latitude
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 720, # 12-hour steps for speed
+    day_start = 172, # June 21 (summer solstice)
+    day_end = 356, # Dec 21 (winter solstice)
+    day_res = 92, # Sample 3 days
+    elev_res = 5,
+    azi_res = 5
+  )
+
+  # day_mat should have ALL 3 days recorded
+  expect_equal(nrow(solar_data$day_mat), 3)
+
+  # Check that we have the expected day numbers
+  expect_equal(solar_data$day_mat[1, 1], 172) # Jun 21 (polar day)
+  expect_equal(solar_data$day_mat[2, 1], 264) # Sep 21 (equinox)
+  expect_equal(solar_data$day_mat[3, 1], 356) # Dec 21 (polar night)
+
+  # Day 1 (Jun 21): polar day - should have 24h daylight
+  expect_equal(solar_data$day_mat[1, 2], 24) # Day length = 24
+  expect_gt(solar_data$day_mat[1, 6], 0) # Ho_Wm2 > 0
+
+  # Day 2 (Sep 21): equinox - should have normal daylight (~12h)
+  expect_gt(solar_data$day_mat[2, 2], 0) # Day length > 0
+  expect_lt(solar_data$day_mat[2, 2], 24) # Day length < 24
+  expect_gt(solar_data$day_mat[2, 6], 0) # Ho_Wm2 > 0
+
+  # Day 3 (Dec 21): polar night - should have 0h daylight
+  expect_equal(solar_data$day_mat[3, 2], 0) # Day length = 0
+  expect_equal(solar_data$day_mat[3, 6], 0) # Ho_Wm2 = 0
+
+  # solar_mat should have data (matrix structure even if some days contribute 0 rows)
+  expect_true(is.matrix(solar_data$solar_mat))
+  expect_equal(ncol(solar_data$solar_mat), 11)
+
+  # solar_mat should have rows for days with sun
+  expect_gt(nrow(solar_data$solar_mat), 0) # Should have some data
+
+  # Day 172 (Jun 21) and Day 264 (Sep 21) should be in solar_mat
+  expect_true(172 %in% solar_data$solar_mat[, "DAY_NUM"])
+  expect_true(264 %in% solar_data$solar_mat[, "DAY_NUM"])
+
+  # Day 356 (Dec 21) should NOT be in solar_mat (polar night)
+  expect_false(356 %in% solar_data$solar_mat[, "DAY_NUM"])
+})

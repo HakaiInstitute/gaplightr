@@ -122,3 +122,80 @@ check_if_coordinates_are_unique <- function(df) {
     message("All points have unique x_meters and y_meters coordinates.")
   }
 }
+
+
+# sshourangle tests ----
+
+test_that("sshourangle handles polar night (cos_ws > 1)", {
+  # Arctic winter: 80°N latitude, December 21
+  lat_rad <- 80 * deg_to_rad()
+  dec_rad <- -23.44 * deg_to_rad() # Winter solstice declination
+
+  result <- sshourangle(lat_rad, dec_rad)
+
+  # Should return: cos_ws, sunrise, sunset
+  expect_equal(length(result), 3)
+
+  cos_ws <- result[1]
+  sunrise <- result[2]
+  sunset <- result[3]
+
+  # cos_ws should be > 1 (polar night condition)
+  expect_gt(cos_ws, 1)
+
+  # sunrise and sunset should be NA
+  expect_true(is.na(sunrise))
+  expect_true(is.na(sunset))
+})
+
+test_that("sshourangle handles polar day (cos_ws < -1)", {
+  # Arctic summer: 80°N latitude, June 21
+  lat_rad <- 80 * deg_to_rad()
+  dec_rad <- 23.44 * deg_to_rad() # Summer solstice declination
+
+  result <- sshourangle(lat_rad, dec_rad)
+
+  # Should return: cos_ws, sunrise, sunset
+  expect_equal(length(result), 3)
+
+  cos_ws <- result[1]
+  sunrise <- result[2]
+  sunset <- result[3]
+
+  # cos_ws should be < -1 (polar day condition)
+  expect_lt(cos_ws, -1)
+
+  # sunrise should be pi, sunset should be -pi
+  expect_equal(sunrise, pi)
+  expect_equal(sunset, -pi)
+})
+
+test_that("sshourangle handles normal case (-1 <= cos_ws <= 1)", {
+  # Mid-latitude: 50°N latitude, equinox
+  lat_rad <- 50 * deg_to_rad()
+  dec_rad <- 0 # Equinox declination
+
+  result <- sshourangle(lat_rad, dec_rad)
+
+  # Should return: cos_ws, sunrise, sunset
+  expect_equal(length(result), 3)
+
+  cos_ws <- result[1]
+  sunrise <- result[2]
+  sunset <- result[3]
+
+  # cos_ws should be in valid range
+  expect_gte(cos_ws, -1)
+  expect_lte(cos_ws, 1)
+
+  # sunrise and sunset should be finite, non-NA values
+  expect_true(is.finite(sunrise))
+  expect_true(is.finite(sunset))
+
+  # sunset should be negative of sunrise
+  expect_equal(sunset, -sunrise)
+
+  # At equinox, expect roughly 12 hours of daylight (sunrise ~= pi/2)
+  expect_gt(sunrise, 0)
+  expect_lt(sunrise, pi)
+})
