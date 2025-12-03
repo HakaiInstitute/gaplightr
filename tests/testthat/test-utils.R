@@ -199,3 +199,42 @@ test_that("sshourangle handles normal case (-1 <= cos_ws <= 1)", {
   expect_gt(sunrise, 0)
   expect_lt(sunrise, pi)
 })
+
+
+# solpos tests ----
+
+test_that("solpos handles sun directly overhead (SZA = 0)", {
+  # Sun directly overhead: equator at solar noon on equinox
+  # Solar declination = 0 (equinox), latitude = 0 (equator), hour angle = 0 (noon)
+  dec_rad <- 0
+  lat_rad <- 0
+  ha_rad <- 0
+
+  result <- solpos(dec_rad, lat_rad, ha_rad)
+
+  # Should return: sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun
+  expect_equal(length(result), 7)
+
+  sz <- result[1]  # Solar zenith
+  se <- result[2]  # Solar elevation
+  sa <- result[3]  # Solar azimuth
+  sa_rot <- result[4]  # Solar azimuth rotated
+  sa_rot_ccw <- result[5]  # Solar azimuth CCW
+  x_sun <- result[6]  # X coordinate
+  y_sun <- result[7]  # Y coordinate
+
+  # When sun is overhead, zenith angle should be 0
+  expect_equal(sz, 0, tolerance = 1e-10)
+
+  # Solar elevation should be pi/2 (90 degrees)
+  expect_equal(se, rad_90(), tolerance = 1e-10)
+
+  # Solar azimuth is undefined when overhead, should be NA
+  expect_true(is.na(sa))
+  expect_true(is.na(sa_rot))
+  expect_true(is.na(sa_rot_ccw))
+
+  # Cartesian coordinates should be (0, 0) when overhead
+  expect_equal(x_sun, 0, tolerance = 1e-10)
+  expect_equal(y_sun, 0, tolerance = 1e-10)
+})
