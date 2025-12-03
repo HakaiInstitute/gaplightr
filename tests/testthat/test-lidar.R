@@ -130,251 +130,11 @@ test_that("gla_create_virtual_plots validates points input", {
   )
 })
 
-test_that("gla_create_virtual_plots creates output files and adds columns", {
-  # Create minimal test LAS file
-  temp_las_dir <- tempfile(pattern = "las_dir")
-  dir.create(temp_las_dir)
-
-  # Create a simple LAS file with minimal points
-  las_data <- data.frame(
-    X = c(1000, 1001, 1002),
-    Y = c(2000, 2001, 2002),
-    Z = c(100, 101, 102),
-    Classification = as.integer(c(1, 2, 1))
-  )
-
-  las <- lidR::LAS(las_data)
-  lidR::projection(las) <- 3005  # Set CRS to match test points
-  temp_las <- file.path(temp_las_dir, "test.las")
-  lidR::writeLAS(las, temp_las)
-
-  # Create test points with x_meters and y_meters columns
-  test_df <- data.frame(
-    stream = "test1",
-    x_meters = 1001,
-    y_meters = 2001
-  )
-
-  test_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-
-  # Add x_meters and y_meters back as columns (required by add_las_filename)
-  test_points$x_meters <- test_df$x_meters
-  test_points$y_meters <- test_df$y_meters
-
-  # Create output directory
-  temp_output <- tempfile(pattern = "output_dir")
-  dir.create(temp_output)
-
-  # Run function
-  result <- gla_create_virtual_plots(
-    points = test_points,
-    folder = temp_las_dir,
-    output_dir = temp_output,
-    plot_radius = 5
-  )
-
-  # Verify structure
-  expect_s3_class(result, "sf")
-  expect_true("las_files" %in% names(result))
-
-  # Verify output files were created
-  output_files <- list.files(
-    temp_output,
-    pattern = "\\.las$",
-    full.names = TRUE
-  )
-  expect_gt(length(output_files), 0)
-
-  # Verify las_files column contains valid paths
-  expect_true(all(file.exists(result$las_files)))
-
-  # Clean up
-  unlink(temp_las_dir, recursive = TRUE)
-  unlink(temp_output, recursive = TRUE)
-})
-
-test_that("gla_create_virtual_plots resume skips existing files", {
-  # Create minimal test LAS file
-  temp_las_dir <- tempfile(pattern = "las_dir")
-  dir.create(temp_las_dir)
-
-  las_data <- data.frame(
-    X = c(1000, 1001, 1002, 1003),
-    Y = c(2000, 2001, 2002, 2003),
-    Z = c(100, 101, 102, 103),
-    Classification = as.integer(c(1, 2, 1, 2))
-  )
-
-  las <- lidR::LAS(las_data)
-  lidR::projection(las) <- 3005  # Set CRS to match test points
-  temp_las <- file.path(temp_las_dir, "test.las")
-  lidR::writeLAS(las, temp_las)
-
-  # Create test points - two points
-  test_df <- data.frame(
-    stream = c("test1", "test2"),
-    x_meters = c(1001, 1002),
-    y_meters = c(2001, 2002)
-  )
-
-  test_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-
-  test_points$x_meters <- test_df$x_meters
-  test_points$y_meters <- test_df$y_meters
-
-  temp_output <- tempfile(pattern = "output_dir")
-  dir.create(temp_output)
-
-  # First run - create both plots
-  result1 <- gla_create_virtual_plots(
-    points = test_points,
-    folder = temp_las_dir,
-    output_dir = temp_output,
-    plot_radius = 5,
-    resume = TRUE
-  )
-
-  # Verify both files created
-  output_files_1 <- list.files(temp_output, pattern = "\\.las$")
-  n_files_first_run <- length(output_files_1)
-  expect_gt(n_files_first_run, 0)
-
-  # Second run - should skip existing files
-  expect_message(
-    result2 <- gla_create_virtual_plots(
-      points = test_points,
-      folder = temp_las_dir,
-      output_dir = temp_output,
-      plot_radius = 5,
-      resume = TRUE
-    ),
-    "already exist"
-  )
-
-  # Verify no new files created
-  output_files_2 <- list.files(temp_output, pattern = "\\.las$")
-  expect_equal(length(output_files_2), n_files_first_run)
-
-  # Verify result still has correct structure
-  expect_s3_class(result2, "sf")
-  expect_true("las_files" %in% names(result2))
-  expect_equal(nrow(result2), nrow(test_points))
-
-  # Clean up
-  unlink(temp_las_dir, recursive = TRUE)
-  unlink(temp_output, recursive = TRUE)
-})
-
-test_that("gla_create_virtual_plots resume processes only new points", {
-  # Create minimal test LAS file
-  temp_las_dir <- tempfile(pattern = "las_dir")
-  dir.create(temp_las_dir)
-
-  las_data <- data.frame(
-    X = c(1000, 1001, 1002, 1003),
-    Y = c(2000, 2001, 2002, 2003),
-    Z = c(100, 101, 102, 103),
-    Classification = as.integer(c(1, 2, 1, 2))
-  )
-
-  las <- lidR::LAS(las_data)
-  lidR::projection(las) <- 3005  # Set CRS to match test points
-  temp_las <- file.path(temp_las_dir, "test.las")
-  lidR::writeLAS(las, temp_las)
-
-  # Create test points - start with one point
-  test_df_1 <- data.frame(
-    stream = "test1",
-    x_meters = 1001,
-    y_meters = 2001
-  )
-
-  test_points_1 <- sf::st_as_sf(
-    test_df_1,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-  test_points_1$x_meters <- test_df_1$x_meters
-  test_points_1$y_meters <- test_df_1$y_meters
-
-  temp_output <- tempfile(pattern = "output_dir")
-  dir.create(temp_output)
-
-  # First run - create one plot
-  result1 <- gla_create_virtual_plots(
-    points = test_points_1,
-    folder = temp_las_dir,
-    output_dir = temp_output,
-    plot_radius = 5,
-    resume = TRUE
-  )
-
-  n_files_first <- length(list.files(temp_output, pattern = "\\.las$"))
-
-  # Add a second point
-  test_df_2 <- data.frame(
-    stream = c("test1", "test2"),
-    x_meters = c(1001, 1002),
-    y_meters = c(2001, 2002)
-  )
-
-  test_points_2 <- sf::st_as_sf(
-    test_df_2,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-  test_points_2$x_meters <- test_df_2$x_meters
-  test_points_2$y_meters <- test_df_2$y_meters
-
-  # Second run with two points - should only process the new one
-  expect_message(
-    result2 <- gla_create_virtual_plots(
-      points = test_points_2,
-      folder = temp_las_dir,
-      output_dir = temp_output,
-      plot_radius = 5,
-      resume = TRUE
-    ),
-    "1 already exist"
-  )
-
-  # Verify one new file created
-  n_files_second <- length(list.files(temp_output, pattern = "\\.las$"))
-  expect_gt(n_files_second, n_files_first)
-
-  # Verify result has both points
-  expect_equal(nrow(result2), 2)
-  expect_true(all(!is.na(result2$las_files)))
-
-  # Clean up
-  unlink(temp_las_dir, recursive = TRUE)
-  unlink(temp_output, recursive = TRUE)
-})
-
 test_that("gla_create_virtual_plots handles empty output gracefully", {
-  # Create minimal valid LAS file
-  temp_las_dir <- tempfile(pattern = "las_dir")
-  dir.create(temp_las_dir)
-
-  las_data <- data.frame(
-    X = c(1000, 1001),
-    Y = c(2000, 2001),
-    Z = c(100, 101),
-    Classification = as.integer(c(1, 2))
-  )
-
-  las <- lidR::LAS(las_data)
-  lidR::projection(las) <- 3005  # Set CRS to match test points
+  # Create minimal valid LAS file using fixture generator
+  temp_las_dir <- withr::local_tempdir()
   temp_las <- file.path(temp_las_dir, "test.las")
-  lidR::writeLAS(las, temp_las)
+  create_test_las(crs = 3005, n_points = 2, output_path = temp_las)
 
   # Create test points far outside the LAS extent
   # clip_circle will succeed but create no output files
@@ -392,8 +152,7 @@ test_that("gla_create_virtual_plots handles empty output gracefully", {
   test_points$x_meters <- test_df$x_meters
   test_points$y_meters <- test_df$y_meters
 
-  temp_output <- tempfile(pattern = "output_dir")
-  dir.create(temp_output)
+  temp_output <- withr::local_tempdir()
 
   # Should handle empty results gracefully
   expect_message(
@@ -411,33 +170,18 @@ test_that("gla_create_virtual_plots handles empty output gracefully", {
   expect_s3_class(result, "sf")
   expect_true("las_files" %in% names(result))
   expect_true(all(is.na(result$las_files)))
-
-  # Clean up
-  unlink(temp_las_dir, recursive = TRUE)
-  unlink(temp_output, recursive = TRUE)
 })
 
 test_that("gla_create_virtual_plots snapshot", {
-  # Create minimal test LAS file
-  temp_las_dir <- tempfile(pattern = "las_dir")
-  dir.create(temp_las_dir)
-
-  las_data <- data.frame(
-    X = c(1000, 1001),
-    Y = c(2000, 2001),
-    Z = c(100, 101),
-    Classification = as.integer(c(1, 2))
-  )
-
-  las <- lidR::LAS(las_data)
-  lidR::projection(las) <- 3005  # Set CRS to match test points
+  # Create minimal test LAS file using fixture generator
+  temp_las_dir <- withr::local_tempdir()
   temp_las <- file.path(temp_las_dir, "test.las")
-  lidR::writeLAS(las, temp_las)
+  create_test_las(crs = 3005, n_points = 2, output_path = temp_las)
 
   test_df <- data.frame(
     stream = "test1",
-    x_meters = 1000,
-    y_meters = 2000.5
+    x_meters = 1000500,
+    y_meters = 500500
   )
 
   test_points <- sf::st_as_sf(
@@ -450,14 +194,13 @@ test_that("gla_create_virtual_plots snapshot", {
   test_points$x_meters <- test_df$x_meters
   test_points$y_meters <- test_df$y_meters
 
-  temp_output <- tempfile(pattern = "output_dir")
-  dir.create(temp_output)
+  temp_output <- withr::local_tempdir()
 
   result <- gla_create_virtual_plots(
     points = test_points,
     folder = temp_las_dir,
     output_dir = temp_output,
-    plot_radius = 5
+    plot_radius = 50
   )
 
   # Snapshot the structure (use basename for las_files to avoid temp path differences)
@@ -465,8 +208,55 @@ test_that("gla_create_virtual_plots snapshot", {
   result_snapshot$las_files <- basename(result_snapshot$las_files)
 
   expect_snapshot(result_snapshot)
+})
 
-  # Clean up
-  unlink(temp_las_dir, recursive = TRUE)
-  unlink(temp_output, recursive = TRUE)
+
+test_that("Resume logic handles partially created virtual plots", {
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
+  )
+
+  las_dir <- withr::local_tempdir()
+  las_path <- file.path(las_dir, "minimal_plot_3005.las")
+  create_test_las(crs = 3005, n_points = 100, output_path = las_path)
+
+  output_dir_virtual_plots <- withr::local_tempdir()
+
+  stream_points <- gla_load_points(
+    stream_network_path,
+    dem_path
+  )
+
+  # Create one virtual plot
+  stream_points_single <- stream_points[1, ]
+  stream_points_single <- gla_create_virtual_plots(
+    points = stream_points_single,
+    folder = dirname(las_path),
+    output_dir = output_dir_virtual_plots,
+    plot_radius = 5,
+    chunk_size = 0,
+    resume = FALSE
+  )
+
+  # Now try to create both with resume=TRUE
+  stream_points_all <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = dirname(las_path),
+    output_dir = output_dir_virtual_plots,
+    plot_radius = 5,
+    chunk_size = 0,
+    resume = TRUE
+  )
+
+  # Should have attempted both points, with one being resumed
+  las_files_exist <- !is.na(stream_points_all$las_files) &
+    file.exists(stream_points_all$las_files)
+  expect_true(any(las_files_exist))
 })

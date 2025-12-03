@@ -66,22 +66,3 @@ test_that("is_img_binary works with real thresholded test image", {
   expect_true(is_img_binary(binary_img))
 })
 
-test_that("compute_gap_fractions errors on non-binary image", {
-  skip()
-  # Create a temporary grayscale image file
-  temp_img <- withr::local_tempfile(fileext = ".png")
-
-  # Create and save a grayscale image
-  grayscale_img <- imager::as.cimg(matrix(
-    runif(100 * 100, 0, 255),
-    nrow = 100,
-    ncol = 100
-  ))
-  imager::save.image(grayscale_img, temp_img)
-
-  # Should error when trying to process non-binary image
-  expect_error(
-    gla_extract_gap_fraction(temp_img, elev_res = 5, azi_res = 5),
-    "Image must be binary"
-  )
-})

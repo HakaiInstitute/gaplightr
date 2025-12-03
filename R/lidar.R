@@ -14,7 +14,8 @@ lidar2hemi <- function(x, y, z) {
 }
 
 
-# Function to process lidar data for hemispherical photo creation
+#' Process lidar data for hemispherical photo creation
+#' @keywords internal
 gla_transform_lidar <- function(
   las_input,
   x_meters,

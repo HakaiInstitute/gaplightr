@@ -570,10 +570,6 @@ gla_extract_horizons <- function(
   if (parallel) {
     message("Using parallel processing")
 
-    # Get package root for sourcing R files in workers
-    pkg_root <- here::here()
-    r_dir <- file.path(pkg_root, "R")
-
     # Clean up DEM in main process (workers will load their own)
     rm(dem_rast)
     gc()
@@ -590,18 +586,11 @@ gla_extract_horizons <- function(
         max_search_distance,
         dist_step,
         dem_max,
-        r_dir,
         verbose,
         x_meters,
         y_meters,
         output_dir
       ) {
-        # Source all R files in worker to make functions available
-        r_files <- list.files(r_dir, pattern = "\\.R$", full.names = TRUE)
-        for (f in r_files) {
-          source(f, local = FALSE)
-        }
-
         # Load DEM in worker (each worker loads independently)
         dem_rast <- terra::rast(dem_path)
 
@@ -612,8 +601,8 @@ gla_extract_horizons <- function(
         # Extract horizon (pass cached dem_max)
         horizon_df <- gla_extract_horizon_terra(
           dem_rast = dem_rast,
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
+          x_meters = x_meters[i],
+          y_meters = y_meters[i],
           step = step,
           max_search_distance = max_search_distance,
           distance_step = dist_step,
@@ -635,7 +624,6 @@ gla_extract_horizons <- function(
       max_search_distance = max_search_distance,
       dist_step = distance_step,
       dem_max = dem_max,
-      r_dir = r_dir,
       verbose = verbose,
       x_meters = points$x_meters,
       y_meters = points$y_meters,
