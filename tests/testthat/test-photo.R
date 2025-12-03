@@ -10,7 +10,8 @@ test_that("gla_compute_solar_positions returns expected structure", {
     day_end = 365,
     day_res = 1,
     elev_res = 5,
-    azi_res = 5
+    azi_res = 5,
+    solar_constant = 1367
   )
 
   expect_snapshot({
@@ -43,7 +44,8 @@ test_that("gla_process_fisheye_photo_single output matches snapshot", {
     day_end = 365,
     day_res = 1,
     elev_res = 5,
-    azi_res = 5
+    azi_res = 5,
+    solar_constant = 1367
   )
 
   # Process the photo
@@ -503,7 +505,8 @@ test_that("gla_compute_solar_positions handles polar night correctly", {
     day_end = 356, # Just one day
     day_res = 1,
     elev_res = 5,
-    azi_res = 5
+    azi_res = 5,
+    solar_constant = 1367
   )
 
   # Expected behavior for polar night:
@@ -559,7 +562,8 @@ test_that("gla_compute_solar_positions handles polar day (midnight sun) correctl
     day_end = 172, # Just one day
     day_res = 1,
     elev_res = 5,
-    azi_res = 5
+    azi_res = 5,
+    solar_constant = 1367
   )
 
   # Expected behavior for polar day: code proceeds normally
@@ -592,7 +596,8 @@ test_that("gla_compute_solar_positions handles mixed polar day, normal, and pola
     day_end = 356, # Dec 21 (winter solstice)
     day_res = 92, # Sample 3 days
     elev_res = 5,
-    azi_res = 5
+    azi_res = 5,
+    solar_constant = 1367
   )
 
   # day_mat should have ALL 3 days recorded
