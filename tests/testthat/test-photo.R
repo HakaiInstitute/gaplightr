@@ -487,3 +487,52 @@ test_that("gla_process_fisheye_photos works with radial_distortion", {
     result$canopy_openness_pct > 0 && result$canopy_openness_pct < 100
   )
 })
+
+# Polar day/night edge case tests ----
+
+test_that("gla_compute_solar_positions handles polar night correctly", {
+  # Arctic winter: 80°N latitude, December 21 (day 356)
+  # At this latitude/date, cos_ws > 1 so sun never rises (24h darkness)
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 80, # Arctic latitude
+    long_deg = -125.6827,
+    elev = 238.44,
+    clearsky_coef = 0.65,
+    time_step_min = 60, # Hourly for simplicity
+    day_start = 356, # Dec 21 (winter solstice)
+    day_end = 356, # Just one day
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5
+  )
+
+  # Expected behavior for polar night:
+  # - day_mat should record: day number, day_length=0, Ho_Wm2=0, Ho_MJm2=0
+  # - solar_mat should have one row with day number but all other values NA
+
+  # Check day_mat structure
+  expect_equal(nrow(solar_data$day_mat), 1)
+  expect_equal(ncol(solar_data$day_mat), 7)
+
+  # Check day_mat values
+  expect_equal(solar_data$day_mat[1, 1], 356) # Day number
+  expect_equal(solar_data$day_mat[1, 2], 0) # Day length = 0
+  expect_true(is.na(solar_data$day_mat[1, 3])) # Sunrise = NA
+  expect_true(is.na(solar_data$day_mat[1, 4])) # Sunset = NA
+  expect_equal(solar_data$day_mat[1, 5], 0) # numSolarPos = 0
+  expect_equal(solar_data$day_mat[1, 6], 0) # Ho_Wm2 = 0
+  expect_equal(solar_data$day_mat[1, 7], 0) # Ho_MJm2 = 0
+
+  # Check solar_mat - when k=1, solar_mat[1:k,] drops to a named vector
+  expect_true(is.vector(solar_data$solar_mat))
+  expect_equal(length(solar_data$solar_mat), 11) # 11 columns
+  expect_equal(solar_data$solar_mat["DAY_NUM"], 356)
+
+  # All other solar_mat columns should be NA
+  expect_true(is.na(solar_data$solar_mat["ZENITH"]))
+  expect_true(is.na(solar_data$solar_mat["AZIMUTH"]))
+  expect_true(is.na(solar_data$solar_mat["X_SUN"]))
+  expect_true(is.na(solar_data$solar_mat["Y_SUN"]))
+  expect_true(is.na(solar_data$solar_mat["EXTRA_Wm2"]))
+  expect_true(is.na(solar_data$solar_mat["REL_BEAM"]))
+})
