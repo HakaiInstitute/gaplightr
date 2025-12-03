@@ -182,8 +182,23 @@ gla_compute_solar_positions <- function(
     etm <- eot_dat[1]
     time_offset <- eot_dat[2]
     hour_angle <- sshourangle(lat_rad, sol_dec)
-    wsr <- hour_angle[1]
-    wss <- hour_angle[2]
+    cos_ws <- hour_angle[1]
+    wsr <- hour_angle[2]
+    wss <- hour_angle[3]
+
+    # Check for polar night (sun never rises)
+    if (is.na(wsr)) {
+      # Polar night: record day with zero irradiance, skip solar position calculations
+      day_mat[i, 1] <- day_numbers[i]
+      day_mat[i, 2] <- 0  # day_length = 0
+      day_mat[i, 3] <- NA_real_  # wsr_lat = NA
+      day_mat[i, 4] <- NA_real_  # wss_lat = NA
+      day_mat[i, 5] <- 0  # numSolarPos = 0
+      day_mat[i, 6] <- 0  # Ho_Wm2 = 0
+      day_mat[i, 7] <- 0  # Ho_MJm2 = 0
+      next  # Skip to next day
+    }
+
     wsr_lat <- 12 - (wsr * rad_to_deg()) / 15
     wss_lat <- 12 - (wss * rad_to_deg()) / 15
     day_length <- 2 * wsr * rad_to_deg() / 15
@@ -244,8 +259,16 @@ gla_compute_solar_positions <- function(
   }
 
   # Return list with all computed values
+  # Handle case where k=0 (no solar positions calculated, e.g., polar night)
+  # Return 0-row matrix to maintain consistent structure with column names
+  if (k == 0) {
+    solar_mat_result <- solar_mat[0, , drop = FALSE]
+  } else {
+    solar_mat_result <- solar_mat[1:k, ]
+  }
+
   list(
-    solar_mat = solar_mat[1:k, ],
+    solar_mat = solar_mat_result,
     beam_array = beam_array,
     day_mat = day_mat,
     Total_rbi = Total_rbi

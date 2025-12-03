@@ -157,14 +157,29 @@ lst <- function(x1, x2) {
   return(lst)
 }
 
-# SUNRISE AND SUNSET HOUR ANGLE in radians
-# Required input parameters: x1 - latitude (radians), x2 - solar declination (radians)
+# SUNRISE AND SUNSET HOUR ANGLE in radians (see, Iqbal for limits on the cosine of the hour angle)
+# Note: if cosine of the hour angle is > 1, then the sun does not rise (24 hours darkness, no daily solar insolation), and
+# if the cosine of the hour angle is < - 1, then the sun does not set (24 hours of light).
+# Required input parameters: x1 = latitude (radians), x2 = solar declination (radians)
 sshourangle <- function(x1, x2) {
   # Cosine of sunrise hour angle
-  sunrise <- acos(max(min(-tan(x1) * tan(x2), 1), -1))
-  sunset <- -1 * sunrise
-  # Return vector of output variables
-  return(c(sunrise, sunset))
+  cos_ws <- -tan(x1) * tan(x2)
+  # No sunrise (24 hours of dark)
+  if (cos_ws > 1) {
+    sunrise <- NA_real_
+    sunset <- NA_real_
+    # No sunset (24 hours of light)
+  } else if (cos_ws < -1) {
+    sunrise <- pi
+    sunset <- -pi
+    # Discrete angle for sunrise and sunset
+  } else {
+    sunrise <- acos(max(min(cos_ws, 1), -1))
+    sunset <- -sunrise
+  }
+  # Return vector of hour angles
+  # If the hour angle of sunrise and sunset are NA then goto next day number and record 0 as daily solar insolation
+  return(c(cos_ws, sunrise, sunset))
 }
 
 # SOLAR POSITION: ZENITH AND AZIMUTH
