@@ -209,12 +209,12 @@ solpos <- function(x1, x2, x3) {
 
 # INSTANTANEOUS EXTRATERRESTRIAL SOLAR IRRADIANCE AND INSTANTANEOUS TERRESTRIAL BEAM INTENSITY WEIGHTINGS
 # Required input parameters: x1 - eccentricity correction factor (Eo), x2 - solar zenith angle (radians),
-# x3 - site elevation in m.a.s.l, x4 - clear-sky transmission coefficient (0.65)
-solrad <- function(x1, x2, x3, x4) {
+# x3 - site elevation in m.a.s.l, x4 - clear-sky transmission coefficient (0.65), x5 - solar constant (W/m2)
+solrad <- function(x1, x2, x3, x4, x5) {
   # Only compute SR when sun is visible
   if (x2 >= 0 & x2 <= rad_90()) {
-    # Solar constant (W/m2)
-    sc <- 1367
+    # Solar constant (W/m2) - user defined
+    sc <- x5
     # Instantaneous extraterrestrial irradiance (W/m2) at time t
     Io <- sc * x1 * cos(x2)
     # Relative optical airmass (Kasten and Young, 1989)
