@@ -14,7 +14,8 @@ gla_compute_solar_positions(
   day_end,
   day_res,
   elev_res,
-  azi_res
+  azi_res,
+  solar_constant
 )
 }
 \description{

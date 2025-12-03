@@ -18,7 +18,8 @@ gla_process_fisheye_photos(
   parallel = TRUE,
   keep_gap_fraction_data = FALSE,
   radial_distortion = NULL,
-  threshold = 0
+  threshold = 0,
+  solar_constant = 1367
 )
 }
 \arguments{
@@ -59,6 +60,9 @@ uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for form
 \item "auto": automatic threshold detection using Otsu's method
 \item "XX\\%": percentile-based threshold (e.g., "95\\%")
 }}
+
+\item{solar_constant}{Solar constant in W/m² (default 1367). The total solar
+electromagnetic radiation per unit area at the top of Earth's atmosphere.}
 }
 \value{
 An sf object with computed solar radiation metrics:

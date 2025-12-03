@@ -115,7 +115,8 @@ gla_compute_solar_positions <- function(
   day_end,
   day_res,
   elev_res,
-  azi_res
+  azi_res,
+  solar_constant
 ) {
   # Convert coordinates to radians
   lat_rad <- lat_deg * deg_to_rad()
@@ -218,7 +219,7 @@ gla_compute_solar_positions <- function(
       saa <- spd[4]
       x_sun_pos <- spd[6]
       y_sun_pos <- spd[7]
-      SR <- solrad(ecf_dat, sza, elev, clearsky_coef)
+      SR <- solrad(ecf_dat, sza, elev, clearsky_coef, solar_constant)
       Io <- SR[1]
       Daily_Io <- Daily_Io + Io
       rel_beam_int <- SR[2]
@@ -644,6 +645,8 @@ gla_process_fisheye_photo_single <- function(
 #' @param parallel Use parallel processing (default TRUE)
 #' @param keep_gap_fraction_data Include gap fraction matrix in output (default FALSE).
 #'   If TRUE, adds \code{gap_fraction_data} column to output.
+#' @param solar_constant Solar constant in W/m² (default 1367). The total solar
+#'   electromagnetic radiation per unit area at the top of Earth's atmosphere.
 #' @inheritParams gla_extract_gap_fraction
 #'
 #' @return An sf object with computed solar radiation metrics:
@@ -697,7 +700,8 @@ gla_process_fisheye_photos <- function(
   parallel = TRUE,
   keep_gap_fraction_data = FALSE,
   radial_distortion = NULL,
-  threshold = 0
+  threshold = 0,
+  solar_constant = 1367
 ) {
   # Validate inputs
   if (!inherits(points, "sf")) {
@@ -767,7 +771,8 @@ gla_process_fisheye_photos <- function(
           day_end = day_end,
           day_res = day_res,
           elev_res = elev_res,
-          azi_res = azi_res
+          azi_res = azi_res,
+          solar_constant = solar_constant
         )
 
         gla_process_fisheye_photo_single(
@@ -811,7 +816,8 @@ gla_process_fisheye_photos <- function(
         day_end = day_end,
         day_res = day_res,
         elev_res = elev_res,
-        azi_res = azi_res
+        azi_res = azi_res,
+        solar_constant = solar_constant
       )
 
       gla_process_fisheye_photo_single(
