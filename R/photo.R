@@ -125,7 +125,11 @@ gla_compute_solar_positions <- function(
 
   # Solar time step parameters
   time_step_rad <- time_step_min * (two_pi() / 1440)
-  time_sample_rad <- seq(from = time_step_min, to = 1440, by = time_step_min) *
+  time_sample_rad <- seq(
+    from = 0,
+    to = 1440 - time_step_min,
+    by = time_step_min
+  ) *
     (two_pi() / 1440)
   time_sample_ha <- hrangle(time_sample_rad)
 

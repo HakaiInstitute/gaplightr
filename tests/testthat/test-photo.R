@@ -565,15 +565,24 @@ test_that("gla_compute_solar_positions handles polar day (midnight sun) correctl
   # Expected behavior for polar day: code proceeds normally
   # - day_mat should have day_length = 24 hours
   # - Ho_Wm2 and Ho_MJm2 should be > 0 (we have sunlight!)
-  # - solar_mat should have ~24 rows (hourly time steps)
+  # - solar_mat should have 24 rows (hourly time steps from 0hr to 23hr)
 
   expect_equal(solar_data$day_mat[1, 1], 172) # Day number
   expect_equal(solar_data$day_mat[1, 2], 24) # Day length = 24 hours
   expect_gt(solar_data$day_mat[1, 6], 0) # Ho_Wm2 > 0
   expect_gt(solar_data$day_mat[1, 7], 0) # Ho_MJm2 > 0
 
-  # Should have solar positions for all 24 hours
-  expect_gt(length(solar_data$solar_mat), 0) # Has data
+  # Should have exactly 24 samples (0hr through 23hr, excluding 24hr to avoid duplicate)
+  expect_equal(nrow(solar_data$solar_mat), 24)
+
+  # Verify no duplicate at 0hr/24hr wraparound
+  # All SOLAR_TIME_HR values should be unique
+  solar_times <- solar_data$solar_mat[, "SOLAR_TIME_HR"]
+  expect_equal(length(unique(solar_times)), length(solar_times))
+
+  # Solar times should range from 0 to <24
+  expect_gte(min(solar_times), 0)
+  expect_lt(max(solar_times), 24)
 })
 
 test_that("gla_compute_solar_positions handles mixed polar day, normal, and polar night", {
