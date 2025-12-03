@@ -188,15 +188,14 @@ gla_compute_solar_positions <- function(
 
     # Check for polar night (sun never rises)
     if (is.na(wsr)) {
-      # Polar night: record day with zero irradiance, skip solar position calculations
       day_mat[i, 1] <- day_numbers[i]
-      day_mat[i, 2] <- 0  # day_length = 0
-      day_mat[i, 3] <- NA_real_  # wsr_lat = NA
-      day_mat[i, 4] <- NA_real_  # wss_lat = NA
-      day_mat[i, 5] <- 0  # numSolarPos = 0
-      day_mat[i, 6] <- 0  # Ho_Wm2 = 0
-      day_mat[i, 7] <- 0  # Ho_MJm2 = 0
-      next  # Skip to next day
+      day_mat[i, 2] <- 0 # day_length = 0
+      day_mat[i, 3] <- NA_real_ # wsr_lat = NA
+      day_mat[i, 4] <- NA_real_ # wss_lat = NA
+      day_mat[i, 5] <- 0 # numSolarPos = 0
+      day_mat[i, 6] <- 0 # Ho_Wm2 = 0
+      day_mat[i, 7] <- 0 # Ho_MJm2 = 0
+      next # Skip to next day
     }
 
     wsr_lat <- 12 - (wsr * rad_to_deg()) / 15
