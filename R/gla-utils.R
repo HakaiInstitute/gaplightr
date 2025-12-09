@@ -192,17 +192,29 @@ solpos <- function(x1, x2, x3) {
   # Solar elevation in radians
   se <- rad_90() - sz
   # Solar azimuth in radians
-  cos_sa <- (sin(se) * sin(x2) - sin(x1)) / (cos(se) * cos(x2))
-  sa <- acos(min(max(cos_sa, -1.0), 1.0))
-  # Solar azimuth is dependent on sign of the hour angle
-  # Hour angle is positive in morning, zero at noon, and negative in afternoon
-  # Convert to compass direction (NORTH = 0, clockwise rotation)
-  sa_rot <- ifelse(x3 > 0, pi - sa, pi + sa)
-  # Convert solar azimuth to math CCW rotation (EAST = 0) for sun path plotting
-  sa_rot_ccw <- azi2math(sa_rot)
-  # Convert to (x, y) Cartesian coordinates for plotting solar positions
-  x_sun <- sz * cos(sa_rot_ccw)
-  y_sun <- sz * sin(sa_rot_ccw)
+  # Note: solar azimuth is undefined if sun is directly overhead (sz == 0)
+  if (sz == 0) {
+    sa <- NA_real_
+    sa_rot <- NA_real_
+    sa_rot_ccw <- NA_real_
+    x_sun <- 0
+    y_sun <- 0
+  } else {
+    # Cosine of the solar azimuth
+    cos_sa <- (sin(se) * sin(x2) - sin(x1)) / (cos(se) * cos(x2))
+    # Solar azimuth in radians
+    sa <- acos(min(max(cos_sa, -1.0), 1.0))
+    # Solar azimuth is dependent on sign of the hour angle
+    # Hour angle is positive in morning, zero at noon, and negative in afternoon
+    # Convert to compass direction (NORTH = 0, clockwise rotation)
+    sa_rot <- ifelse(x3 > 0, pi - sa, pi + sa)
+    # Convert solar azimuth to math CCW rotation (EAST = 0) for sun path plotting
+    sa_rot_ccw <- azi2math(sa_rot)
+    # Convert to (x, y) Cartesian coordinates for plotting solar positions
+    # Note: (x,y) coordinates are scaled to pi/2
+    x_sun <- sz * cos(sa_rot_ccw)
+    y_sun <- sz * sin(sa_rot_ccw)
+  }
   # Return vector of output variables
   return(c(sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun))
 }
