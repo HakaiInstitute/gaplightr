@@ -231,7 +231,13 @@ gla_compute_solar_positions <- function(
       saa <- spd[4]
       x_sun_pos <- spd[6]
       y_sun_pos <- spd[7]
-      SR <- solrad(ecf_dat, sza, elev, clearsky_coef, solar_constant)
+      SR <- solrad(
+        solar_constant = solar_constant,
+        eccentricity_correction = ecf_dat,
+        solar_zenith_angle = sza,
+        site_elevation = elev,
+        clearsky_transmission = clearsky_coef
+      )
       Io <- SR[1]
       Daily_Io <- Daily_Io + Io
       rel_beam_int <- SR[2]

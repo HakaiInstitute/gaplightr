@@ -220,23 +220,24 @@ solpos <- function(x1, x2, x3) {
 }
 
 # INSTANTANEOUS EXTRATERRESTRIAL SOLAR IRRADIANCE AND INSTANTANEOUS TERRESTRIAL BEAM INTENSITY WEIGHTINGS
-# Required input parameters: x1 - eccentricity correction factor (Eo), x2 - solar zenith angle (radians),
-# x3 - site elevation in m.a.s.l, x4 - clear-sky transmission coefficient (0.65), x5 - solar constant (W/m2)
-solrad <- function(x1, x2, x3, x4, x5) {
+# Required input parameters: solar_constant - solar constant (1367 W/m2), eccentricity_correction - eccentricity correction factor (Eo),
+# solar_zenith_angle - solar zenith angle (radians), site_elevation - site elevation in m.a.s.l, clearsky_transmission - clear-sky transmission coefficient (default 0.65)
+# See, Chapter 5, Iqbal, A cloudless-sky atmosphere and its optics
+solrad <- function(solar_constant, eccentricity_correction, solar_zenith_angle, site_elevation, clearsky_transmission) {
   # Only compute SR when sun is visible
-  if (x2 >= 0 & x2 <= rad_90()) {
-    # Solar constant (W/m2) - user defined
-    sc <- x5
-    # Instantaneous extraterrestrial irradiance (W/m2) at time t
-    Io <- sc * x1 * cos(x2)
-    # Relative optical airmass (Kasten and Young, 1989)
-    am <- 1 / (cos(x2) + 0.50572 * (96.07995 - x2 * rad_to_deg())^-1.6343)
-    # Relative air density at elevation z (List, 1964)
-    pzpo <- (1 - 2.2569 * 10^-5 * x3)^5.2553
-    # Airmass corrected for elevation
-    CorAM <- pzpo * am
-    # Relative beam (direct) intensity at time t
-    Rb <- x1 * x4^CorAM * cos(x2)
+  if (solar_zenith_angle >= 0 & solar_zenith_angle <= rad_90()) {
+    # Instantaneous extraterrestrial irradiance (W/m2) on a horizontal surface at time t
+    Io <- solar_constant * eccentricity_correction * cos(solar_zenith_angle)
+    # Relative optical airmass at sea level (Kasten and Young, 1989)
+    # Make sure the relative optical airmass is equal to 1 when the solar zenith angle = 0
+    ram <- ifelse(solar_zenith_angle > 0, 1 / (cos(solar_zenith_angle) + 0.50572 * (96.07995 - solar_zenith_angle * rad_to_deg())^-1.6343), 1)
+    # Relative air density at station elevation in metres above mean sea level (List, 1964)
+    p_po <- (1 - 2.2569 * 10^-5 * site_elevation)^5.2553
+    # Airmass corrected for station air pressure
+    ram_corr <- ram * p_po
+    # Beam (direct) radiation intensity weightings under clear-skies at time t
+    # Duffie and Beckman, 2013, Ch. 2: Estimation of clear-sky radiation (Eqn. 2.8.3)
+    Rb <- eccentricity_correction * clearsky_transmission^ram_corr * cos(solar_zenith_angle)
   } else {
     Io <- 0
     Rb <- 0
