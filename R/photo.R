@@ -172,7 +172,15 @@ gla_compute_solar_positions <- function(
       )
     )
   )
-  day_mat <- matrix(0, nrow = num_days, ncol = 7)
+  day_mat <- data.frame(
+    day_number = integer(num_days),
+    day_length = numeric(num_days),
+    wsr_lat = numeric(num_days),
+    wss_lat = numeric(num_days),
+    numSolarPos = integer(num_days),
+    Ho_Wm2 = numeric(num_days),
+    Ho_MJm2 = numeric(num_days)
+  )
 
   # Initialize variables
   Total_rbi <- 0
@@ -193,13 +201,13 @@ gla_compute_solar_positions <- function(
 
     # Check for polar night (sun never rises)
     if (is.na(wsr)) {
-      day_mat[i, 1] <- day_numbers[i]
-      day_mat[i, 2] <- 0 # day_length = 0
-      day_mat[i, 3] <- NA_real_ # wsr_lat = NA
-      day_mat[i, 4] <- NA_real_ # wss_lat = NA
-      day_mat[i, 5] <- 0 # numSolarPos = 0
-      day_mat[i, 6] <- 0 # Ho_Wm2 = 0
-      day_mat[i, 7] <- 0 # Ho_MJm2 = 0
+      day_mat$day_number[i] <- day_numbers[i]
+      day_mat$day_length[i] <- 0
+      day_mat$wsr_lat[i] <- NA_real_
+      day_mat$wss_lat[i] <- NA_real_
+      day_mat$numSolarPos[i] <- 0
+      day_mat$Ho_Wm2[i] <- 0
+      day_mat$Ho_MJm2[i] <- 0
       next # Skip to next day
     }
 
@@ -253,13 +261,13 @@ gla_compute_solar_positions <- function(
     # Store daily results
     Ho_Wm2 <- Daily_Io * c1
     Ho_MJm2 <- Daily_Io * c2
-    day_mat[i, 1] <- day_numbers[i]
-    day_mat[i, 2] <- day_length
-    day_mat[i, 3] <- wsr_lat
-    day_mat[i, 4] <- wss_lat
-    day_mat[i, 5] <- numSolarPos
-    day_mat[i, 6] <- Ho_Wm2
-    day_mat[i, 7] <- Ho_MJm2
+    day_mat$day_number[i] <- day_numbers[i]
+    day_mat$day_length[i] <- day_length
+    day_mat$wsr_lat[i] <- wsr_lat
+    day_mat$wss_lat[i] <- wss_lat
+    day_mat$numSolarPos[i] <- numSolarPos
+    day_mat$Ho_Wm2[i] <- Ho_Wm2
+    day_mat$Ho_MJm2[i] <- Ho_MJm2
   }
 
   # Return list with all computed values
@@ -571,10 +579,8 @@ gla_process_fisheye_photo_single <- function(
   svf <- sum(sky_rad * gap_frac)
 
   # Calculate final solar radiation values from day_mat
-  daily_solar_dat <- as.data.frame(day_mat)
-  mean_Ho <- apply(daily_solar_dat[, c(6, 7)], 2, mean)
-  mean_Ho_Wm2 <- mean_Ho[1]
-  mean_Ho_MJm2 <- mean_Ho[2]
+  mean_Ho_Wm2 <- mean(day_mat$Ho_Wm2)
+  mean_Ho_MJm2 <- mean(day_mat$Ho_MJm2)
   mean_H_MJm2 <- mean_Ho_MJm2 * Kt
 
   Kd <- approx(
