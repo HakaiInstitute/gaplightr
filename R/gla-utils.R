@@ -1,7 +1,13 @@
 # DEFINE ALL REQUIRED CUSTOM R FUNCTIONS
-# NORMALIZED AREA FOR EACH ZENITH BY AZIMUTH SKY-REGION SECTOR
-# Required input parameters: n_elevation_rings - no. of elevation rings; n_azimuth_sectors - no. of azimuth sectors
-# Note: Uses elevation angle (complement of zenith) for calculation
+
+#' NORMALIZED AREA FOR EACH ZENITH BY AZIMUTH SKY-REGION SECTOR
+#'
+#' Note: Uses elevation angle (complement of zenith) for calculation
+#'
+#' @param n_elevation_rings no. of elevation rings
+#' @param n_azimuth_sectors no. of azimuth sectors
+#' @keywords internal
+#' @noRd
 skyarea <- function(n_elevation_rings, n_azimuth_sectors) {
   # Define ring and sector limits for sky region segments
   # Using elevation angle (90 degrees - zenith angle)
@@ -27,9 +33,14 @@ skyarea <- function(n_elevation_rings, n_azimuth_sectors) {
 # print(norm_sky_area)
 # print(sum(norm_sky_area))
 
-# NORMALIZED UNIVERSAL OVERCAST (UOC) SKY IRRADIANCE DISTRIBUTION
-# Required input parameters: n_elevation_rings - no. of elevation rings; n_azimuth_sectors - no. of azimuth sectors
-# Note: Uses elevation angle (complement of zenith) for calculation
+#' NORMALIZED UNIVERSAL OVERCAST (UOC) SKY IRRADIANCE DISTRIBUTION
+#'
+#' Note: Uses elevation angle (complement of zenith) for calculation
+#'
+#' @param n_elevation_rings no. of elevation rings
+#' @param n_azimuth_sectors no. of azimuth sectors
+#' @keywords internal
+#' @noRd
 uoc <- function(n_elevation_rings, n_azimuth_sectors) {
   # Create vectors to store ring and sector limits
   # Using elevation angle (90 degrees - zenith angle)
@@ -57,8 +68,12 @@ uoc <- function(n_elevation_rings, n_azimuth_sectors) {
 
 
 # SOLAR GEOMETRY AND OTHER SUPPORTING FUNCTIONS
-# Convert from azimuth angle (north = 0, CW rotation) to math angle (east = 0, CCW rotation)
-# Required input parameters: azimuth_rad - solar azimuth angle in radians
+
+#' Convert from azimuth angle (north = 0, CW rotation) to math angle (east = 0, CCW rotation)
+#'
+#' @param azimuth_rad solar azimuth angle in radians
+#' @keywords internal
+#' @noRd
 azi2math <- function(azimuth_rad) {
   ma <- rad_450() - azimuth_rad
   if (ma > two_pi()) {
@@ -67,17 +82,24 @@ azi2math <- function(azimuth_rad) {
   return(ma)
 }
 
-# DAY ANGLE in radians
-# Required input parameters: day_number - day number (Jan. 1 = 1 to Dec. 31 = 365); Sept. 12 = 255; Aug. 1 = 213; Aug. 31 = 243
-# See, https://nsidc.org/data/user-resources/help-center/day-year-doy-calendar
+#' DAY ANGLE in radians
+#'
+#' See, https://nsidc.org/data/user-resources/help-center/day-year-doy-calendar
+#'
+#' @param day_number day number (Jan. 1 = 1 to Dec. 31 = 365); Sept. 12 = 255; Aug. 1 = 213; Aug. 31 = 243
+#' @keywords internal
+#' @noRd
 da <- function(day_number) {
   # Day angle in radians
   da <- two_pi() * (day_number - 1) / 365
   return(da)
 }
 
-# ECCENTRICITY CORRECTION FACTOR
-# Required input parameters: day_angle_rad - day angle in radians
+#' ECCENTRICITY CORRECTION FACTOR
+#'
+#' @param day_angle_rad day angle in radians
+#' @keywords internal
+#' @noRd
 ecf <- function(day_angle_rad) {
   # Eccentricity correction factor (Rc)
   Rc <- 1.000110 +
@@ -88,8 +110,11 @@ ecf <- function(day_angle_rad) {
   return(Rc)
 }
 
-# SOLAR DECLINATION in radians
-# Required input parameters: day_angle_rad - day angle in radians
+#' SOLAR DECLINATION in radians
+#'
+#' @param day_angle_rad day angle in radians
+#' @keywords internal
+#' @noRd
 soldec <- function(day_angle_rad) {
   # solar declination
   soldec <- 0.006918 -
@@ -102,22 +127,31 @@ soldec <- function(day_angle_rad) {
   return(soldec)
 }
 
-# SOLAR TIME (LAT - local apparent time or TST - true solar time) in radians
-# Required input parameters: decimal_hours - time in decimal hours (0-24 hr.)
+#' SOLAR TIME (LAT - local apparent time or TST - true solar time) in radians
+#'
+#' @param decimal_hours time in decimal hours (0-24 hr.)
+#' @keywords internal
+#' @noRd
 soltime <- function(decimal_hours) {
   st <- 15 * decimal_hours * deg_to_rad()
   return(st)
 }
 
-# HOUR ANGLE in radians
-# Required input parameters: solar_time_rad - solar time in radians
+#' HOUR ANGLE in radians
+#'
+#' @param solar_time_rad solar time in radians
+#' @keywords internal
+#' @noRd
 hrangle <- function(solar_time_rad) {
   w <- pi - solar_time_rad
   return(w)
 }
 
-# TIME ZONE AND STANDARD MERIDIAN in degrees
-# Required input parameters: long_deg - longitude in degrees
+#' TIME ZONE AND STANDARD MERIDIAN in degrees
+#'
+#' @param long_deg longitude in degrees
+#' @keywords internal
+#' @noRd
 timezone <- function(long_deg) {
   # Time zones away from prime meridian (negative west, positive east)
   y <- long_deg / 15
@@ -134,8 +168,12 @@ timezone <- function(long_deg) {
   return(c(time_zone, std_merid))
 }
 
-# EQUATION oF TIME (EoT) in minutes
-# Required input parameters: day_angle_rad - day angle in radians; long_deg - longitude in degrees
+#' EQUATION oF TIME (EoT) in minutes
+#'
+#' @param day_angle_rad day angle in radians
+#' @param long_deg longitude in degrees
+#' @keywords internal
+#' @noRd
 eot <- function(day_angle_rad, long_deg) {
   # Equation of time in minutes
   Etm <- 229.18 *
@@ -150,17 +188,26 @@ eot <- function(day_angle_rad, long_deg) {
   return(c(Etm, t_offset))
 }
 
-# LOCAL STANDARD TIME in decimal hours
-# Required input parameters: solar_time_hours - solar time in decimal hours; time_offset_min - time offset in minutes
+#' LOCAL STANDARD TIME in decimal hours
+#'
+#' @param solar_time_hours solar time in decimal hours
+#' @param time_offset_min time offset in minutes
+#' @keywords internal
+#' @noRd
 lst <- function(solar_time_hours, time_offset_min) {
   lst <- solar_time_hours - time_offset_min / 60
   return(lst)
 }
 
-# SUNRISE AND SUNSET HOUR ANGLE in radians (see, Iqbal for limits on the cosine of the hour angle)
-# Note: if cosine of the hour angle is > 1, then the sun does not rise (24 hours darkness, no daily solar insolation), and
-# if the cosine of the hour angle is < - 1, then the sun does not set (24 hours of light).
-# Required input parameters: lat_rad - latitude in radians; solar_declination_rad - solar declination in radians
+#' SUNRISE AND SUNSET HOUR ANGLE in radians (see, Iqbal for limits on the cosine of the hour angle)
+#'
+#' Note: if cosine of the hour angle is > 1, then the sun does not rise (24 hours darkness, no daily solar insolation), and
+#' if the cosine of the hour angle is < - 1, then the sun does not set (24 hours of light).
+#'
+#' @param lat_rad latitude in radians
+#' @param solar_declination_rad solar declination in radians
+#' @keywords internal
+#' @noRd
 sshourangle <- function(lat_rad, solar_declination_rad) {
   # Cosine of sunrise hour angle
   cos_ws <- -tan(lat_rad) * tan(solar_declination_rad)
@@ -182,11 +229,18 @@ sshourangle <- function(lat_rad, solar_declination_rad) {
   return(c(cos_ws, sunrise, sunset))
 }
 
-# SOLAR POSITION: ZENITH AND AZIMUTH
-# Required input parameters: solar_declination_rad - solar declination in radians; lat_rad - latitude in radians; hour_angle_rad - hour angle in radians
+#' SOLAR POSITION: ZENITH AND AZIMUTH
+#'
+#' @param solar_declination_rad solar declination in radians
+#' @param lat_rad latitude in radians
+#' @param hour_angle_rad hour angle in radians
+#' @keywords internal
+#' @noRd
 solpos <- function(solar_declination_rad, lat_rad, hour_angle_rad) {
   # Solar zenith in radians
-  cos_sz <- sin(solar_declination_rad) * sin(lat_rad) + cos(solar_declination_rad) * cos(lat_rad) * cos(hour_angle_rad)
+  cos_sz <- sin(solar_declination_rad) *
+    sin(lat_rad) +
+    cos(solar_declination_rad) * cos(lat_rad) * cos(hour_angle_rad)
   # Guard against floating point trickery
   sz <- acos(min(max(cos_sz, -1.0), 1.0))
   # Solar elevation in radians
@@ -201,7 +255,8 @@ solpos <- function(solar_declination_rad, lat_rad, hour_angle_rad) {
     y_sun <- 0
   } else {
     # Cosine of the solar azimuth
-    cos_sa <- (sin(se) * sin(lat_rad) - sin(solar_declination_rad)) / (cos(se) * cos(lat_rad))
+    cos_sa <- (sin(se) * sin(lat_rad) - sin(solar_declination_rad)) /
+      (cos(se) * cos(lat_rad))
     # Solar azimuth in radians
     sa <- acos(min(max(cos_sa, -1.0), 1.0))
     # Solar azimuth is dependent on sign of the hour angle
@@ -219,25 +274,46 @@ solpos <- function(solar_declination_rad, lat_rad, hour_angle_rad) {
   return(c(sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun))
 }
 
-# INSTANTANEOUS EXTRATERRESTRIAL SOLAR IRRADIANCE AND INSTANTANEOUS TERRESTRIAL BEAM INTENSITY WEIGHTINGS
-# Required input parameters: solar_constant - solar constant (1367 W/m2), eccentricity_correction - eccentricity correction factor (Eo),
-# solar_zenith_angle - solar zenith angle (radians), site_elevation - site elevation in m.a.s.l, clearsky_transmission - clear-sky transmission coefficient (default 0.65)
-# See, Chapter 5, Iqbal, A cloudless-sky atmosphere and its optics
-solrad <- function(solar_constant, eccentricity_correction, solar_zenith_angle, site_elevation, clearsky_transmission) {
+#' INSTANTANEOUS EXTRATERRESTRIAL SOLAR IRRADIANCE AND INSTANTANEOUS TERRESTRIAL BEAM INTENSITY WEIGHTINGS
+#'
+#' See, Chapter 5, Iqbal, A cloudless-sky atmosphere and its optics
+#'
+#' @param solar_constant solar constant (1367 W/m2)
+#' @param eccentricity_correction eccentricity correction factor (Eo)
+#' @param solar_zenith_angle solar zenith angle (radians)
+#' @param site_elevation site elevation in m.a.s.l
+#' @param clearsky_transmission clear-sky transmission coefficient (default 0.65)
+#' @keywords internal
+#' @noRd
+solrad <- function(
+  solar_constant,
+  eccentricity_correction,
+  solar_zenith_angle,
+  site_elevation,
+  clearsky_transmission
+) {
   # Only compute SR when sun is visible
   if (solar_zenith_angle >= 0 & solar_zenith_angle <= rad_90()) {
     # Instantaneous extraterrestrial irradiance (W/m2) on a horizontal surface at time t
     Io <- solar_constant * eccentricity_correction * cos(solar_zenith_angle)
     # Relative optical airmass at sea level (Kasten and Young, 1989)
     # Make sure the relative optical airmass is equal to 1 when the solar zenith angle = 0
-    ram <- ifelse(solar_zenith_angle > 0, 1 / (cos(solar_zenith_angle) + 0.50572 * (96.07995 - solar_zenith_angle * rad_to_deg())^-1.6343), 1)
+    ram <- ifelse(
+      solar_zenith_angle > 0,
+      1 /
+        (cos(solar_zenith_angle) +
+          0.50572 * (96.07995 - solar_zenith_angle * rad_to_deg())^-1.6343),
+      1
+    )
     # Relative air density at station elevation in metres above mean sea level (List, 1964)
     p_po <- (1 - 2.2569 * 10^-5 * site_elevation)^5.2553
     # Airmass corrected for station air pressure
     ram_corr <- ram * p_po
     # Beam (direct) radiation intensity weightings under clear-skies at time t
     # Duffie and Beckman, 2013, Ch. 2: Estimation of clear-sky radiation (Eqn. 2.8.3)
-    Rb <- eccentricity_correction * clearsky_transmission^ram_corr * cos(solar_zenith_angle)
+    Rb <- eccentricity_correction *
+      clearsky_transmission^ram_corr *
+      cos(solar_zenith_angle)
   } else {
     Io <- 0
     Rb <- 0
@@ -246,10 +322,20 @@ solrad <- function(solar_constant, eccentricity_correction, solar_zenith_angle, 
   return(c(Io, Rb))
 }
 
-# SKY REGION INDICES
-# Required input parameters: solar_elevation_rad - solar elevation in radians; solar_azimuth_rad - solar azimuth in radians;
-# n_elevation_rings - no. of elevation rings; n_azimuth_sectors - no. of azimuth sectors
-skyregidx <- function(solar_elevation_rad, solar_azimuth_rad, n_elevation_rings, n_azimuth_sectors) {
+#' SKY REGION INDICES
+#'
+#' @param solar_elevation_rad solar elevation in radians
+#' @param solar_azimuth_rad solar azimuth in radians
+#' @param n_elevation_rings no. of elevation rings
+#' @param n_azimuth_sectors no. of azimuth sectors
+#' @keywords internal
+#' @noRd
+skyregidx <- function(
+  solar_elevation_rad,
+  solar_azimuth_rad,
+  n_elevation_rings,
+  n_azimuth_sectors
+) {
   # Elevation rings
   elev_bin_idx <- ifelse(
     solar_elevation_rad < rad_90(),
