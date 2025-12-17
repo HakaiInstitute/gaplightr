@@ -112,6 +112,83 @@ test_that("gla_load_points validates CRS matches between points and DEM", {
 })
 
 
+test_that("gla_load_points accepts sf object directly", {
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  # Create sf object directly (not saved to file)
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:2),
+    geom = sf::st_sfc(
+      sf::st_point(c(1022655, 574704)),
+      sf::st_point(c(1022700, 574750)),
+      crs = 3005
+    )
+  )
+
+  # Pass sf object directly
+  result <- gla_load_points(test_points, dem_path)
+
+  # Verify structure
+  expect_s3_class(result, "sf")
+  expect_true("elevation" %in% names(result))
+  expect_true("x_meters" %in% names(result))
+  expect_true("y_meters" %in% names(result))
+  expect_true("lat" %in% names(result))
+  expect_true("lon" %in% names(result))
+  expect_equal(nrow(result), 2)
+})
+
+test_that("gla_load_points accepts SpatRaster object directly", {
+  # Create sf object
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:2),
+    geom = sf::st_sfc(
+      sf::st_point(c(1022655, 574704)),
+      sf::st_point(c(1022700, 574750)),
+      crs = 3005
+    )
+  )
+
+  # Create SpatRaster object (not saved to file)
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1022600,
+    xmax = 1022800,
+    ymin = 574650,
+    ymax = 574800,
+    crs = "EPSG:3005",
+    vals = rep(250, 100)
+  )
+
+  # Pass SpatRaster directly
+  result <- gla_load_points(test_points, dem_rast)
+
+  # Verify structure
+  expect_s3_class(result, "sf")
+  expect_true("elevation" %in% names(result))
+  expect_equal(nrow(result), 2)
+})
+
+test_that("gla_load_points errors on invalid input type", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  # Should error on non-character, non-sf input for x
+  expect_error(
+    gla_load_points(123, dem_path),
+    "x must be either a file path.*or an sf object"
+  )
+
+  # Should error on vector of paths for x
+  expect_error(
+    gla_load_points(c("path1.gpkg", "path2.gpkg"), dem_path),
+    "x must be either a file path.*or an sf object"
+  )
+})
+
 test_that("gla_load_points snapshot", {
   # Create minimal test data
   test_points <- sf::st_as_sf(

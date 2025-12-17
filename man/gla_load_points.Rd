@@ -4,12 +4,15 @@
 \alias{gla_load_points}
 \title{Load points}
 \usage{
-gla_load_points(path, dem_path)
+gla_load_points(x, dem, ...)
 }
 \arguments{
-\item{path}{path to a any files that \code{sf::read_sf} can read}
+\item{x}{Either a file path to any file that \code{sf::read_sf} can read, or an
+sf object containing point geometries}
 
-\item{dem_path}{a dem path}
+\item{dem}{Either a file path to a DEM raster file, or a \code{SpatRaster} object}
+
+\item{...}{Additional arguments passed to \code{sf::read_sf()} when \code{x} is a file path}
 }
 \description{
 Load points
