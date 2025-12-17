@@ -219,13 +219,13 @@ test_that("solpos handles sun directly overhead (SZA = 0)", {
   # Should return: sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun
   expect_equal(length(result), 7)
 
-  sz <- result[1]  # Solar zenith
-  se <- result[2]  # Solar elevation
-  sa <- result[3]  # Solar azimuth
-  sa_rot <- result[4]  # Solar azimuth rotated
-  sa_rot_ccw <- result[5]  # Solar azimuth CCW
-  x_sun <- result[6]  # X coordinate
-  y_sun <- result[7]  # Y coordinate
+  sz <- result[1] # Solar zenith
+  se <- result[2] # Solar elevation
+  sa <- result[3] # Solar azimuth
+  sa_rot <- result[4] # Solar azimuth rotated
+  sa_rot_ccw <- result[5] # Solar azimuth CCW
+  x_sun <- result[6] # X coordinate
+  y_sun <- result[7] # Y coordinate
 
   # When sun is overhead, zenith angle should be 0
   expect_equal(sz, 0, tolerance = 1e-10)

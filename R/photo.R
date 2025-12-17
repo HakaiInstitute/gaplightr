@@ -194,7 +194,10 @@ gla_compute_solar_positions <- function(
     eot_dat <- eot(day_angle_rad = day_angle, long_deg = long_deg)
     etm <- eot_dat[1]
     time_offset <- eot_dat[2]
-    hour_angle <- sshourangle(lat_rad = lat_rad, solar_declination_rad = sol_dec)
+    hour_angle <- sshourangle(
+      lat_rad = lat_rad,
+      solar_declination_rad = sol_dec
+    )
     cos_ws <- hour_angle[1]
     wsr <- hour_angle[2]
     wss <- hour_angle[3]
