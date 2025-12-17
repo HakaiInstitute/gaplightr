@@ -146,6 +146,9 @@ gla_compute_solar_positions <- function(
   day_numbers <- seq(from = day_start, to = day_end, by = day_res)
   num_days <- length(day_numbers)
 
+  # Detect leap year: if any day number is 366, we're in a leap year
+  days_in_year <- if (any(day_numbers >= 366)) 366 else 365
+
   # Create arrays for solar calculations
   beam_array <- array(0, dim = c(nRings, nSectors))
 
@@ -188,7 +191,7 @@ gla_compute_solar_positions <- function(
 
   # Process each day
   for (i in 1:length(day_numbers)) {
-    day_angle <- da(day_numbers[i])
+    day_angle <- da(day_numbers[i], days_in_year)
     ecf_dat <- ecf(day_angle)
     sol_dec <- soldec(day_angle)
     eot_dat <- eot(day_angle, long_deg)

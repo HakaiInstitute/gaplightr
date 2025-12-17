@@ -644,3 +644,40 @@ test_that("gla_compute_solar_positions handles mixed polar day, normal, and pola
   # Day 356 (Dec 21) should NOT be in solar_mat (polar night)
   expect_false(356 %in% solar_data$solar_mat[, "DAY_NUM"])
 })
+
+test_that("gla_compute_solar_positions handles leap year (day 366)", {
+  # Test with leap year - days 1 to 366
+  solar_data <- gla_compute_solar_positions(
+    lat_deg = 50.0,
+    long_deg = -120.0,
+    elev = 100,
+    clearsky_coef = 0.65,
+    time_step_min = 60,
+    day_start = 1,
+    day_end = 366,
+    day_res = 1,
+    elev_res = 5,
+    azi_res = 5,
+    solar_constant = 1367
+  )
+
+  # Should complete without error
+  expect_type(solar_data, "list")
+
+  # Should have all expected components
+  expect_true(all(c("solar_mat", "beam_array", "day_mat", "Total_rbi") %in% names(solar_data)))
+
+  # day_mat should have 366 rows
+  expect_equal(nrow(solar_data$day_mat), 366)
+
+  # day_mat should include day 366
+  expect_true(366 %in% solar_data$day_mat$day_number)
+
+  # All day numbers from 1 to 366 should be present
+  expect_equal(solar_data$day_mat$day_number, 1:366)
+
+  # Verify solar calculations are valid for day 366
+  day_366_row <- solar_data$day_mat[solar_data$day_mat$day_number == 366, ]
+  expect_true(is.finite(day_366_row$Ho_Wm2))
+  expect_gt(day_366_row$Ho_Wm2, 0)
+})

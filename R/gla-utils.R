@@ -68,11 +68,13 @@ azi2math <- function(x) {
 }
 
 # DAY ANGLE in radians
-# Required input parameters: x - day number (Jan. 1 = 1 to Dec. 31 = 365); Sept. 12 = 255; Aug. 1 = 213; Aug. 31 = 243
+# Required input parameters: x - day number (Jan. 1 = 1 to Dec. 31 = 365 or 366 for leap years);
+#   Sept. 12 = 255; Aug. 1 = 213; Aug. 31 = 243
+#   days_in_year - number of days in the year (365 or 366), defaults to 365
 # See, https://nsidc.org/data/user-resources/help-center/day-year-doy-calendar
-da <- function(x) {
+da <- function(x, days_in_year = 365) {
   # Day angle in radians
-  da <- two_pi() * (x - 1) / 365
+  da <- two_pi() * (x - 1) / days_in_year
   return(da)
 }
 
