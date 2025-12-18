@@ -121,8 +121,8 @@ gla_compute_solar_positions <- function(
   # Convert coordinates to radians
   lat_rad <- lat_deg * deg_to_rad()
   long_rad <- long_deg * deg_to_rad()
-  time_zone <- timezone(long_deg)[1]
-  std_meridian <- timezone(long_deg)[2]
+  time_zone <- timezone(long_deg = long_deg)[1]
+  std_meridian <- timezone(long_deg = long_deg)[2]
 
   # Solar time step parameters
   time_step_rad <- time_step_min * (two_pi() / 1440)
@@ -132,7 +132,7 @@ gla_compute_solar_positions <- function(
     by = time_step_min
   ) *
     (two_pi() / 1440)
-  time_sample_ha <- hrangle(time_sample_rad)
+  time_sample_ha <- hrangle(solar_time_rad = time_sample_rad)
 
   # Sky mask resolution
   nRings <- 90 / elev_res
@@ -188,13 +188,16 @@ gla_compute_solar_positions <- function(
 
   # Process each day
   for (i in 1:length(day_numbers)) {
-    day_angle <- da(day_numbers[i])
-    ecf_dat <- ecf(day_angle)
-    sol_dec <- soldec(day_angle)
-    eot_dat <- eot(day_angle, long_deg)
+    day_angle <- da(day_number = day_numbers[i])
+    ecf_dat <- ecf(day_angle_rad = day_angle)
+    sol_dec <- soldec(day_angle_rad = day_angle)
+    eot_dat <- eot(day_angle_rad = day_angle, long_deg = long_deg)
     etm <- eot_dat[1]
     time_offset <- eot_dat[2]
-    hour_angle <- sshourangle(lat_rad, sol_dec)
+    hour_angle <- sshourangle(
+      lat_rad = lat_rad,
+      solar_declination_rad = sol_dec
+    )
     cos_ws <- hour_angle[1]
     wsr <- hour_angle[2]
     wss <- hour_angle[3]
@@ -225,13 +228,23 @@ gla_compute_solar_positions <- function(
       ha <- ha_sample_pts[j]
       solar_lat <- (180 - ha * rad_to_deg()) / 15
       solar_lst <- solar_lat - time_offset / 60
-      spd <- solpos(sol_dec, lat_rad, ha)
+      spd <- solpos(
+        solar_declination_rad = sol_dec,
+        lat_rad = lat_rad,
+        hour_angle_rad = ha
+      )
       sza <- spd[1]
       sea <- spd[2]
       saa <- spd[4]
       x_sun_pos <- spd[6]
       y_sun_pos <- spd[7]
-      SR <- solrad(ecf_dat, sza, elev, clearsky_coef, solar_constant)
+      SR <- solrad(
+        solar_constant = solar_constant,
+        eccentricity_correction = ecf_dat,
+        solar_zenith_angle = sza,
+        site_elevation = elev,
+        clearsky_transmission = clearsky_coef
+      )
       Io <- SR[1]
       Daily_Io <- Daily_Io + Io
       rel_beam_int <- SR[2]
@@ -250,7 +263,12 @@ gla_compute_solar_positions <- function(
       solar_mat[k, 10] <- Io
       solar_mat[k, 11] <- rel_beam_int
 
-      beam_idx <- skyregidx(sea, saa, nRings, nSectors)
+      beam_idx <- skyregidx(
+        solar_elevation_rad = sea,
+        solar_azimuth_rad = saa,
+        n_elevation_rings = nRings,
+        n_azimuth_sectors = nSectors
+      )
       beam_array[beam_idx[1], beam_idx[2]] <- beam_array[
         beam_idx[1],
         beam_idx[2]
@@ -570,11 +588,17 @@ gla_process_fisheye_photo_single <- function(
   gap_frac <- gap_data$gap_fraction
   nRings <- gap_data$nRings
   nSectors <- gap_data$nSectors
-  norm_sky_area <- skyarea(nRings, nSectors)
+  norm_sky_area <- skyarea(
+    n_elevation_rings = nRings,
+    n_azimuth_sectors = nSectors
+  )
   CO <- sum(gap_frac * norm_sky_area) * 100
 
   # Build isotropic UOC sky irradiance model
-  sky_rad <- uoc(nRings, nSectors)
+  sky_rad <- uoc(
+    n_elevation_rings = nRings,
+    n_azimuth_sectors = nSectors
+  )
   # Sky view factor (also known as indirect site factor)
   svf <- sum(sky_rad * gap_frac)
 

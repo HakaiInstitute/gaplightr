@@ -131,7 +131,7 @@ test_that("sshourangle handles polar night (cos_ws > 1)", {
   lat_rad <- 80 * deg_to_rad()
   dec_rad <- -23.44 * deg_to_rad() # Winter solstice declination
 
-  result <- sshourangle(lat_rad, dec_rad)
+  result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
   expect_equal(length(result), 3)
@@ -153,7 +153,7 @@ test_that("sshourangle handles polar day (cos_ws < -1)", {
   lat_rad <- 80 * deg_to_rad()
   dec_rad <- 23.44 * deg_to_rad() # Summer solstice declination
 
-  result <- sshourangle(lat_rad, dec_rad)
+  result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
   expect_equal(length(result), 3)
@@ -175,7 +175,7 @@ test_that("sshourangle handles normal case (-1 <= cos_ws <= 1)", {
   lat_rad <- 50 * deg_to_rad()
   dec_rad <- 0 # Equinox declination
 
-  result <- sshourangle(lat_rad, dec_rad)
+  result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
   expect_equal(length(result), 3)
@@ -210,18 +210,22 @@ test_that("solpos handles sun directly overhead (SZA = 0)", {
   lat_rad <- 0
   ha_rad <- 0
 
-  result <- solpos(dec_rad, lat_rad, ha_rad)
+  result <- solpos(
+    solar_declination_rad = dec_rad,
+    lat_rad = lat_rad,
+    hour_angle_rad = ha_rad
+  )
 
   # Should return: sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun
   expect_equal(length(result), 7)
 
-  sz <- result[1]  # Solar zenith
-  se <- result[2]  # Solar elevation
-  sa <- result[3]  # Solar azimuth
-  sa_rot <- result[4]  # Solar azimuth rotated
-  sa_rot_ccw <- result[5]  # Solar azimuth CCW
-  x_sun <- result[6]  # X coordinate
-  y_sun <- result[7]  # Y coordinate
+  sz <- result[1] # Solar zenith
+  se <- result[2] # Solar elevation
+  sa <- result[3] # Solar azimuth
+  sa_rot <- result[4] # Solar azimuth rotated
+  sa_rot_ccw <- result[5] # Solar azimuth CCW
+  x_sun <- result[6] # X coordinate
+  y_sun <- result[7] # Y coordinate
 
   # When sun is overhead, zenith angle should be 0
   expect_equal(sz, 0, tolerance = 1e-10)

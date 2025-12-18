@@ -65,4 +65,3 @@ test_that("is_img_binary works with real thresholded test image", {
   # Should be binary
   expect_true(is_img_binary(binary_img))
 })
-
