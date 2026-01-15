@@ -4,6 +4,22 @@
 #'   sf object containing point geometries
 #' @param dem Either a file path to a DEM raster file, or a `SpatRaster` object
 #' @param ... Additional arguments passed to `sf::read_sf()` when `x` is a file path
+#'
+#' @details
+#' This function performs strict validation:
+#' \itemize{
+#'   \item Geometry type must be POINT
+#'   \item CRS must be defined and projected (not geographic lat/lon)
+#'   \item Point and DEM CRS must match exactly
+#'   \item All points must fall within DEM spatial extent
+#'   \item All points must have valid elevation values (no NoData cells)
+#' }
+#'
+#' @examples
+#' \dontrun{
+#'   points <- gla_load_points("stream_points.gpkg", "dem.tif")
+#' }
+#'
 #' @export
 gla_load_points <- function(x, dem, ...) {
   # Handle both file paths and sf objects
@@ -67,8 +83,38 @@ process_points_internal <- function(points, dem) {
 
   validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
 
+  # Validate that all points fall within DEM spatial extent before extraction
+  dem_extent <- terra::ext(dem_rast)
+  point_coords <- sf::st_coordinates(points)
+
+  # Check which points are outside DEM spatial extent
+  outside_x <- point_coords[, "X"] < dem_extent[1] |
+    point_coords[, "X"] > dem_extent[2]
+  outside_y <- point_coords[, "Y"] < dem_extent[3] |
+    point_coords[, "Y"] > dem_extent[4]
+  outside_bounds <- outside_x | outside_y
+
+  if (any(outside_bounds)) {
+    n_outside <- sum(outside_bounds)
+    stop(
+      n_outside,
+      " point(s) are outside the DEM extent",
+      call. = FALSE
+    )
+  }
+
   # Extract elevation from DEM
   points$elevation <- terra::extract(dem_rast, points)[[2]]
+
+  # Check for NoData cells inside DEM extent
+  na_indices <- which(is.na(points$elevation))
+  if (length(na_indices) > 0) {
+    stop(
+      length(na_indices),
+      " point(s) have NA elevation values (NoData cells in DEM)",
+      call. = FALSE
+    )
+  }
 
   # Extract coordinates (validated to be in meters)
   points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)

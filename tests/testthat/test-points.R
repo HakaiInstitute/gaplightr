@@ -118,11 +118,12 @@ test_that("gla_load_points accepts sf object directly", {
   create_test_dem(crs = 3005, output_path = dem_path)
 
   # Create sf object directly (not saved to file)
+  # Use coordinates within DEM extent: [1000000, 1000990] x [500000, 500990]
   test_points <- sf::st_as_sf(
     data.frame(id = 1:2),
     geom = sf::st_sfc(
-      sf::st_point(c(1022655, 574704)),
-      sf::st_point(c(1022700, 574750)),
+      sf::st_point(c(1000400, 500400)),
+      sf::st_point(c(1000600, 500600)),
       crs = 3005
     )
   )
@@ -223,4 +224,105 @@ test_that("gla_load_points snapshot", {
 
   unlink(temp_shp)
   unlink(temp_dem)
+})
+
+test_that("gla_load_points errors when points are outside DEM extent", {
+  # Create DEM with specific extent
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1022600,
+    xmax = 1022700,  # 100m wide
+    ymin = 574650,
+    ymax = 574750,   # 100m tall
+    crs = "EPSG:3005",
+    vals = rep(250, 100)
+  )
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(dem_rast, dem_path, overwrite = TRUE)
+
+  # Create points: one inside, one outside DEM extent
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:2),
+    geom = sf::st_sfc(
+      sf::st_point(c(1022650, 574700)),  # Inside DEM
+      sf::st_point(c(1023000, 575000)),  # Outside DEM (300m east, 250m north)
+      crs = 3005
+    )
+  )
+
+  # Should error when points are out-of-bounds
+  expect_error(
+    gla_load_points(test_points, dem_path),
+    regexp = "1 point\\(s\\) are outside the DEM extent"
+  )
+})
+
+test_that("gla_load_points errors when points are on NoData cells inside extent", {
+  # Create DEM with NA values in the middle
+  # 10x10 grid = 100 cells, set middle cells (45-55) to NA
+  dem_vals <- rep(250, 100)
+  dem_vals[45:55] <- NA
+
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1000000,
+    xmax = 1000100,  # 100m wide, 10m per cell
+    ymin = 500000,
+    ymax = 500100,   # 100m tall, 10m per cell
+    crs = "EPSG:3005",
+    vals = dem_vals
+  )
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(dem_rast, dem_path, overwrite = TRUE)
+
+  # Create point on NA cell (cell index 50 = row 5, col 5 = center of DEM)
+  # Cell center at: X = 1000000 + 5*10 - 5 = 1000045, Y = 500000 + 5*10 - 5 = 500045
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000045, 500045)),  # Center of middle cell (should be NA)
+      crs = 3005
+    )
+  )
+
+  # Should error about NoData cells
+  expect_error(
+    gla_load_points(test_points, dem_path),
+    regexp = "NA elevation values.*NoData"
+  )
+})
+
+test_that("gla_load_points handles all points outside DEM extent", {
+  # Create small DEM
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1022600,
+    xmax = 1022700,
+    ymin = 574650,
+    ymax = 574750,
+    crs = "EPSG:3005",
+    vals = rep(250, 100)
+  )
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(dem_rast, dem_path, overwrite = TRUE)
+
+  # Create points all outside DEM
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:3),
+    geom = sf::st_sfc(
+      sf::st_point(c(1023000, 575000)),
+      sf::st_point(c(1023100, 575100)),
+      sf::st_point(c(1023200, 575200)),
+      crs = 3005
+    )
+  )
+
+  # Should error mentioning multiple points
+  expect_error(
+    gla_load_points(test_points, dem_path),
+    regexp = "3 point\\(s\\) are outside the DEM extent"
+  )
 })

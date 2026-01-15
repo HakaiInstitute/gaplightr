@@ -17,3 +17,19 @@ sf object containing point geometries}
 \description{
 Load points
 }
+\details{
+This function performs strict validation:
+\itemize{
+\item Geometry type must be POINT
+\item CRS must be defined and projected (not geographic lat/lon)
+\item Point and DEM CRS must match exactly
+\item All points must fall within DEM spatial extent
+\item All points must have valid elevation values (no NoData cells)
+}
+}
+\examples{
+\dontrun{
+  points <- gla_load_points("stream_points.gpkg", "dem.tif")
+}
+
+}
