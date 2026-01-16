@@ -328,6 +328,8 @@ gla_extract_horizon_terra <- function(
 #'
 #' @param horizon_data Data frame with horizon data. Must contain at least
 #'   two columns: azimuth (degrees, 0-360) and elevation angle (degrees)
+#' @param radial_distortion Optional lens calibration data. If NULL (default),
+#'   uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.
 #' @param verbose Logical indicating whether to print the processed data
 #'   (default: FALSE)
 #'
@@ -347,7 +349,11 @@ gla_extract_horizon_terra <- function(
 #' }
 #'
 #' @keywords internal
-prepare_horizon_mask <- function(horizon_data, verbose = FALSE) {
+prepare_horizon_mask <- function(
+  horizon_data,
+  radial_distortion = NULL,
+  verbose = FALSE
+) {
   # Validate input
   if (
     missing(horizon_data) || is.null(horizon_data) || nrow(horizon_data) == 0
@@ -369,13 +375,31 @@ prepare_horizon_mask <- function(horizon_data, verbose = FALSE) {
     print(dat)
   }
 
-  # Convert horizon elevation angle to zenith angle in radians
-  zen_rad <- (90 - dat$horizon_height) * deg_to_rad()
+  # Convert azimuth to radians
   azi_rad <- dat$azimuth * deg_to_rad()
 
-  # Polar projection in cartesian coordinates
-  x_msk <- zen_rad * cos(azi_rad) * -1 # flip image along N/S axis (left = EAST; right = WEST)
-  y_msk <- zen_rad * sin(azi_rad)
+  # Apply radial distortion if provided
+  if (!is.null(radial_distortion)) {
+    # horizon_height is elevation angle in degrees
+    elev_rad <- dat$horizon_height * deg_to_rad()
+
+    # Forward direction: elevation -> normalized radius (0-1)
+    norm_radius <- apply_radial_distortion_mapping(
+      elev_rad,
+      from = radial_distortion$elevation,
+      to = radial_distortion$radius
+    )
+
+    # Scale to image coordinates
+    zen_rad_distorted <- norm_radius * rad_90()
+    x_msk <- zen_rad_distorted * cos(azi_rad) * -1
+    y_msk <- zen_rad_distorted * sin(azi_rad)
+  } else {
+    # Current equidistant projection (unchanged)
+    zen_rad <- (90 - dat$horizon_height) * deg_to_rad()
+    x_msk <- zen_rad * cos(azi_rad) * -1 # flip image along N/S axis (left = EAST; right = WEST)
+    y_msk <- zen_rad * sin(azi_rad)
+  }
 
   # Append new columns to dataframe
   result <- as.data.frame(cbind(dat, x_msk, y_msk))
@@ -524,9 +548,19 @@ gla_extract_horizons <- function(
         )
 
         if (!is.null(horizon_df)) {
+          # Convert cached horizon angles to cartesian coordinates
+          # Use first two columns which are azimuth and horizon_height
+          horizon_processed <- prepare_horizon_mask(
+            horizon_df[, 1:2],
+            radial_distortion = NULL,
+            verbose = FALSE
+          )
+
           cached_horizons[[i]] <- list(
-            x_msk = horizon_df$x_msk,
-            y_msk = horizon_df$y_msk
+            azimuth = horizon_processed$azimuth,
+            horizon_height = horizon_processed$horizon_height,
+            x_msk = horizon_processed$x_msk,
+            y_msk = horizon_processed$y_msk
           )
         }
       }
@@ -609,12 +643,17 @@ gla_extract_horizons <- function(
           dem_max = dem_max,
           verbose = FALSE
         ) |>
-          prepare_horizon_mask(verbose = FALSE)
+          prepare_horizon_mask(
+            radial_distortion = NULL,
+            verbose = FALSE
+          )
 
         # Save to CSV
         save_horizon_csv(horizon_df, x_meters[i], y_meters[i], output_dir)
 
         list(
+          azimuth = horizon_df$azimuth,
+          horizon_height = horizon_df$horizon_height,
           x_msk = horizon_df$x_msk,
           y_msk = horizon_df$y_msk
         )
@@ -656,7 +695,10 @@ gla_extract_horizons <- function(
         dem_max = dem_max,
         verbose = FALSE
       ) |>
-        prepare_horizon_mask(verbose = FALSE)
+        prepare_horizon_mask(
+          radial_distortion = NULL,
+          verbose = FALSE
+        )
 
       # Save to CSV
       save_horizon_csv(
@@ -667,6 +709,8 @@ gla_extract_horizons <- function(
       )
 
       list(
+        azimuth = horizon_df$azimuth,
+        horizon_height = horizon_df$horizon_height,
         x_msk = horizon_df$x_msk,
         y_msk = horizon_df$y_msk
       )

@@ -4,11 +4,14 @@
 \alias{prepare_horizon_mask}
 \title{Prepare horizon mask for fisheye photo creation}
 \usage{
-prepare_horizon_mask(horizon_data, verbose = FALSE)
+prepare_horizon_mask(horizon_data, radial_distortion = NULL, verbose = FALSE)
 }
 \arguments{
 \item{horizon_data}{Data frame with horizon data. Must contain at least
 two columns: azimuth (degrees, 0-360) and elevation angle (degrees)}
+
+\item{radial_distortion}{Optional lens calibration data. If NULL (default),
+uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.}
 
 \item{verbose}{Logical indicating whether to print the processed data
 (default: FALSE)}

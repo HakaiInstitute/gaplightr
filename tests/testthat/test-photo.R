@@ -644,3 +644,115 @@ test_that("gla_compute_solar_positions handles mixed polar day, normal, and pola
   # Day 356 (Dec 21) should NOT be in solar_mat (polar night)
   expect_false(356 %in% solar_data$solar_mat[, "DAY_NUM"])
 })
+
+# Radial distortion for synthetic photo creation ----
+
+test_that("gla_create_fisheye_photos works with radial_distortion parameter", {
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 1,
+    output_path = stream_network_path
+  )
+
+  las_dir <- withr::local_tempdir()
+  las_path <- file.path(las_dir, "minimal_plot_3005.las")
+  create_test_las(crs = 3005, n_points = 100, output_path = las_path)
+
+  output_dir_virtual_plots <- withr::local_tempdir()
+  output_dir_fisheye_equi <- withr::local_tempdir()
+  output_dir_fisheye_sigma <- withr::local_tempdir()
+
+  # Load points
+  stream_points <- gla_load_points(stream_network_path, dem_path)
+
+  # Create virtual plots
+  stream_points <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = las_dir,
+    output_dir = output_dir_virtual_plots,
+    plot_radius = 50,
+    chunk_size = 0,
+    resume = FALSE
+  )
+
+  # Extract horizons (always equidistant, distortion applied at photo creation)
+  stream_points <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = withr::local_tempdir(),
+    step = 30,
+    max_search_distance = 1000,
+    parallel = FALSE,
+    verbose = FALSE
+  )
+
+  # Create fisheye photo with equidistant projection (NULL)
+  result_equi <- gla_create_fisheye_photos(
+    points = stream_points,
+    output_dir = output_dir_fisheye_equi,
+    img_res = 1000,
+    parallel = FALSE,
+    resume = FALSE,
+    radial_distortion = NULL
+  )
+
+  # Create fisheye photo with Sigma 8mm distortion
+  result_sigma <- gla_create_fisheye_photos(
+    points = stream_points,
+    output_dir = output_dir_fisheye_sigma,
+    img_res = 1000,
+    parallel = FALSE,
+    resume = FALSE,
+    radial_distortion = gla_lens_sigma_8mm()
+  )
+
+  # Both should succeed and create files
+  expect_true(file.exists(result_equi$fisheye_photo_path[1]))
+  expect_true(file.exists(result_sigma$fisheye_photo_path[1]))
+
+  # Files should be different (different content)
+  expect_false(
+    identical(
+      readBin(result_equi$fisheye_photo_path[1], "raw", n = 1000),
+      readBin(result_sigma$fisheye_photo_path[1], "raw", n = 1000)
+    )
+  )
+})
+
+test_that("prepare_horizon_mask applies radial distortion correctly", {
+  # Create test horizon data
+  test_horizon <- data.frame(
+    azimuth = seq(0, 355, by = 5),
+    horizon_height = rep(10, 72) # 10 degrees elevation
+  )
+
+  # Process without distortion
+  result_equi <- prepare_horizon_mask(test_horizon, radial_distortion = NULL)
+
+  # Process with Sigma 8mm distortion
+  result_sigma <- prepare_horizon_mask(
+    test_horizon,
+    radial_distortion = gla_lens_sigma_8mm()
+  )
+
+  # Both should have x_msk and y_msk columns
+  expect_true("x_msk" %in% names(result_equi))
+  expect_true("y_msk" %in% names(result_equi))
+  expect_true("x_msk" %in% names(result_sigma))
+  expect_true("y_msk" %in% names(result_sigma))
+
+  # Coordinates should be different due to distortion
+  expect_false(identical(result_equi$x_msk, result_sigma$x_msk))
+  expect_false(identical(result_equi$y_msk, result_sigma$y_msk))
+
+  # Sigma distortion should result in smaller radii at low elevations
+  # (compressed toward edge)
+  radius_equi <- sqrt(result_equi$x_msk^2 + result_equi$y_msk^2)[1]
+  radius_sigma <- sqrt(result_sigma$x_msk^2 + result_sigma$y_msk^2)[1]
+  expect_lt(radius_sigma, radius_equi)
+})

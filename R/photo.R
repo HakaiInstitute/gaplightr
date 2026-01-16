@@ -1,4 +1,6 @@
 #' Create fisheye image (single point)
+#' @param radial_distortion Optional lens calibration data. If NULL (default),
+#'   uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.
 #' @keywords internal
 gla_create_fisheye_photo_single <- function(
   processed_lidar,
@@ -13,12 +15,32 @@ gla_create_fisheye_photo_single <- function(
   width, # Required: image width for bmp() and filename
   pointsize, # Required: point size for bmp() and filename
   res, # Required: resolution for bmp() and filename
+  radial_distortion = NULL,
   ...
 ) {
   # Create variable point size for plotting using linear distance decay function
   pt_size <- (max_cex - min_cex) *
     (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
     min_cex
+
+  # Apply radial distortion if provided
+  if (!is.null(radial_distortion)) {
+    # Convert zenith angle to elevation angle
+    elev_rad <- rad_90() - processed_lidar$phi
+
+    # Forward direction: elevation → normalized radius (0-1)
+    norm_radius <- apply_radial_distortion_mapping(
+      elev_rad,
+      from = radial_distortion$elevation,
+      to = radial_distortion$radius
+    )
+
+    # Scale to image coordinates and convert to cartesian
+    # (matches Gord's phi.sigma approach)
+    phi_distorted <- norm_radius * rad_90()
+    processed_lidar$x <- phi_distorted * cos(processed_lidar$theta) * -1
+    processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
+  }
 
   # Create maximum symbol size character string for file name
   ss <- ifelse(
@@ -409,16 +431,13 @@ gla_extract_gap_fraction <- function(
     zen_rad <- (dist_circle / radius) * rad_90()
     elev_rad <- rad_90() - zen_rad
   } else {
-    # Custom lens calibration
+    # Custom lens calibration (reverse direction: radius → elevation)
     norm_radius <- dist_circle / radius
-    elev_rad <- approx(
-      radial_distortion$radius,
-      radial_distortion$elevation,
-      xout = norm_radius,
-      method = "linear",
-      rule = 2,
-      ties = "ordered"
-    )$y
+    elev_rad <- apply_radial_distortion_mapping(
+      norm_radius,
+      from = radial_distortion$radius,
+      to = radial_distortion$elevation
+    )
   }
 
   # Calculate azimuth angles
@@ -526,6 +545,29 @@ gla_lens_sigma_8mm <- function() {
   sigma_elev_rad <- rad_90() - sigma_zen_rad
 
   list(radius = norm_sigma_radius, elevation = sigma_elev_rad)
+}
+
+
+#' Apply radial distortion mapping in either direction
+#'
+#' Performs linear interpolation for lens distortion calibration. Used
+#' bidirectionally: forward (elevation → radius) for synthetic photo creation,
+#' reverse (radius → elevation) for photo analysis.
+#'
+#' @param input_values Vector of input values to map
+#' @param from Vector of input reference values (from calibration)
+#' @param to Vector of output reference values (from calibration)
+#' @return Vector of mapped values
+#' @keywords internal
+apply_radial_distortion_mapping <- function(input_values, from, to) {
+  approx(
+    from,
+    to,
+    xout = input_values,
+    method = "linear",
+    rule = 2,
+    ties = "ordered"
+  )$y
 }
 
 
@@ -917,6 +959,10 @@ gla_process_fisheye_photos <- function(
 #'   calling this function
 #' @param resume Logical. If TRUE (default), skip points that already have
 #'   fisheye photos in the output directory
+#' @param radial_distortion Optional lens calibration data. If NULL (default),
+#'   uses equidistant polar projection. Provide a list with \code{radius} (normalized 0-1)
+#'   and \code{elevation} (radians) components. See \code{\link{gla_lens_sigma_8mm}} for
+#'   example format. Applied to both LiDAR points and horizon mask during photo creation.
 #'
 #' @return The input \code{points} sf object with an added column
 #'   \code{fisheye_photo_path} containing the file paths to the generated
@@ -969,7 +1015,8 @@ gla_create_fisheye_photos <- function(
   pointsize = 10,
   dpi = 300,
   parallel = TRUE,
-  resume = TRUE
+  resume = TRUE,
+  radial_distortion = NULL
 ) {
   # Validate inputs
   if (!inherits(points, "sf")) {
@@ -1089,6 +1136,30 @@ gla_create_fisheye_photos <- function(
   # (if resume=TRUE, some points may be skipped, so we subset from points$horizon_mask)
   horizon_list <- points$horizon_mask[points_to_process_indices]
 
+  # Reprocess horizon masks with current radial_distortion if needed
+  # Horizon extraction always uses equidistant (NULL), but photo creation
+  # may use custom lens calibration
+  if (!is.null(radial_distortion)) {
+    horizon_list <- lapply(horizon_list, function(horizon) {
+      # Reprocess angular data with current distortion
+      horizon_df <- data.frame(
+        azimuth = horizon$azimuth,
+        horizon_height = horizon$horizon_height
+      )
+      horizon_processed <- prepare_horizon_mask(
+        horizon_df,
+        radial_distortion = radial_distortion,
+        verbose = FALSE
+      )
+      list(
+        azimuth = horizon$azimuth,
+        horizon_height = horizon$horizon_height,
+        x_msk = horizon_processed$x_msk,
+        y_msk = horizon_processed$y_msk
+      )
+    })
+  }
+
   message(
     "Processing ",
     length(points_to_process_indices),
@@ -1135,6 +1206,7 @@ gla_create_fisheye_photos <- function(
               width = img_res,
               pointsize = pointsize,
               res = dpi,
+              radial_distortion = radial_distortion,
               height = img_res,
               units = "px"
             )
@@ -1192,6 +1264,7 @@ gla_create_fisheye_photos <- function(
               width = img_res,
               pointsize = pointsize,
               res = dpi,
+              radial_distortion = radial_distortion,
               height = img_res,
               units = "px"
             )

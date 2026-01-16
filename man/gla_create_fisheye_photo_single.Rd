@@ -17,8 +17,13 @@ gla_create_fisheye_photo_single(
   width,
   pointsize,
   res,
+  radial_distortion = NULL,
   ...
 )
+}
+\arguments{
+\item{radial_distortion}{Optional lens calibration data. If NULL (default),
+uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.}
 }
 \description{
 Create fisheye image (single point)
