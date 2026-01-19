@@ -9,7 +9,7 @@ gla_extract_gap_fraction(
   elev_res = 5,
   azi_res = 5,
   rotation_deg = 0,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0
 )
 }
@@ -22,8 +22,9 @@ gla_extract_gap_fraction(
 
 \item{rotation_deg}{Rotation angle in degrees to align image with true north (default 0)}
 
-\item{radial_distortion}{Optional lens calibration data. If NULL (default),
-uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.}
+\item{radial_distortion}{Lens projection method. Use "equidistant" (default)
+for standard equidistant polar projection, or provide custom lens calibration
+data (see \code{\link{gla_lens_sigma_8mm}} for format).}
 
 \item{threshold}{Threshold value for converting image to binary. Can be:
 \itemize{

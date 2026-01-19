@@ -437,19 +437,19 @@ test_that("gla_extract_gap_fraction works with custom radial calibration", {
   expect_gt(cor_value, 0.95) # Very similar but not exactly 1.0
 })
 
-test_that("gla_extract_gap_fraction with NULL radial_distortion uses polar", {
+test_that("gla_extract_gap_fraction with equidistant uses polar projection", {
   test_photo <- test_path(
     "testdata",
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  # These should be identical
+  # These should be identical (explicit vs implicit default)
   result1 <- gla_extract_gap_fraction(
     img_file = test_photo,
     elev_res = 5,
     azi_res = 5,
     rotation_deg = 0,
-    radial_distortion = NULL
+    radial_distortion = "equidistant"
   )
 
   result2 <- gla_extract_gap_fraction(
@@ -691,14 +691,14 @@ test_that("gla_create_fisheye_photos works with radial_distortion parameter", {
     verbose = FALSE
   )
 
-  # Create fisheye photo with equidistant projection (NULL)
+  # Create fisheye photo with equidistant projection
   result_equi <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye_equi,
     img_res = 1000,
     parallel = FALSE,
     resume = FALSE,
-    radial_distortion = NULL
+    radial_distortion = "equidistant"
   )
 
   # Create fisheye photo with Sigma 8mm distortion
@@ -731,8 +731,8 @@ test_that("prepare_horizon_mask applies radial distortion correctly", {
     horizon_height = rep(10, 72) # 10 degrees elevation
   )
 
-  # Process without distortion
-  result_equi <- prepare_horizon_mask(test_horizon, radial_distortion = NULL)
+  # Process with equidistant projection
+  result_equi <- prepare_horizon_mask(test_horizon, radial_distortion = "equidistant")
 
   # Process with Sigma 8mm distortion
   result_sigma <- prepare_horizon_mask(
@@ -758,10 +758,19 @@ test_that("prepare_horizon_mask applies radial distortion correctly", {
 })
 
 test_that("validate_radial_distortion catches invalid input", {
-  # Not a list
+  # Valid "equidistant" string
+  expect_true(validate_radial_distortion("equidistant"))
+
+  # Invalid string (not "equidistant")
   expect_error(
-    validate_radial_distortion("not a list"),
-    "must be a list"
+    validate_radial_distortion("not_equidistant"),
+    "must be 'equidistant'"
+  )
+
+  # Not a string or list
+  expect_error(
+    validate_radial_distortion(123),
+    "must be 'equidistant' or a calibration list"
   )
 
   # Missing components
@@ -797,7 +806,7 @@ test_that("validate_radial_distortion catches invalid input", {
     "must have same length"
   )
 
-  # Valid calibration
+  # Valid calibration list
   expect_true(
     validate_radial_distortion(list(
       radius = c(0, 0.5, 1),

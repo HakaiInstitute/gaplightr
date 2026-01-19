@@ -328,8 +328,9 @@ gla_extract_horizon_terra <- function(
 #'
 #' @param horizon_data Data frame with horizon data. Must contain at least
 #'   two columns: azimuth (degrees, 0-360) and elevation angle (degrees)
-#' @param radial_distortion Optional lens calibration data. If NULL (default),
-#'   uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.
+#' @param radial_distortion Lens projection method. Use "equidistant" (default)
+#'   for standard equidistant polar projection, or provide custom lens calibration
+#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
 #' @param verbose Logical indicating whether to print the processed data
 #'   (default: FALSE)
 #'
@@ -351,7 +352,7 @@ gla_extract_horizon_terra <- function(
 #' @keywords internal
 prepare_horizon_mask <- function(
   horizon_data,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   verbose = FALSE
 ) {
   # Validate input
@@ -365,10 +366,8 @@ prepare_horizon_mask <- function(
     stop("horizon_data must have at least 2 columns (azimuth, elevation)")
   }
 
-  # Validate radial_distortion if provided
-  if (!is.null(radial_distortion)) {
-    validate_radial_distortion(radial_distortion)
-  }
+  # Validate radial_distortion
+  validate_radial_distortion(radial_distortion)
 
   # Standardize column names - assume first two columns are azimuth and elevation
   names(horizon_data)[1:2] <- c("azimuth", "horizon_height")
@@ -383,8 +382,8 @@ prepare_horizon_mask <- function(
   # Convert azimuth to radians
   azi_rad <- dat$azimuth * deg_to_rad()
 
-  # Apply radial distortion if provided
-  if (!is.null(radial_distortion)) {
+  # Apply radial distortion if custom calibration provided
+  if (!identical(radial_distortion, "equidistant")) {
     # horizon_height is elevation angle in degrees
     elev_rad <- dat$horizon_height * deg_to_rad()
 
@@ -400,7 +399,7 @@ prepare_horizon_mask <- function(
     x_msk <- zen_rad_distorted * cos(azi_rad) * -1
     y_msk <- zen_rad_distorted * sin(azi_rad)
   } else {
-    # Current equidistant projection (unchanged)
+    # Equidistant projection (default)
     zen_rad <- (90 - dat$horizon_height) * deg_to_rad()
     x_msk <- zen_rad * cos(azi_rad) * -1 # flip image along N/S axis (left = EAST; right = WEST)
     y_msk <- zen_rad * sin(azi_rad)
@@ -557,7 +556,7 @@ gla_extract_horizons <- function(
           # Use first two columns which are azimuth and horizon_height
           horizon_processed <- prepare_horizon_mask(
             horizon_df[, 1:2],
-            radial_distortion = NULL,
+            radial_distortion = "equidistant",
             verbose = FALSE
           )
 
@@ -649,7 +648,7 @@ gla_extract_horizons <- function(
           verbose = FALSE
         ) |>
           prepare_horizon_mask(
-            radial_distortion = NULL,
+            radial_distortion = "equidistant",
             verbose = FALSE
           )
 
@@ -701,7 +700,7 @@ gla_extract_horizons <- function(
         verbose = FALSE
       ) |>
         prepare_horizon_mask(
-          radial_distortion = NULL,
+          radial_distortion = "equidistant",
           verbose = FALSE
         )
 

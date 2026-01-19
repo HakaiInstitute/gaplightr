@@ -17,7 +17,7 @@ gla_process_fisheye_photos(
   rotation_deg = 0,
   parallel = TRUE,
   keep_gap_fraction_data = FALSE,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0,
   solar_constant = 1367
 )
@@ -51,8 +51,9 @@ Ratio of measured to extraterrestrial radiation.}
 \item{keep_gap_fraction_data}{Include gap fraction matrix in output (default FALSE).
 If TRUE, adds \code{gap_fraction_data} column to output.}
 
-\item{radial_distortion}{Optional lens calibration data. If NULL (default),
-uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.}
+\item{radial_distortion}{Lens projection method. Use "equidistant" (default)
+for standard equidistant polar projection, or provide custom lens calibration
+data (see \code{\link{gla_lens_sigma_8mm}} for format).}
 
 \item{threshold}{Threshold value for converting image to binary. Can be:
 \itemize{

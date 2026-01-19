@@ -14,7 +14,7 @@ gla_process_fisheye_photo_single(
   azi_res,
   rotation_deg,
   keep_gap_fraction_data = FALSE,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0
 )
 }
