@@ -567,8 +567,7 @@ apply_radial_distortion_mapping <- function(input_values, from, to) {
     to,
     xout = input_values,
     method = "linear",
-    rule = 2,
-    ties = "ordered"
+    rule = 2
   )$y
 }
 
