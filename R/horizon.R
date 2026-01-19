@@ -365,6 +365,11 @@ prepare_horizon_mask <- function(
     stop("horizon_data must have at least 2 columns (azimuth, elevation)")
   }
 
+  # Validate radial_distortion if provided
+  if (!is.null(radial_distortion)) {
+    validate_radial_distortion(radial_distortion)
+  }
+
   # Standardize column names - assume first two columns are azimuth and elevation
   names(horizon_data)[1:2] <- c("azimuth", "horizon_height")
 

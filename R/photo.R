@@ -28,7 +28,7 @@ gla_create_fisheye_photo_single <- function(
     # Convert zenith angle to elevation angle
     elev_rad <- rad_90() - processed_lidar$phi
 
-    # Forward direction: elevation → normalized radius (0-1)
+    # Forward direction: elevation -> normalized radius (0-1)
     norm_radius <- apply_radial_distortion_mapping(
       elev_rad,
       from = radial_distortion$elevation,
@@ -431,7 +431,7 @@ gla_extract_gap_fraction <- function(
     zen_rad <- (dist_circle / radius) * rad_90()
     elev_rad <- rad_90() - zen_rad
   } else {
-    # Custom lens calibration (reverse direction: radius → elevation)
+    # Custom lens calibration (reverse direction: radius -> elevation)
     norm_radius <- dist_circle / radius
     elev_rad <- apply_radial_distortion_mapping(
       norm_radius,
@@ -568,6 +568,50 @@ apply_radial_distortion_mapping <- function(input_values, from, to) {
     rule = 2,
     ties = "ordered"
   )$y
+}
+
+
+#' Validate radial distortion calibration data
+#'
+#' Checks that radial_distortion list has required components with valid values.
+#' Ensures radius is normalized to 0-1 range.
+#'
+#' @param radial_distortion Calibration list with radius and elevation components
+#' @return TRUE invisibly if valid, otherwise stops with error
+#' @keywords internal
+validate_radial_distortion <- function(radial_distortion) {
+  if (!is.list(radial_distortion)) {
+    stop("radial_distortion must be a list", call. = FALSE)
+  }
+
+  if (!all(c("radius", "elevation") %in% names(radial_distortion))) {
+    stop(
+      "radial_distortion must have 'radius' and 'elevation' components.\n",
+      "See ?gla_lens_sigma_8mm for example format.",
+      call. = FALSE
+    )
+  }
+
+  # Check radius is normalized (0-1)
+  if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
+    stop(
+      "radial_distortion$radius must be normalized to 0-1 range.\n",
+      "Found values outside [0, 1]: min = ", min(radial_distortion$radius),
+      ", max = ", max(radial_distortion$radius), "\n",
+      "Normalize by dividing by maximum physical radius.",
+      call. = FALSE
+    )
+  }
+
+  # Check vectors are same length
+  if (length(radial_distortion$radius) != length(radial_distortion$elevation)) {
+    stop(
+      "radial_distortion$radius and radial_distortion$elevation must have same length",
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
 }
 
 
@@ -1044,6 +1088,14 @@ gla_create_fisheye_photos <- function(
     if (nrow(points) == 0) {
       stop("No valid LAS files found in input points")
     }
+  }
+
+  # Validate radial_distortion if provided
+  if (!is.null(radial_distortion)) {
+    validate_radial_distortion(radial_distortion)
+    message(
+      "Using custom lens calibration for radial distortion (non-equidistant projection)"
+    )
   }
 
   if (!dir.exists(output_dir)) {

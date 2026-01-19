@@ -756,3 +756,100 @@ test_that("prepare_horizon_mask applies radial distortion correctly", {
   radius_sigma <- sqrt(result_sigma$x_msk^2 + result_sigma$y_msk^2)[1]
   expect_lt(radius_sigma, radius_equi)
 })
+
+test_that("validate_radial_distortion catches invalid input", {
+  # Not a list
+  expect_error(
+    validate_radial_distortion("not a list"),
+    "must be a list"
+  )
+
+  # Missing components
+  expect_error(
+    validate_radial_distortion(list(radius = c(0, 1))),
+    "must have 'radius' and 'elevation' components"
+  )
+
+  # Radius not normalized (too large)
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(0, 5, 10),
+      elevation = c(0, 0.5, 1)
+    )),
+    "must be normalized to 0-1 range"
+  )
+
+  # Radius not normalized (negative)
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(-0.1, 0.5, 1),
+      elevation = c(0, 0.5, 1)
+    )),
+    "must be normalized to 0-1 range"
+  )
+
+  # Different lengths
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(0, 0.5, 1),
+      elevation = c(0, 1)
+    )),
+    "must have same length"
+  )
+
+  # Valid calibration
+  expect_true(
+    validate_radial_distortion(list(
+      radius = c(0, 0.5, 1),
+      elevation = c(0, 0.785, 1.57)
+    ))
+  )
+})
+
+test_that("apply_radial_distortion_mapping works bidirectionally", {
+  # Simple linear calibration for testing
+  # Note: approx() requires 'from' values to be in increasing order
+  cal <- list(
+    elevation = c(0, 0.785, 1.57),  # 0°, 45°, 90° (increasing)
+    radius = c(0.0, 0.6, 1.0)       # Normalized 0-1 (increasing from center to edge)
+  )
+
+  # Forward: elevation -> radius
+  result_fwd <- apply_radial_distortion_mapping(
+    0.785,  # 45° input
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_fwd, 0.6)
+
+  # Reverse: radius -> elevation
+  result_rev <- apply_radial_distortion_mapping(
+    0.6,  # Normalized radius
+    from = cal$radius,
+    to = cal$elevation
+  )
+  expect_equal(result_rev, 0.785)
+
+  # Test interpolation between points (forward direction)
+  result_interp <- apply_radial_distortion_mapping(
+    0.3925,  # 22.5° (halfway between 0 and 45)
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_interp, 0.3, tolerance = 0.01)  # Should be ~0.3
+
+  # Test rule=2 boundary handling (forward)
+  result_below <- apply_radial_distortion_mapping(
+    -0.1,  # Below range
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_below, 0.0)  # Should use first value
+
+  result_above <- apply_radial_distortion_mapping(
+    2.0,  # Above range
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_above, 1.0)  # Should use last value
+})
