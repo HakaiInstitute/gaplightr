@@ -20,9 +20,11 @@ gla_create_fisheye_photo_single <- function(
   ...
 ) {
   # Create variable point size for plotting using linear distance decay function
-  pt_size <- (max_cex - min_cex) *
-    (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
+  # Clamp to min_cex for points beyond max_dist
+  pt_size <- pmax(
+    (max_cex - min_cex) * (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) + min_cex,
     min_cex
+  )
 
   # Apply radial distortion if custom calibration provided
   if (!identical(radial_distortion, "equidistant")) {
@@ -1009,12 +1011,16 @@ gla_process_fisheye_photos <- function(
 #' @param output_dir Directory path where fisheye photo BMP files will be saved
 #' @param cam_ht Camera height above ground in meters. Default is 1.37m
 #' @param min_dist Minimum distance from camera to include LiDAR points (meters).
-#'   Default is 1m
-#' @param max_dist Maximum distance from camera to include LiDAR points (meters).
+#'   Points closer than this distance are excluded. Default is 1m
+#' @param max_dist Distance at which point symbols reach minimum size (meters).
+#'   Point size (CEX) decays linearly from max_cex at min_dist to min_cex at
+#'   max_dist. Points beyond max_dist are plotted with min_cex (smallest size).
 #'   Default is 220m
 #' @param img_res Image resolution in pixels (width and height). Default is 2800
-#' @param max_cex Maximum symbol size for plotting points. Default is 0.2
-#' @param min_cex Minimum symbol size for plotting points. Default is 0.05
+#' @param max_cex Maximum symbol size for plotting points (CEX value). Controls
+#'   the size of points closest to the camera (at min_dist). Default is 0.2
+#' @param min_cex Minimum symbol size for plotting points (CEX value). Points at
+#'   or beyond max_dist are plotted with this size. Default is 0.05
 #' @param pointsize Point size parameter for bitmap graphics device. Default is 10
 #' @param dpi Resolution in dots per inch for output image. Default is 300
 #' @param parallel Logical. If TRUE (default), use parallel processing via
