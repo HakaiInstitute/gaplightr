@@ -1,4 +1,7 @@
 #' Create fisheye image (single point)
+#' @param radial_distortion Lens projection method. Use "equidistant" (default)
+#'   for standard equidistant polar projection, or provide custom lens calibration
+#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
 #' @keywords internal
 gla_create_fisheye_photo_single <- function(
   processed_lidar,
@@ -13,6 +16,7 @@ gla_create_fisheye_photo_single <- function(
   width, # Required: image width for bmp() and filename
   pointsize, # Required: point size for bmp() and filename
   res, # Required: resolution for bmp() and filename
+  radial_distortion = "equidistant",
   ...
 ) {
   # Create variable point size for plotting using linear distance decay function
@@ -23,6 +27,25 @@ gla_create_fisheye_photo_single <- function(
       min_cex,
     min_cex
   )
+
+  # Apply radial distortion if custom calibration provided
+  if (!identical(radial_distortion, "equidistant")) {
+    # Convert zenith angle to elevation angle
+    elev_rad <- rad_90() - processed_lidar$phi
+
+    # Forward direction: elevation -> normalized radius (0-1)
+    norm_radius <- apply_radial_distortion_mapping(
+      elev_rad,
+      from = radial_distortion$elevation,
+      to = radial_distortion$radius
+    )
+
+    # Scale to image coordinates and convert to cartesian
+    # (matches Gord's phi.sigma approach)
+    phi_distorted <- norm_radius * rad_90()
+    processed_lidar$x <- phi_distorted * cos(processed_lidar$theta) * -1
+    processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
+  }
 
   # Create maximum symbol size character string for file name
   ss <- ifelse(
@@ -319,8 +342,9 @@ gla_compute_solar_positions <- function(
 #' @param elev_res Elevation resolution in degrees (default 5)
 #' @param azi_res Azimuth resolution in degrees (default 5)
 #' @param rotation_deg Rotation angle in degrees to align image with true north (default 0)
-#' @param radial_distortion Optional lens calibration data. If NULL (default),
-#'   uses equidistant polar projection. See \code{\link{gla_lens_sigma_8mm}} for format.
+#' @param radial_distortion Lens projection method. Use "equidistant" (default)
+#'   for standard equidistant polar projection, or provide custom lens calibration
+#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
 #' @param threshold Threshold value for converting image to binary. Can be:
 #'   \itemize{
 #'     \item Numeric value (0-1): pixels below threshold become 0, above become 1. Default is 0 (matches original behavior).
@@ -352,7 +376,7 @@ gla_extract_gap_fraction <- function(
   elev_res = 5,
   azi_res = 5,
   rotation_deg = 0,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0
 ) {
   # Sky mask resolution
@@ -408,21 +432,18 @@ gla_extract_gap_fraction <- function(
   pixel_values <- img_values[circle_mask]
 
   # Calculate elevation angles with optional custom calibration
-  if (is.null(radial_distortion)) {
+  if (!identical(radial_distortion, "equidistant")) {
+    # Custom lens calibration (reverse direction: radius -> elevation)
+    norm_radius <- dist_circle / radius
+    elev_rad <- apply_radial_distortion_mapping(
+      norm_radius,
+      from = radial_distortion$radius,
+      to = radial_distortion$elevation
+    )
+  } else {
     # Default: polar (equidistant) projection
     zen_rad <- (dist_circle / radius) * rad_90()
     elev_rad <- rad_90() - zen_rad
-  } else {
-    # Custom lens calibration
-    norm_radius <- dist_circle / radius
-    elev_rad <- approx(
-      radial_distortion$radius,
-      radial_distortion$elevation,
-      xout = norm_radius,
-      method = "linear",
-      rule = 2,
-      ties = "ordered"
-    )$y
   }
 
   # Calculate azimuth angles
@@ -533,6 +554,90 @@ gla_lens_sigma_8mm <- function() {
 }
 
 
+#' Apply radial distortion mapping in either direction
+#'
+#' Performs linear interpolation for lens distortion calibration. Used
+#' bidirectionally: forward (elevation → radius) for synthetic photo creation,
+#' reverse (radius → elevation) for photo analysis.
+#'
+#' @param input_values Vector of input values to map
+#' @param from Vector of input reference values (from calibration)
+#' @param to Vector of output reference values (from calibration)
+#' @return Vector of mapped values
+#' @keywords internal
+apply_radial_distortion_mapping <- function(input_values, from, to) {
+  approx(
+    from,
+    to,
+    xout = input_values,
+    method = "linear",
+    rule = 2
+  )$y
+}
+
+
+#' Validate radial distortion calibration data
+#'
+#' Checks that radial_distortion is either "equidistant" (default) or a valid
+#' calibration list with required components and normalized radius values.
+#'
+#' @param radial_distortion Either "equidistant" string or calibration list
+#'   with radius and elevation components
+#' @return TRUE invisibly if valid, otherwise stops with error
+#' @keywords internal
+validate_radial_distortion <- function(radial_distortion) {
+  # Allow "equidistant" as valid string value
+  if (is.character(radial_distortion) && length(radial_distortion) == 1) {
+    if (radial_distortion == "equidistant") {
+      return(invisible(TRUE))
+    } else {
+      stop(
+        "radial_distortion string must be 'equidistant'.\n",
+        "For custom calibration, provide a list with 'radius' and 'elevation' components.",
+        call. = FALSE
+      )
+    }
+  }
+
+  # Validate list structure
+  if (!is.list(radial_distortion)) {
+    stop(
+      "radial_distortion must be 'equidistant' or a calibration list",
+      call. = FALSE
+    )
+  }
+
+  if (!all(c("radius", "elevation") %in% names(radial_distortion))) {
+    stop(
+      "radial_distortion must have 'radius' and 'elevation' components.\n",
+      "See ?gla_lens_sigma_8mm for example format.",
+      call. = FALSE
+    )
+  }
+
+  # Check radius is normalized (0-1)
+  if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
+    stop(
+      "radial_distortion$radius must be normalized to 0-1 range.\n",
+      "Found values outside [0, 1]: min = ", min(radial_distortion$radius),
+      ", max = ", max(radial_distortion$radius), "\n",
+      "Normalize by dividing by maximum physical radius.",
+      call. = FALSE
+    )
+  }
+
+  # Check vectors are same length
+  if (length(radial_distortion$radius) != length(radial_distortion$elevation)) {
+    stop(
+      "radial_distortion$radius and radial_distortion$elevation must have same length",
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
+}
+
+
 #' Process single fisheye photo and calculate SSR
 #' @keywords internal
 gla_process_fisheye_photo_single <- function(
@@ -545,7 +650,7 @@ gla_process_fisheye_photo_single <- function(
   azi_res,
   rotation_deg,
   keep_gap_fraction_data = FALSE,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0
 ) {
   # Extract computed values from solar_data
@@ -737,7 +842,7 @@ gla_process_fisheye_photos <- function(
   rotation_deg = 0,
   parallel = TRUE,
   keep_gap_fraction_data = FALSE,
-  radial_distortion = NULL,
+  radial_distortion = "equidistant",
   threshold = 0,
   solar_constant = 1367
 ) {
@@ -925,6 +1030,11 @@ gla_process_fisheye_photos <- function(
 #'   calling this function
 #' @param resume Logical. If TRUE (default), skip points that already have
 #'   fisheye photos in the output directory
+#' @param radial_distortion Lens projection method. Use "equidistant" (default)
+#'   for standard equidistant polar projection, or provide custom lens calibration
+#'   data with \code{radius} (normalized 0-1) and \code{elevation} (radians) components.
+#'   See \code{\link{gla_lens_sigma_8mm}} for example format. Applied to both LiDAR
+#'   points and horizon mask during photo creation.
 #'
 #' @return The input \code{points} sf object with an added column
 #'   \code{fisheye_photo_path} containing the file paths to the generated
@@ -977,7 +1087,8 @@ gla_create_fisheye_photos <- function(
   pointsize = 10,
   dpi = 300,
   parallel = TRUE,
-  resume = TRUE
+  resume = TRUE,
+  radial_distortion = "equidistant"
 ) {
   # Validate inputs
   if (!inherits(points, "sf")) {
@@ -1005,6 +1116,14 @@ gla_create_fisheye_photos <- function(
     if (nrow(points) == 0) {
       stop("No valid LAS files found in input points")
     }
+  }
+
+  # Validate radial_distortion
+  validate_radial_distortion(radial_distortion)
+  if (!identical(radial_distortion, "equidistant")) {
+    message(
+      "Using custom lens calibration for radial distortion (non-equidistant projection)"
+    )
   }
 
   if (!dir.exists(output_dir)) {
@@ -1097,6 +1216,30 @@ gla_create_fisheye_photos <- function(
   # (if resume=TRUE, some points may be skipped, so we subset from points$horizon_mask)
   horizon_list <- points$horizon_mask[points_to_process_indices]
 
+  # Reprocess horizon masks with current radial_distortion if needed
+  # Horizon extraction always uses equidistant projection, but photo creation
+  # may use custom lens calibration
+  if (!identical(radial_distortion, "equidistant")) {
+    horizon_list <- lapply(horizon_list, function(horizon) {
+      # Reprocess angular data with current distortion
+      horizon_df <- data.frame(
+        azimuth = horizon$azimuth,
+        horizon_height = horizon$horizon_height
+      )
+      horizon_processed <- prepare_horizon_mask(
+        horizon_df,
+        radial_distortion = radial_distortion,
+        verbose = FALSE
+      )
+      list(
+        azimuth = horizon$azimuth,
+        horizon_height = horizon$horizon_height,
+        x_msk = horizon_processed$x_msk,
+        y_msk = horizon_processed$y_msk
+      )
+    })
+  }
+
   message(
     "Processing ",
     length(points_to_process_indices),
@@ -1143,6 +1286,7 @@ gla_create_fisheye_photos <- function(
               width = img_res,
               pointsize = pointsize,
               res = dpi,
+              radial_distortion = radial_distortion,
               height = img_res,
               units = "px"
             )
@@ -1200,6 +1344,7 @@ gla_create_fisheye_photos <- function(
               width = img_res,
               pointsize = pointsize,
               res = dpi,
+              radial_distortion = radial_distortion,
               height = img_res,
               units = "px"
             )

@@ -437,19 +437,19 @@ test_that("gla_extract_gap_fraction works with custom radial calibration", {
   expect_gt(cor_value, 0.95) # Very similar but not exactly 1.0
 })
 
-test_that("gla_extract_gap_fraction with NULL radial_distortion uses polar", {
+test_that("gla_extract_gap_fraction with equidistant uses polar projection", {
   test_photo <- test_path(
     "testdata",
     "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
   )
 
-  # These should be identical
+  # These should be identical (explicit vs implicit default)
   result1 <- gla_extract_gap_fraction(
     img_file = test_photo,
     elev_res = 5,
     azi_res = 5,
     rotation_deg = 0,
-    radial_distortion = NULL
+    radial_distortion = "equidistant"
   )
 
   result2 <- gla_extract_gap_fraction(
@@ -643,4 +643,217 @@ test_that("gla_compute_solar_positions handles mixed polar day, normal, and pola
 
   # Day 356 (Dec 21) should NOT be in solar_mat (polar night)
   expect_false(356 %in% solar_data$solar_mat[, "DAY_NUM"])
+})
+
+# Radial distortion for synthetic photo creation ----
+
+test_that("gla_create_fisheye_photos works with radial_distortion parameter", {
+  # Create test fixtures on-demand
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 1,
+    output_path = stream_network_path
+  )
+
+  las_dir <- withr::local_tempdir()
+  las_path <- file.path(las_dir, "minimal_plot_3005.las")
+  create_test_las(crs = 3005, n_points = 100, output_path = las_path)
+
+  output_dir_virtual_plots <- withr::local_tempdir()
+  output_dir_fisheye_equi <- withr::local_tempdir()
+  output_dir_fisheye_sigma <- withr::local_tempdir()
+
+  # Load points
+  stream_points <- gla_load_points(stream_network_path, dem_path)
+
+  # Create virtual plots
+  stream_points <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = las_dir,
+    output_dir = output_dir_virtual_plots,
+    plot_radius = 50,
+    chunk_size = 0,
+    resume = FALSE
+  )
+
+  # Extract horizons (always equidistant, distortion applied at photo creation)
+  stream_points <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = withr::local_tempdir(),
+    step = 30,
+    max_search_distance = 1000,
+    parallel = FALSE,
+    verbose = FALSE
+  )
+
+  # Create fisheye photo with equidistant projection
+  result_equi <- gla_create_fisheye_photos(
+    points = stream_points,
+    output_dir = output_dir_fisheye_equi,
+    img_res = 1000,
+    parallel = FALSE,
+    resume = FALSE,
+    radial_distortion = "equidistant"
+  )
+
+  # Create fisheye photo with Sigma 8mm distortion
+  result_sigma <- gla_create_fisheye_photos(
+    points = stream_points,
+    output_dir = output_dir_fisheye_sigma,
+    img_res = 1000,
+    parallel = FALSE,
+    resume = FALSE,
+    radial_distortion = gla_lens_sigma_8mm()
+  )
+
+  # Both should succeed and create files
+  expect_true(file.exists(result_equi$fisheye_photo_path[1]))
+  expect_true(file.exists(result_sigma$fisheye_photo_path[1]))
+
+  # With minimal test data (100 points), the images may be very similar
+  # The prepare_horizon_mask test verifies distortion is applied correctly
+})
+
+test_that("prepare_horizon_mask applies radial distortion correctly", {
+  # Create test horizon data
+  test_horizon <- data.frame(
+    azimuth = seq(0, 355, by = 5),
+    horizon_height = rep(10, 72) # 10 degrees elevation
+  )
+
+  # Process with equidistant projection
+  result_equi <- prepare_horizon_mask(test_horizon, radial_distortion = "equidistant")
+
+  # Process with Sigma 8mm distortion
+  result_sigma <- prepare_horizon_mask(
+    test_horizon,
+    radial_distortion = gla_lens_sigma_8mm()
+  )
+
+  # Both should have x_msk and y_msk columns
+  expect_true("x_msk" %in% names(result_equi))
+  expect_true("y_msk" %in% names(result_equi))
+  expect_true("x_msk" %in% names(result_sigma))
+  expect_true("y_msk" %in% names(result_sigma))
+
+  # Coordinates should be different due to distortion
+  expect_false(identical(result_equi$x_msk, result_sigma$x_msk))
+  expect_false(identical(result_equi$y_msk, result_sigma$y_msk))
+
+  # Sigma 8mm has barrel distortion: at low elevations (near horizon),
+  # it produces larger radii than equidistant projection
+  radius_equi <- sqrt(result_equi$x_msk^2 + result_equi$y_msk^2)[1]
+  radius_sigma <- sqrt(result_sigma$x_msk^2 + result_sigma$y_msk^2)[1]
+  expect_gt(radius_sigma, radius_equi)
+})
+
+test_that("validate_radial_distortion catches invalid input", {
+  # Valid "equidistant" string
+  expect_true(validate_radial_distortion("equidistant"))
+
+  # Invalid string (not "equidistant")
+  expect_error(
+    validate_radial_distortion("not_equidistant"),
+    "must be 'equidistant'"
+  )
+
+  # Not a string or list
+  expect_error(
+    validate_radial_distortion(123),
+    "must be 'equidistant' or a calibration list"
+  )
+
+  # Missing components
+  expect_error(
+    validate_radial_distortion(list(radius = c(0, 1))),
+    "must have 'radius' and 'elevation' components"
+  )
+
+  # Radius not normalized (too large)
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(0, 5, 10),
+      elevation = c(0, 0.5, 1)
+    )),
+    "must be normalized to 0-1 range"
+  )
+
+  # Radius not normalized (negative)
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(-0.1, 0.5, 1),
+      elevation = c(0, 0.5, 1)
+    )),
+    "must be normalized to 0-1 range"
+  )
+
+  # Different lengths
+  expect_error(
+    validate_radial_distortion(list(
+      radius = c(0, 0.5, 1),
+      elevation = c(0, 1)
+    )),
+    "must have same length"
+  )
+
+  # Valid calibration list
+  expect_true(
+    validate_radial_distortion(list(
+      radius = c(0, 0.5, 1),
+      elevation = c(0, 0.785, 1.57)
+    ))
+  )
+})
+
+test_that("apply_radial_distortion_mapping works bidirectionally", {
+  # Simple linear calibration for testing
+  # Note: approx() requires 'from' values to be in increasing order
+  cal <- list(
+    elevation = c(0, 0.785, 1.57),  # 0°, 45°, 90° (increasing)
+    radius = c(0.0, 0.6, 1.0)       # Normalized 0-1 (increasing from center to edge)
+  )
+
+  # Forward: elevation -> radius
+  result_fwd <- apply_radial_distortion_mapping(
+    0.785,  # 45° input
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_fwd, 0.6)
+
+  # Reverse: radius -> elevation
+  result_rev <- apply_radial_distortion_mapping(
+    0.6,  # Normalized radius
+    from = cal$radius,
+    to = cal$elevation
+  )
+  expect_equal(result_rev, 0.785)
+
+  # Test interpolation between points (forward direction)
+  result_interp <- apply_radial_distortion_mapping(
+    0.3925,  # 22.5° (halfway between 0 and 45)
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_interp, 0.3, tolerance = 0.01)  # Should be ~0.3
+
+  # Test rule=2 boundary handling (forward)
+  result_below <- apply_radial_distortion_mapping(
+    -0.1,  # Below range
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_below, 0.0)  # Should use first value
+
+  result_above <- apply_radial_distortion_mapping(
+    2.0,  # Above range
+    from = cal$elevation,
+    to = cal$radius
+  )
+  expect_equal(result_above, 1.0)  # Should use last value
 })

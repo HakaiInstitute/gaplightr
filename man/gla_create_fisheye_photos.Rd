@@ -16,7 +16,8 @@ gla_create_fisheye_photos(
   pointsize = 10,
   dpi = 300,
   parallel = TRUE,
-  resume = TRUE
+  resume = TRUE,
+  radial_distortion = "equidistant"
 )
 }
 \arguments{
@@ -55,6 +56,12 @@ calling this function}
 
 \item{resume}{Logical. If TRUE (default), skip points that already have
 fisheye photos in the output directory}
+
+\item{radial_distortion}{Lens projection method. Use "equidistant" (default)
+for standard equidistant polar projection, or provide custom lens calibration
+data with \code{radius} (normalized 0-1) and \code{elevation} (radians) components.
+See \code{\link{gla_lens_sigma_8mm}} for example format. Applied to both LiDAR
+points and horizon mask during photo creation.}
 }
 \value{
 The input \code{points} sf object with an added column
