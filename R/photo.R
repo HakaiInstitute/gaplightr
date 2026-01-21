@@ -18,7 +18,9 @@ gla_create_fisheye_photo_single <- function(
   # Create variable point size for plotting using linear distance decay function
   # Clamp to min_cex for points beyond max_dist
   pt_size <- pmax(
-    (max_cex - min_cex) * (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) + min_cex,
+    (max_cex - min_cex) *
+      (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
+      min_cex,
     min_cex
   )
 
@@ -491,7 +493,7 @@ gla_extract_gap_fraction <- function(
 #'
 #' @export
 gla_lens_sigma_8mm <- function() {
-  # Image radius (mm) for Sigma 8mm lens
+  # Image radius (mm) for Sigma 8mm lens sequenced by 0.5
   sigma_radius <- seq(0, 11.5, 0.5)
   norm_sigma_radius <- sigma_radius / max(sigma_radius)
 
