@@ -79,7 +79,7 @@ process_points_internal <- function(points, dem) {
   } else {
     dem_rast <- terra::rast(dem)
   }
-  dem_crs <- sf::st_crs(terra::crs(dem_rast))
+  dem_crs <- get_raster_crs(dem_rast)
 
   validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
 

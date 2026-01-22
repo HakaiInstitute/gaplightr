@@ -455,11 +455,7 @@ gla_extract_gap_fraction <- function(
 
   # Convert to geographic direction (East/West flipped for skyward fisheye view)
   # North at 0 degrees, South at 180 degrees
-  azi_rad <- ifelse(
-    rot_azi < 0,
-    rot_azi * -1,
-    ifelse(rot_azi == 0, 0, two_pi() - rot_azi)
-  )
+  azi_rad <- convert_to_geographic_azimuth(rot_azi)
 
   # Compute sky region indices using elevation angle
   elev_bin_idx <- angular_bin_idx(elev_rad, rad_90(), nRings)
@@ -611,8 +607,11 @@ validate_radial_distortion <- function(radial_distortion) {
   if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
     stop(
       "radial_distortion$radius must be normalized to 0-1 range.\n",
-      "Found values outside [0, 1]: min = ", min(radial_distortion$radius),
-      ", max = ", max(radial_distortion$radius), "\n",
+      "Found values outside [0, 1]: min = ",
+      min(radial_distortion$radius),
+      ", max = ",
+      max(radial_distortion$radius),
+      "\n",
       "Normalize by dividing by maximum physical radius.",
       call. = FALSE
     )

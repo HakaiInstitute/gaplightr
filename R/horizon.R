@@ -593,7 +593,7 @@ gla_extract_horizons <- function(
   dem_rast <- terra::rast(dem_path)
 
   # Strict CRS validation to prevent spatial errors
-  dem_crs <- sf::st_crs(terra::crs(dem_rast))
+  dem_crs <- get_raster_crs(dem_rast)
   pts_crs <- sf::st_crs(points)
 
   validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
