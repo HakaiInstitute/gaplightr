@@ -142,6 +142,13 @@ validate_required_columns <- function(
   invisible(NULL)
 }
 
+validate_sf_object <- function(x, arg_name = "points") {
+  if (!inherits(x, "sf")) {
+    stop(arg_name, " must be an sf object", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 check_if_coordinates_are_unique <- function(df) {
   if (any(duplicated(df[, c("x_meters", "y_meters")]))) {
     stop(

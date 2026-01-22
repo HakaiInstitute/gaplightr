@@ -839,9 +839,7 @@ gla_process_fisheye_photos <- function(
   solar_constant = 1367
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   # Check if already processed
   solar_rad_cols <- c(
@@ -1083,9 +1081,7 @@ gla_create_fisheye_photos <- function(
   radial_distortion = "equidistant"
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   required_cols <- c("las_files", "lat", "lon", "elevation", "horizon_mask")
   validate_required_columns(
