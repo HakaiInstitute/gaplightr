@@ -322,6 +322,25 @@ solrad <- function(
   return(c(Io, Rb))
 }
 
+#' Compute 1-based bin index for an angular value
+#'
+#' Assigns angles to bins where bin 1 starts at 0 and bin n_bins ends at max_rad.
+#' Values exactly at max_rad are placed in bin n_bins rather than overflowing.
+#'
+#' @param angle_rad angle value(s) in radians
+#' @param max_rad maximum angle defining the range (e.g., pi/2 or 2*pi)
+#' @param n_bins number of bins to divide the range into
+#' @return integer bin index (1 to n_bins)
+#' @keywords internal
+#' @noRd
+angular_bin_idx <- function(angle_rad, max_rad, n_bins) {
+  ifelse(
+    angle_rad < max_rad,
+    floor(angle_rad / max_rad * n_bins) + 1L,
+    floor(angle_rad / max_rad * n_bins)
+  )
+}
+
 #' SKY REGION INDICES
 #'
 #' @param solar_elevation_rad solar elevation in radians
@@ -336,18 +355,8 @@ skyregidx <- function(
   n_elevation_rings,
   n_azimuth_sectors
 ) {
-  # Elevation rings
-  elev_bin_idx <- ifelse(
-    solar_elevation_rad < rad_90(),
-    floor(solar_elevation_rad / rad_90() * n_elevation_rings) + 1,
-    floor(solar_elevation_rad / rad_90() * n_elevation_rings)
-  )
-  # Azimuth sectors
-  azi_bin_idx <- ifelse(
-    solar_azimuth_rad < two_pi(),
-    floor(solar_azimuth_rad / two_pi() * n_azimuth_sectors) + 1,
-    floor(solar_azimuth_rad / two_pi() * n_azimuth_sectors)
-  )
+  elev_bin_idx <- angular_bin_idx(solar_elevation_rad, rad_90(), n_elevation_rings)
+  azi_bin_idx <- angular_bin_idx(solar_azimuth_rad, two_pi(), n_azimuth_sectors)
   return(c(elev_bin_idx, azi_bin_idx))
 }
 
