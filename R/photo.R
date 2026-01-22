@@ -462,16 +462,8 @@ gla_extract_gap_fraction <- function(
   )
 
   # Compute sky region indices using elevation angle
-  elev_bin_idx <- ifelse(
-    elev_rad < rad_90(),
-    floor(elev_rad / rad_90() * nRings) + 1,
-    floor(elev_rad / rad_90() * nRings)
-  )
-  azi_bin_idx <- ifelse(
-    azi_rad < two_pi(),
-    floor(azi_rad / two_pi() * nSectors) + 1,
-    floor(azi_rad / two_pi() * nSectors)
-  )
+  elev_bin_idx <- angular_bin_idx(elev_rad, rad_90(), nRings)
+  azi_bin_idx <- angular_bin_idx(azi_rad, two_pi(), nSectors)
 
   # Count pixels in each bin
   for (i in 1:length(elev_bin_idx)) {
