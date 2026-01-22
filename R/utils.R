@@ -144,7 +144,7 @@ validate_required_columns <- function(
 
 validate_sf_object <- function(x, arg_name = "points") {
   if (!inherits(x, "sf")) {
-    stop(arg_name, " must be an sf object", call. = FALSE)
+    stop("'", arg_name, "' must be an sf object", call. = FALSE)
   }
   invisible(NULL)
 }
