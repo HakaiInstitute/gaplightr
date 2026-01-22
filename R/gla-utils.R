@@ -334,11 +334,7 @@ solrad <- function(
 #' @keywords internal
 #' @noRd
 angular_bin_idx <- function(angle_rad, max_rad, n_bins) {
-  ifelse(
-    angle_rad < max_rad,
-    floor(angle_rad / max_rad * n_bins) + 1L,
-    floor(angle_rad / max_rad * n_bins)
-  )
+  pmin(floor(angle_rad / max_rad * n_bins) + 1L, n_bins)
 }
 
 #' SKY REGION INDICES
