@@ -242,3 +242,65 @@ test_that("solpos handles sun directly overhead (SZA = 0)", {
   expect_equal(x_sun, 0, tolerance = 1e-10)
   expect_equal(y_sun, 0, tolerance = 1e-10)
 })
+
+
+# angular_bin_idx tests ----
+
+test_that("angular_bin_idx places zero angle in bin 1", {
+  expect_equal(angular_bin_idx(0, pi / 2, 9), 1L)
+  expect_equal(angular_bin_idx(0, 2 * pi, 8), 1L)
+})
+
+test_that("angular_bin_idx caps max angle at n_bins", {
+  # Angle exactly at max_rad should be in last bin, not overflow
+
+  expect_equal(angular_bin_idx(pi / 2, pi / 2, 9), 9L)
+  expect_equal(angular_bin_idx(2 * pi, 2 * pi, 8), 8L)
+})
+
+test_that("angular_bin_idx distributes angles evenly across bins", {
+  n_bins <- 9
+  max_rad <- pi / 2
+
+  # First bin: [0, pi/18)
+
+  expect_equal(angular_bin_idx(0, max_rad, n_bins), 1L)
+  expect_equal(angular_bin_idx(pi / 36, max_rad, n_bins), 1L)
+
+  # Second bin: [pi/18, 2*pi/18)
+  expect_equal(angular_bin_idx(pi / 18, max_rad, n_bins), 2L)
+
+  # Last bin: [8*pi/18, pi/2]
+  expect_equal(angular_bin_idx(8 * pi / 18, max_rad, n_bins), 9L)
+})
+
+test_that("angular_bin_idx handles vector input", {
+  angles <- c(0, pi / 4, pi / 2)
+  result <- angular_bin_idx(angles, pi / 2, 9)
+
+  expect_equal(length(result), 3)
+
+  expect_equal(result[1], 1L)
+  expect_equal(result[2], 5L) # pi/4 is halfway, bin 5 of 9
+
+  expect_equal(result[3], 9L)
+})
+
+test_that("angular_bin_idx works for azimuth use case", {
+  # 8 azimuth sectors covering 0 to 2*pi
+  n_sectors <- 8
+  max_rad <- 2 * pi
+
+  # North (0 rad) -> bin 1
+
+  expect_equal(angular_bin_idx(0, max_rad, n_sectors), 1L)
+
+  # East (pi/2 rad) -> bin 3
+  expect_equal(angular_bin_idx(pi / 2, max_rad, n_sectors), 3L)
+
+  # South (pi rad) -> bin 5
+  expect_equal(angular_bin_idx(pi, max_rad, n_sectors), 5L)
+
+  # West (3*pi/2 rad) -> bin 7
+  expect_equal(angular_bin_idx(3 * pi / 2, max_rad, n_sectors), 7L)
+})
