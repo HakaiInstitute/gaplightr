@@ -142,6 +142,10 @@ validate_required_columns <- function(
   invisible(NULL)
 }
 
+get_raster_crs <- function(rast) {
+  sf::st_crs(terra::crs(rast))
+}
+
 check_if_coordinates_are_unique <- function(df) {
   if (any(duplicated(df[, c("x_meters", "y_meters")]))) {
     stop(
