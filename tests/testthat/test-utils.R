@@ -304,3 +304,35 @@ test_that("angular_bin_idx works for azimuth use case", {
   # West (3*pi/2 rad) -> bin 7
   expect_equal(angular_bin_idx(3 * pi / 2, max_rad, n_sectors), 7L)
 })
+
+
+# convert_to_geographic_azimuth tests ----
+
+test_that("convert_to_geographic_azimuth handles zero (north)", {
+  # Zero input should return zero
+
+  expect_equal(convert_to_geographic_azimuth(0), 0)
+})
+
+test_that("convert_to_geographic_azimuth handles negative angles (west)", {
+  # Negative angles are negated to positive
+  expect_equal(convert_to_geographic_azimuth(-pi / 2), pi / 2)
+  expect_equal(convert_to_geographic_azimuth(-pi), pi)
+  expect_equal(convert_to_geographic_azimuth(-pi / 4), pi / 4)
+})
+
+test_that("convert_to_geographic_azimuth handles positive angles (east flip)", {
+  # Positive angles are flipped: 2*pi - angle
+  expect_equal(convert_to_geographic_azimuth(pi / 2), 2 * pi - pi / 2)
+  expect_equal(convert_to_geographic_azimuth(pi), 2 * pi - pi)
+  expect_equal(convert_to_geographic_azimuth(pi / 4), 2 * pi - pi / 4)
+})
+
+test_that("convert_to_geographic_azimuth handles vector input", {
+  input <- c(-pi / 2, 0, pi / 2)
+  expected <- c(pi / 2, 0, 2 * pi - pi / 2)
+
+  result <- convert_to_geographic_azimuth(input)
+
+  expect_equal(result, expected)
+})

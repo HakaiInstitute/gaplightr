@@ -337,6 +337,20 @@ angular_bin_idx <- function(angle_rad, max_rad, n_bins) {
   pmin(floor(angle_rad / max_rad * n_bins) + 1L, n_bins)
 }
 
+#' Convert rotated azimuth to geographic azimuth
+#'
+#' Converts a rotated azimuth angle to geographic convention where North is 0,
+#' East is pi/2, South is pi, and West is 3*pi/2. This handles the East/West
+#' flip needed for skyward fisheye views.
+#'
+#' @param rot_azi rotated azimuth angle in radians (can be negative)
+#' @return geographic azimuth in radians (0 to 2*pi)
+#' @keywords internal
+#' @noRd
+convert_to_geographic_azimuth <- function(rot_azi) {
+  ifelse(rot_azi <= 0, -rot_azi, two_pi() - rot_azi)
+}
+
 #' SKY REGION INDICES
 #'
 #' @param solar_elevation_rad solar elevation in radians
@@ -351,7 +365,11 @@ skyregidx <- function(
   n_elevation_rings,
   n_azimuth_sectors
 ) {
-  elev_bin_idx <- angular_bin_idx(solar_elevation_rad, rad_90(), n_elevation_rings)
+  elev_bin_idx <- angular_bin_idx(
+    solar_elevation_rad,
+    rad_90(),
+    n_elevation_rings
+  )
   azi_bin_idx <- angular_bin_idx(solar_azimuth_rad, two_pi(), n_azimuth_sectors)
   return(c(elev_bin_idx, azi_bin_idx))
 }
