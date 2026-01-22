@@ -676,9 +676,7 @@ gla_extract_horizons <- function(
 
     # Merge cached and computed horizons
     horizon_list <- cached_horizons
-    for (idx in seq_along(points_to_compute)) {
-      horizon_list[[points_to_compute[idx]]] <- computed_horizons[[idx]]
-    }
+    horizon_list[points_to_compute] <- computed_horizons
   } else {
     message("Using sequential processing")
 
@@ -722,9 +720,7 @@ gla_extract_horizons <- function(
 
     # Merge cached and computed horizons
     horizon_list <- cached_horizons
-    for (idx in seq_along(points_to_compute)) {
-      horizon_list[[points_to_compute[idx]]] <- computed_horizons[[idx]]
-    }
+    horizon_list[points_to_compute] <- computed_horizons
   }
 
   # Clean up
