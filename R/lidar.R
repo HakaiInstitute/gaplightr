@@ -103,9 +103,7 @@ gla_create_virtual_plots <- function(
     stop("folder does not exist: ", folder)
   }
 
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   if (!dir.exists(output_dir)) {
     message("Creating output directory: ", output_dir)

@@ -511,9 +511,7 @@ gla_extract_horizons <- function(
   verbose = FALSE
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   if (!file.exists(dem_path)) {
     stop("DEM file not found: ", dem_path)

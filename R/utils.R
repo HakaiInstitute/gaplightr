@@ -142,6 +142,12 @@ validate_required_columns <- function(
   invisible(NULL)
 }
 
+validate_sf_object <- function(x, arg_name = "points") {
+  if (!inherits(x, "sf")) {
+    stop("'", arg_name, "' must be an sf object", call. = FALSE)
+  }
+}
+
 get_raster_crs <- function(rast) {
   sf::st_crs(terra::crs(rast))
 }

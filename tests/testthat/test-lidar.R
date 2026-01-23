@@ -116,7 +116,7 @@ test_that("gla_create_virtual_plots validates points input", {
       folder = temp_dir,
       plot_radius = 10
     ),
-    "points must be an sf object"
+    "'points' must be an sf object"
   )
 
   # NULL should error
@@ -126,7 +126,7 @@ test_that("gla_create_virtual_plots validates points input", {
       folder = temp_dir,
       plot_radius = 10
     ),
-    "points must be an sf object"
+    "'points' must be an sf object"
   )
 })
 
