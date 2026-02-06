@@ -11,7 +11,7 @@ gla_extract_horizons(
   step = 5,
   max_search_distance = NULL,
   distance_step = NULL,
-  cam_ht = 1.37,
+  camera_height_m = 1.37,
   parallel = TRUE,
   resume = TRUE,
   verbose = FALSE
@@ -36,9 +36,8 @@ Each point's horizon data is saved as x_y_horizon.csv. Required parameter.}
 \item{distance_step}{Distance step size in meters for sampling along line of
 sight (default: NULL, uses raster resolution)}
 
-\item{cam_ht}{Camera height above ground in meters (default: 1.37). The observer
-elevation is calculated as ground elevation (from DEM) plus this height. Use the
-same value as in \code{\link{gla_transform_lidar}} for consistent reference frames.}
+\item{camera_height_m}{Camera height above ground in meters (default: 1.37). The observer
+elevation is calculated as ground elevation (from DEM) plus this height.}
 
 \item{parallel}{Logical indicating whether to process points in parallel
 (default: TRUE). When TRUE, uses the future backend configured with

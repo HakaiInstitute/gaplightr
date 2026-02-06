@@ -119,7 +119,7 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = img_res,

@@ -21,7 +21,7 @@ gla_transform_lidar <- function(
   x_meters,
   y_meters,
   elev_m,
-  cam_ht,
+  camera_height_m,
   min_dist = 1
 ) {
   # Validate inputs
@@ -43,7 +43,7 @@ gla_transform_lidar <- function(
   z_cnt <- round(elev_m, digits = 2)
 
   # Camera elevation (m)
-  cam_elev <- z_cnt + cam_ht
+  cam_elev <- z_cnt + camera_height_m
 
   # Eliminate all laser points at or below elevation of camera
   las <- las[(las$Z > cam_elev), ]

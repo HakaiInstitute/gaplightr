@@ -69,7 +69,7 @@ test_that("End-to-end terra workflow completes successfully", {
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50, # Shorter distance for fast test
     img_res = 100, # Much smaller resolution for fast test
@@ -203,7 +203,7 @@ test_that("End-to-end workflow with resume=TRUE skips existing files", {
   stream_points_first <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,
@@ -228,7 +228,7 @@ test_that("End-to-end workflow with resume=TRUE skips existing files", {
   stream_points_second <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,
@@ -327,7 +327,7 @@ test_that("End-to-end workflow works with 26912", {
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,

@@ -9,7 +9,7 @@ gla_transform_lidar(
   x_meters,
   y_meters,
   elev_m,
-  cam_ht,
+  camera_height_m,
   min_dist = 1
 )
 }

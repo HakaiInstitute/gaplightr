@@ -12,7 +12,7 @@ gla_extract_horizon_terra(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
-  cam_ht,
+  camera_height_m,
   verbose = FALSE
 )
 }
@@ -34,9 +34,8 @@ gla_extract_horizon_terra(
 (default: NULL, will be computed). When processing multiple points with the same
 DEM, pass this value to avoid recomputing (expensive on large DEMs).}
 
-\item{cam_ht}{Camera height above ground in meters (default: 1.37). The observer
-elevation is calculated as ground elevation (from DEM) plus this height. Use the
-same value as in \code{\link{gla_transform_lidar}} for consistent reference frames.}
+\item{camera_height_m}{Camera height above ground in meters. The observer elevation
+is calculated as ground elevation (from DEM) plus this height.}
 
 \item{verbose}{Logical indicating whether to print progress messages (default: FALSE)}
 }
@@ -61,10 +60,7 @@ The algorithm:
 \item Terminates when reaching max elevation or max distance
 }
 
-The observer elevation is computed as: ground_elev (from DEM) + cam_ht.
-This matches the camera position used in \code{\link{gla_transform_lidar}},
-ensuring consistent reference frames between horizon masking and point cloud
-transformation.
+The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
 }
 \examples{
 \dontrun{
@@ -74,7 +70,7 @@ transformation.
     x_meters = 500000,
     y_meters = 5500000,
     step = 5,
-    cam_ht = 1.37
+    camera_height_m = 1.37
   )
 }
 }

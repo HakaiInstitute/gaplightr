@@ -85,9 +85,8 @@ find_existing_horizons <- function(points, output_dir) {
 #' @param dem_max Maximum elevation in the DEM for early termination optimization
 #'   (default: NULL, will be computed). When processing multiple points with the same
 #'   DEM, pass this value to avoid recomputing (expensive on large DEMs).
-#' @param cam_ht Camera height above ground in meters (default: 1.37). The observer
-#'   elevation is calculated as ground elevation (from DEM) plus this height. Use the
-#'   same value as in \code{\link{gla_transform_lidar}} for consistent reference frames.
+#' @param camera_height_m Camera height above ground in meters. The observer elevation
+#'   is calculated as ground elevation (from DEM) plus this height.
 #' @param verbose Logical indicating whether to print progress messages (default: FALSE)
 #'
 #' @return Data frame with two columns:
@@ -101,10 +100,7 @@ find_existing_horizons <- function(points, output_dir) {
 #'   4. Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 #'   5. Terminates when reaching max elevation or max distance
 #'
-#'   The observer elevation is computed as: ground_elev (from DEM) + cam_ht.
-#'   This matches the camera position used in \code{\link{gla_transform_lidar}},
-#'   ensuring consistent reference frames between horizon masking and point cloud
-#'   transformation.
+#'   The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
 #'
 #' @examples
 #' \dontrun{
@@ -114,7 +110,7 @@ find_existing_horizons <- function(points, output_dir) {
 #'     x_meters = 500000,
 #'     y_meters = 5500000,
 #'     step = 5,
-#'     cam_ht = 1.37
+#'     camera_height_m = 1.37
 #'   )
 #' }
 gla_extract_horizon_terra <- function(
@@ -125,7 +121,7 @@ gla_extract_horizon_terra <- function(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
-  cam_ht,
+  camera_height_m,
   verbose = FALSE
 ) {
   # Validate inputs
@@ -168,11 +164,11 @@ gla_extract_horizon_terra <- function(
 
   # Camera elevation = ground elevation + camera height above ground
 
-  cam_elev <- obs_elev + cam_ht
+  cam_elev <- obs_elev + camera_height_m
 
   if (verbose) {
     cat("Ground elevation:", obs_elev, "m\n")
-    cat("Camera elevation:", cam_elev, "m (ground +", cam_ht, "m)\n")
+    cat("Camera elevation:", cam_elev, "m (ground +", camera_height_m, "m)\n")
   }
 
   # Get global maximum elevation for early termination
@@ -442,9 +438,8 @@ prepare_horizon_mask <- function(
 #'   (default: NULL, uses full DEM extent)
 #' @param distance_step Distance step size in meters for sampling along line of
 #'   sight (default: NULL, uses raster resolution)
-#' @param cam_ht Camera height above ground in meters (default: 1.37). The observer
-#'   elevation is calculated as ground elevation (from DEM) plus this height. Use the
-#'   same value as in \code{\link{gla_transform_lidar}} for consistent reference frames.
+#' @param camera_height_m Camera height above ground in meters (default: 1.37). The observer
+#'   elevation is calculated as ground elevation (from DEM) plus this height.
 #' @param parallel Logical indicating whether to process points in parallel
 #'   (default: TRUE). When TRUE, uses the future backend configured with
 #'   \code{future::plan()}. When FALSE, processes sequentially.
@@ -521,7 +516,7 @@ gla_extract_horizons <- function(
   step = 5,
   max_search_distance = NULL,
   distance_step = NULL,
-  cam_ht = 1.37,
+  camera_height_m = 1.37,
   parallel = TRUE,
   resume = TRUE,
   verbose = FALSE
@@ -638,7 +633,7 @@ gla_extract_horizons <- function(
         max_search_distance,
         dist_step,
         dem_max,
-        cam_ht,
+        camera_height_m,
         verbose,
         x_meters,
         y_meters,
@@ -660,7 +655,7 @@ gla_extract_horizons <- function(
           max_search_distance = max_search_distance,
           distance_step = dist_step,
           dem_max = dem_max,
-          cam_ht = cam_ht,
+          camera_height_m = camera_height_m,
           verbose = FALSE
         ) |>
           prepare_horizon_mask(
@@ -683,7 +678,7 @@ gla_extract_horizons <- function(
       max_search_distance = max_search_distance,
       dist_step = distance_step,
       dem_max = dem_max,
-      cam_ht = cam_ht,
+      camera_height_m = camera_height_m,
       verbose = verbose,
       x_meters = points$x_meters,
       y_meters = points$y_meters,
@@ -712,7 +707,7 @@ gla_extract_horizons <- function(
         max_search_distance = max_search_distance,
         distance_step = distance_step,
         dem_max = dem_max,
-        cam_ht = cam_ht,
+        camera_height_m = camera_height_m,
         verbose = FALSE
       ) |>
         prepare_horizon_mask(
