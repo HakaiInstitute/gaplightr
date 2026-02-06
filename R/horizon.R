@@ -1,5 +1,4 @@
 # Pure R implementation of horizon angle calculation using terra
-# Replicates GRASS GIS r.horizon algorithm without requiring GRASS
 
 #' Save horizon data to CSV file
 #'
@@ -71,11 +70,10 @@ find_existing_horizons <- function(points, output_dir) {
   })
 }
 
-#' Extract horizon angles from DEM using terra (GRASS r.horizon replacement)
+#' Extract horizon angles from DEM using terra
 #'
 #' Calculates the horizon elevation angle for each azimuth direction from a given
-#' observation point using a digital elevation model (DEM). This is a pure R
-#' implementation that replicates GRASS GIS r.horizon algorithm.
+#' observation point using a digital elevation model (DEM).
 #'
 #' @param dem_rast SpatRaster object from terra package containing the DEM
 #' @param x_meters Numeric X coordinate in meters (in the DEM's coordinate system)
@@ -96,7 +94,7 @@ find_existing_horizons <- function(points, output_dir) {
 #'   - azimuth: azimuth angles in degrees (0-360, East=0, counterclockwise)
 #'   - horizon_height: horizon elevation angles in degrees
 #'
-#' @details The algorithm replicates GRASS r.horizon using the exact algorithm:
+#' @details The algorithm:
 #'   1. Uses tanh (tan of horizon angle) for tracking maximum
 #'   2. Compares each point against current horizon line
 #'   3. Updates horizon when: z_point > z_origin + curvature + distance * tanh
@@ -176,7 +174,7 @@ gla_extract_horizon_terra <- function(
     cat("Camera elevation:", cam_elev, "m (ground +", cam_ht, "m)\n")
   }
 
-  # Get global maximum elevation for early termination (GRASS does this)
+  # Get global maximum elevation for early termination
   # Only compute if not provided (expensive operation on large DEMs)
   if (is.null(dem_max)) {
     dem_max <- terra::global(dem_rast, "max", na.rm = TRUE)[1, 1]
@@ -218,11 +216,10 @@ gla_extract_horizon_terra <- function(
     }
   }
 
-  # Generate azimuth angles (0 = East, counterclockwise)
-  # GRASS r.horizon uses: 0=East, 90=North, 180=West, 270=South
+  # Generate azimuth angles (0=East, 90=North, 180=West, 270=South)
   azimuths <- seq(0, 360 - step, by = step)
 
-  # Earth radius in meters (same as GRASS: 6371000)
+  # Earth radius in meters
   earth_radius <- 6371000
   inv_earth <- 1.0 / earth_radius
 
@@ -282,7 +279,7 @@ gla_extract_horizon_terra <- function(
     azimuth_mask <- azimuth_index == i
     elevations <- all_elevations[azimuth_mask]
 
-    # Initialize horizon tracking (GRASS uses tan of horizon angle)
+    # Initialize horizon tracking using tan of horizon angle
     tanh0 <- 0.0
 
     # Process points along line of sight
@@ -318,7 +315,7 @@ gla_extract_horizon_terra <- function(
     }
   }
 
-  # Create output dataframe (same format as GRASS r.horizon)
+  # Create output dataframe
   result <- data.frame(
     azimuth = azimuths,
     horizon_height = horizon_angles

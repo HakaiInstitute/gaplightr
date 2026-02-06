@@ -2,7 +2,7 @@
 % Please edit documentation in R/horizon.R
 \name{gla_extract_horizon_terra}
 \alias{gla_extract_horizon_terra}
-\title{Extract horizon angles from DEM using terra (GRASS r.horizon replacement)}
+\title{Extract horizon angles from DEM using terra}
 \usage{
 gla_extract_horizon_terra(
   dem_rast,
@@ -12,6 +12,7 @@ gla_extract_horizon_terra(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
+  cam_ht = 1.37,
   verbose = FALSE
 )
 }
@@ -33,6 +34,10 @@ gla_extract_horizon_terra(
 (default: NULL, will be computed). When processing multiple points with the same
 DEM, pass this value to avoid recomputing (expensive on large DEMs).}
 
+\item{cam_ht}{Camera height above ground in meters (default: 1.37). The observer
+elevation is calculated as ground elevation (from DEM) plus this height. Use the
+same value as in \code{\link{gla_transform_lidar}} for consistent reference frames.}
+
 \item{verbose}{Logical indicating whether to print progress messages (default: FALSE)}
 }
 \value{
@@ -44,11 +49,10 @@ Data frame with two columns:
 }
 \description{
 Calculates the horizon elevation angle for each azimuth direction from a given
-observation point using a digital elevation model (DEM). This is a pure R
-implementation that replicates GRASS GIS r.horizon algorithm.
+observation point using a digital elevation model (DEM).
 }
 \details{
-The algorithm replicates GRASS r.horizon using the exact algorithm:
+The algorithm:
 \enumerate{
 \item Uses tanh (tan of horizon angle) for tracking maximum
 \item Compares each point against current horizon line
@@ -56,6 +60,11 @@ The algorithm replicates GRASS r.horizon using the exact algorithm:
 \item Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 \item Terminates when reaching max elevation or max distance
 }
+
+The observer elevation is computed as: ground_elev (from DEM) + cam_ht.
+This matches the camera position used in \code{\link{gla_transform_lidar}},
+ensuring consistent reference frames between horizon masking and point cloud
+transformation.
 }
 \examples{
 \dontrun{
