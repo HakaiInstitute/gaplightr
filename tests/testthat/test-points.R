@@ -232,9 +232,9 @@ test_that("gla_load_points errors when points are outside DEM extent", {
     nrows = 10,
     ncols = 10,
     xmin = 1022600,
-    xmax = 1022700,  # 100m wide
+    xmax = 1022700, # 100m wide
     ymin = 574650,
-    ymax = 574750,   # 100m tall
+    ymax = 574750, # 100m tall
     crs = "EPSG:3005",
     vals = rep(250, 100)
   )
@@ -245,8 +245,8 @@ test_that("gla_load_points errors when points are outside DEM extent", {
   test_points <- sf::st_as_sf(
     data.frame(id = 1:2),
     geom = sf::st_sfc(
-      sf::st_point(c(1022650, 574700)),  # Inside DEM
-      sf::st_point(c(1023000, 575000)),  # Outside DEM (300m east, 250m north)
+      sf::st_point(c(1022650, 574700)), # Inside DEM
+      sf::st_point(c(1023000, 575000)), # Outside DEM (300m east, 250m north)
       crs = 3005
     )
   )
@@ -268,9 +268,9 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
     nrows = 10,
     ncols = 10,
     xmin = 1000000,
-    xmax = 1000100,  # 100m wide, 10m per cell
+    xmax = 1000100, # 100m wide, 10m per cell
     ymin = 500000,
-    ymax = 500100,   # 100m tall, 10m per cell
+    ymax = 500100, # 100m tall, 10m per cell
     crs = "EPSG:3005",
     vals = dem_vals
   )
@@ -282,7 +282,7 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
   test_points <- sf::st_as_sf(
     data.frame(id = 1),
     geom = sf::st_sfc(
-      sf::st_point(c(1000045, 500045)),  # Center of middle cell (should be NA)
+      sf::st_point(c(1000045, 500045)), # Center of middle cell (should be NA)
       crs = 3005
     )
   )

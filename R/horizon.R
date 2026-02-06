@@ -1,5 +1,4 @@
 # Pure R implementation of horizon angle calculation using terra
-# Replicates GRASS GIS r.horizon algorithm without requiring GRASS
 
 #' Save horizon data to CSV file
 #'
@@ -71,11 +70,10 @@ find_existing_horizons <- function(points, output_dir) {
   })
 }
 
-#' Extract horizon angles from DEM using terra (GRASS r.horizon replacement)
+#' Extract horizon angles from DEM using terra
 #'
 #' Calculates the horizon elevation angle for each azimuth direction from a given
-#' observation point using a digital elevation model (DEM). This is a pure R
-#' implementation that replicates GRASS GIS r.horizon algorithm.
+#' observation point using a digital elevation model (DEM).
 #'
 #' @param dem_rast SpatRaster object from terra package containing the DEM
 #' @param x_meters Numeric X coordinate in meters (in the DEM's coordinate system)
@@ -87,18 +85,22 @@ find_existing_horizons <- function(points, output_dir) {
 #' @param dem_max Maximum elevation in the DEM for early termination optimization
 #'   (default: NULL, will be computed). When processing multiple points with the same
 #'   DEM, pass this value to avoid recomputing (expensive on large DEMs).
+#' @param camera_height_m Camera height above ground in meters. The observer elevation
+#'   is calculated as ground elevation (from DEM) plus this height.
 #' @param verbose Logical indicating whether to print progress messages (default: FALSE)
 #'
 #' @return Data frame with two columns:
 #'   - azimuth: azimuth angles in degrees (0-360, East=0, counterclockwise)
 #'   - horizon_height: horizon elevation angles in degrees
 #'
-#' @details The algorithm replicates GRASS r.horizon using the exact algorithm:
-#'   1. Uses tanh (tan of horizon angle) for tracking maximum
-#'   2. Compares each point against current horizon line
-#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tanh
+#' @details The algorithm:
+#'   1. Tracks the tangent of the current maximum horizon angle, tan(theta)
+#'   2. Compares each point against the current horizon line
+#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tan(theta)
 #'   4. Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 #'   5. Terminates when reaching max elevation or max distance
+#'
+#'   The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
 #'
 #' @examples
 #' \dontrun{
@@ -107,7 +109,8 @@ find_existing_horizons <- function(points, output_dir) {
 #'     dem_rast = dem,
 #'     x_meters = 500000,
 #'     y_meters = 5500000,
-#'     step = 5
+#'     step = 5,
+#'     camera_height_m = 1.37
 #'   )
 #' }
 gla_extract_horizon_terra <- function(
@@ -118,6 +121,7 @@ gla_extract_horizon_terra <- function(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
+  camera_height_m,
   verbose = FALSE
 ) {
   # Validate inputs
@@ -158,11 +162,16 @@ gla_extract_horizon_terra <- function(
     stop("Observer location is outside DEM extent or has no data")
   }
 
+  # Camera elevation = ground elevation + camera height above ground
+
+  cam_elev <- obs_elev + camera_height_m
+
   if (verbose) {
-    cat("Observer elevation:", obs_elev, "m\n")
+    cat("Ground elevation:", obs_elev, "m\n")
+    cat("Camera elevation:", cam_elev, "m (ground +", camera_height_m, "m)\n")
   }
 
-  # Get global maximum elevation for early termination (GRASS does this)
+  # Get global maximum elevation for early termination
   # Only compute if not provided (expensive operation on large DEMs)
   if (is.null(dem_max)) {
     dem_max <- terra::global(dem_rast, "max", na.rm = TRUE)[1, 1]
@@ -204,11 +213,10 @@ gla_extract_horizon_terra <- function(
     }
   }
 
-  # Generate azimuth angles (0 = East, counterclockwise)
-  # GRASS r.horizon uses: 0=East, 90=North, 180=West, 270=South
+  # Generate azimuth angles (0=East, 90=North, 180=West, 270=South)
   azimuths <- seq(0, 360 - step, by = step)
 
-  # Earth radius in meters (same as GRASS: 6371000)
+  # Earth radius in meters
   earth_radius <- 6371000
   inv_earth <- 1.0 / earth_radius
 
@@ -268,8 +276,8 @@ gla_extract_horizon_terra <- function(
     azimuth_mask <- azimuth_index == i
     elevations <- all_elevations[azimuth_mask]
 
-    # Initialize horizon tracking (GRASS uses tan of horizon angle)
-    tanh0 <- 0.0
+    # Initialize horizon tracking: stores tan(theta) where theta is the horizon angle
+    tan_horizon <- 0.0
 
     # Process points along line of sight
     for (j in seq_along(distances)) {
@@ -281,30 +289,30 @@ gla_extract_horizon_terra <- function(
       }
 
       # Calculate projected height on current horizon line
-      z_horizon <- obs_elev + curvature_corrections[j] + distances[j] * tanh0
+      z_horizon <- cam_elev + curvature_corrections[j] + distances[j] * tan_horizon
 
       # Update horizon if this point is above current horizon line
       if (elev > z_horizon) {
-        tanh0 <- (elev - obs_elev - curvature_corrections[j]) / distances[j]
+        tan_horizon <- (elev - cam_elev - curvature_corrections[j]) / distances[j]
       }
 
       # Early termination: if horizon line is above global max elevation
       if (
-        obs_elev + curvature_corrections[j] + distances[j] * tanh0 >= dem_max
+        cam_elev + curvature_corrections[j] + distances[j] * tan_horizon >= dem_max
       ) {
         break
       }
     }
 
     # Convert tan to angle in degrees
-    horizon_angles[i] <- atan(tanh0) * rad_to_deg_factor
+    horizon_angles[i] <- atan(tan_horizon) * rad_to_deg_factor
 
     if (verbose && i %% 10 == 0) {
       cat("Processed azimuth", azimuths[i], "degrees\n")
     }
   }
 
-  # Create output dataframe (same format as GRASS r.horizon)
+  # Create output dataframe
   result <- data.frame(
     azimuth = azimuths,
     horizon_height = horizon_angles
@@ -430,6 +438,8 @@ prepare_horizon_mask <- function(
 #'   (default: NULL, uses full DEM extent)
 #' @param distance_step Distance step size in meters for sampling along line of
 #'   sight (default: NULL, uses raster resolution)
+#' @param camera_height_m Camera height above ground in meters (default: 1.37). The observer
+#'   elevation is calculated as ground elevation (from DEM) plus this height.
 #' @param parallel Logical indicating whether to process points in parallel
 #'   (default: TRUE). When TRUE, uses the future backend configured with
 #'   \code{future::plan()}. When FALSE, processes sequentially.
@@ -506,6 +516,7 @@ gla_extract_horizons <- function(
   step = 5,
   max_search_distance = NULL,
   distance_step = NULL,
+  camera_height_m = 1.37,
   parallel = TRUE,
   resume = TRUE,
   verbose = FALSE
@@ -622,6 +633,7 @@ gla_extract_horizons <- function(
         max_search_distance,
         dist_step,
         dem_max,
+        camera_height_m,
         verbose,
         x_meters,
         y_meters,
@@ -643,6 +655,7 @@ gla_extract_horizons <- function(
           max_search_distance = max_search_distance,
           distance_step = dist_step,
           dem_max = dem_max,
+          camera_height_m = camera_height_m,
           verbose = FALSE
         ) |>
           prepare_horizon_mask(
@@ -665,6 +678,7 @@ gla_extract_horizons <- function(
       max_search_distance = max_search_distance,
       dist_step = distance_step,
       dem_max = dem_max,
+      camera_height_m = camera_height_m,
       verbose = verbose,
       x_meters = points$x_meters,
       y_meters = points$y_meters,
@@ -693,6 +707,7 @@ gla_extract_horizons <- function(
         max_search_distance = max_search_distance,
         distance_step = distance_step,
         dem_max = dem_max,
+        camera_height_m = camera_height_m,
         verbose = FALSE
       ) |>
         prepare_horizon_mask(

@@ -6,7 +6,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
     gla_extract_horizon_terra(
       dem_rast = "not_a_raster",
       x_meters = 1000,
-      y_meters = 2000
+      y_meters = 2000,
+      camera_height_m = 1.37
     ),
     "dem_rast must be a SpatRaster object"
   )
@@ -14,7 +15,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
   expect_error(
     gla_extract_horizon_terra(
       dem_rast = dem_rast,
-      y_meters = 2000
+      y_meters = 2000,
+      camera_height_m = 1.37
     ),
     "Both x_meters and y_meters must be provided"
   )
@@ -23,7 +25,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
     gla_extract_horizon_terra(
       dem_rast = dem_rast,
       x_meters = "invalid",
-      y_meters = 2000
+      y_meters = 2000,
+      camera_height_m = 1.37
     ),
     "x_meters and y_meters must be numeric"
   )
@@ -43,6 +46,7 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
     step = 10, # Larger step
     max_search_distance = 100, # Limited radius
     distance_step = 5, # Larger sampling step
+    camera_height_m = 1.37,
     verbose = FALSE
   )
 
@@ -50,6 +54,51 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
   expect_equal(nrow(horizon_custom), 360 / 10)
   expect_equal(min(horizon_custom$azimuth), 0)
   expect_equal(max(horizon_custom$azimuth), 360 - 10)
+})
+
+test_that("higher camera_height_m produces lower horizon angles", {
+
+  # Create test DEM with a hill in the center
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+  dem_rast <- terra::rast(dem_path)
+
+  # Observer at edge of DEM looking toward the central hill
+  obs_x <- 1000200
+  obs_y <- 500500
+
+  # Compute horizon at ground level
+  horizon_ground <- gla_extract_horizon_terra(
+    dem_rast = dem_rast,
+    x_meters = obs_x,
+    y_meters = obs_y,
+    step = 10,
+    camera_height_m = 0
+  )
+
+  # Compute horizon at elevated camera (10m above ground)
+  horizon_elevated <- gla_extract_horizon_terra(
+    dem_rast = dem_rast,
+    x_meters = obs_x,
+    y_meters = obs_y,
+    step = 10,
+    camera_height_m = 10
+  )
+
+  # Higher camera should see terrain at lower angles (or equal for flat areas).
+  # At least one azimuth should show a decrease where the hill is visible.
+
+  angle_diff <- horizon_ground$horizon_height - horizon_elevated$horizon_height
+  expect_true(
+    any(angle_diff > 0),
+    info = "Expected at least one azimuth with lower horizon angle for elevated camera"
+  )
+
+  # All differences should be non-negative (elevated camera cannot see higher horizons)
+  expect_true(
+    all(angle_diff >= -0.001), # small tolerance for floating point
+    info = "Elevated camera should not see higher horizon angles"
+  )
 })
 
 test_that("gla_extract_horizon_terra handles point outside DEM extent", {
@@ -64,7 +113,8 @@ test_that("gla_extract_horizon_terra handles point outside DEM extent", {
       dem_rast = dem_rast,
       x_meters = 999999, # Far outside
       y_meters = 999999, # Far outside
-      step = 30
+      step = 30,
+      camera_height_m = 1.37
     ),
     regexp = "outside DEM extent|no data"
   )

@@ -2,7 +2,7 @@
 % Please edit documentation in R/horizon.R
 \name{gla_extract_horizon_terra}
 \alias{gla_extract_horizon_terra}
-\title{Extract horizon angles from DEM using terra (GRASS r.horizon replacement)}
+\title{Extract horizon angles from DEM using terra}
 \usage{
 gla_extract_horizon_terra(
   dem_rast,
@@ -12,6 +12,7 @@ gla_extract_horizon_terra(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
+  camera_height_m,
   verbose = FALSE
 )
 }
@@ -33,6 +34,9 @@ gla_extract_horizon_terra(
 (default: NULL, will be computed). When processing multiple points with the same
 DEM, pass this value to avoid recomputing (expensive on large DEMs).}
 
+\item{camera_height_m}{Camera height above ground in meters. The observer elevation
+is calculated as ground elevation (from DEM) plus this height.}
+
 \item{verbose}{Logical indicating whether to print progress messages (default: FALSE)}
 }
 \value{
@@ -44,18 +48,19 @@ Data frame with two columns:
 }
 \description{
 Calculates the horizon elevation angle for each azimuth direction from a given
-observation point using a digital elevation model (DEM). This is a pure R
-implementation that replicates GRASS GIS r.horizon algorithm.
+observation point using a digital elevation model (DEM).
 }
 \details{
-The algorithm replicates GRASS r.horizon using the exact algorithm:
+The algorithm:
 \enumerate{
-\item Uses tanh (tan of horizon angle) for tracking maximum
-\item Compares each point against current horizon line
-\item Updates horizon when: z_point > z_origin + curvature + distance * tanh
+\item Tracks the tangent of the current maximum horizon angle, tan(theta)
+\item Compares each point against the current horizon line
+\item Updates horizon when: z_point > z_origin + curvature + distance * tan(theta)
 \item Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 \item Terminates when reaching max elevation or max distance
 }
+
+The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
 }
 \examples{
 \dontrun{
@@ -64,7 +69,8 @@ The algorithm replicates GRASS r.horizon using the exact algorithm:
     dem_rast = dem,
     x_meters = 500000,
     y_meters = 5500000,
-    step = 5
+    step = 5,
+    camera_height_m = 1.37
   )
 }
 }

@@ -1000,7 +1000,7 @@ gla_process_fisheye_photos <- function(
 #'   \code{horizon_mask}. Use \code{gla_extract_horizons()} to add the
 #'   horizon_mask column.
 #' @param output_dir Directory path where fisheye photo BMP files will be saved
-#' @param cam_ht Camera height above ground in meters. Default is 1.37m
+#' @param camera_height_m Camera height above ground in meters. Default is 1.37m
 #' @param min_dist Minimum distance from camera to include LiDAR points (meters).
 #'   Points closer than this distance are excluded. Default is 1m
 #' @param max_dist Distance at which point symbols reach minimum size (meters).
@@ -1057,7 +1057,7 @@ gla_process_fisheye_photos <- function(
 #'   points_with_photos <- gla_create_fisheye_photos(
 #'     points = stream_points,
 #'     output_dir = "output/fisheye_photos",
-#'     cam_ht = 1.37,
+#'     camera_height_m = 1.37,
 #'     max_dist = 220,
 #'     parallel = TRUE,
 #'     resume = TRUE
@@ -1067,7 +1067,7 @@ gla_process_fisheye_photos <- function(
 gla_create_fisheye_photos <- function(
   points,
   output_dir,
-  cam_ht = 1.37,
+  camera_height_m = 1.37,
   min_dist = 1,
   max_dist = 220,
   img_res = 2800,
@@ -1246,7 +1246,7 @@ gla_create_fisheye_photos <- function(
           x_meters = points$x_meters[i],
           y_meters = points$y_meters[i],
           elev_m = points$elevation[i],
-          cam_ht = cam_ht,
+          camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
@@ -1304,7 +1304,7 @@ gla_create_fisheye_photos <- function(
           x_meters = points$x_meters[i],
           y_meters = points$y_meters[i],
           elev_m = points$elevation[i],
-          cam_ht = cam_ht,
+          camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
