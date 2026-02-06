@@ -53,9 +53,9 @@ observation point using a digital elevation model (DEM).
 \details{
 The algorithm:
 \enumerate{
-\item Uses tanh (tan of horizon angle) for tracking maximum
-\item Compares each point against current horizon line
-\item Updates horizon when: z_point > z_origin + curvature + distance * tanh
+\item Tracks the tangent of the current maximum horizon angle, tan(theta)
+\item Compares each point against the current horizon line
+\item Updates horizon when: z_point > z_origin + curvature + distance * tan(theta)
 \item Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 \item Terminates when reaching max elevation or max distance
 }

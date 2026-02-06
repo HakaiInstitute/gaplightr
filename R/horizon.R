@@ -94,9 +94,9 @@ find_existing_horizons <- function(points, output_dir) {
 #'   - horizon_height: horizon elevation angles in degrees
 #'
 #' @details The algorithm:
-#'   1. Uses tanh (tan of horizon angle) for tracking maximum
-#'   2. Compares each point against current horizon line
-#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tanh
+#'   1. Tracks the tangent of the current maximum horizon angle, tan(theta)
+#'   2. Compares each point against the current horizon line
+#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tan(theta)
 #'   4. Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 #'   5. Terminates when reaching max elevation or max distance
 #'
@@ -276,8 +276,8 @@ gla_extract_horizon_terra <- function(
     azimuth_mask <- azimuth_index == i
     elevations <- all_elevations[azimuth_mask]
 
-    # Initialize horizon tracking using tan of horizon angle
-    tanh0 <- 0.0
+    # Initialize horizon tracking: stores tan(theta) where theta is the horizon angle
+    tan_horizon <- 0.0
 
     # Process points along line of sight
     for (j in seq_along(distances)) {
@@ -289,23 +289,23 @@ gla_extract_horizon_terra <- function(
       }
 
       # Calculate projected height on current horizon line
-      z_horizon <- cam_elev + curvature_corrections[j] + distances[j] * tanh0
+      z_horizon <- cam_elev + curvature_corrections[j] + distances[j] * tan_horizon
 
       # Update horizon if this point is above current horizon line
       if (elev > z_horizon) {
-        tanh0 <- (elev - cam_elev - curvature_corrections[j]) / distances[j]
+        tan_horizon <- (elev - cam_elev - curvature_corrections[j]) / distances[j]
       }
 
       # Early termination: if horizon line is above global max elevation
       if (
-        cam_elev + curvature_corrections[j] + distances[j] * tanh0 >= dem_max
+        cam_elev + curvature_corrections[j] + distances[j] * tan_horizon >= dem_max
       ) {
         break
       }
     }
 
     # Convert tan to angle in degrees
-    horizon_angles[i] <- atan(tanh0) * rad_to_deg_factor
+    horizon_angles[i] <- atan(tan_horizon) * rad_to_deg_factor
 
     if (verbose && i %% 10 == 0) {
       cat("Processed azimuth", azimuths[i], "degrees\n")
