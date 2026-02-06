@@ -6,7 +6,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
     gla_extract_horizon_terra(
       dem_rast = "not_a_raster",
       x_meters = 1000,
-      y_meters = 2000
+      y_meters = 2000,
+      cam_ht = 1.37
     ),
     "dem_rast must be a SpatRaster object"
   )
@@ -14,7 +15,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
   expect_error(
     gla_extract_horizon_terra(
       dem_rast = dem_rast,
-      y_meters = 2000
+      y_meters = 2000,
+      cam_ht = 1.37
     ),
     "Both x_meters and y_meters must be provided"
   )
@@ -23,7 +25,8 @@ test_that("gla_extract_horizon_terra validates inputs", {
     gla_extract_horizon_terra(
       dem_rast = dem_rast,
       x_meters = "invalid",
-      y_meters = 2000
+      y_meters = 2000,
+      cam_ht = 1.37
     ),
     "x_meters and y_meters must be numeric"
   )
@@ -43,6 +46,7 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
     step = 10, # Larger step
     max_search_distance = 100, # Limited radius
     distance_step = 5, # Larger sampling step
+    cam_ht = 1.37,
     verbose = FALSE
   )
 
@@ -64,7 +68,8 @@ test_that("gla_extract_horizon_terra handles point outside DEM extent", {
       dem_rast = dem_rast,
       x_meters = 999999, # Far outside
       y_meters = 999999, # Far outside
-      step = 30
+      step = 30,
+      cam_ht = 1.37
     ),
     regexp = "outside DEM extent|no data"
   )

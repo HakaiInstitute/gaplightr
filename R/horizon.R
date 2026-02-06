@@ -113,7 +113,8 @@ find_existing_horizons <- function(points, output_dir) {
 #'     dem_rast = dem,
 #'     x_meters = 500000,
 #'     y_meters = 5500000,
-#'     step = 5
+#'     step = 5,
+#'     cam_ht = 1.37
 #'   )
 #' }
 gla_extract_horizon_terra <- function(
@@ -124,7 +125,7 @@ gla_extract_horizon_terra <- function(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
-  cam_ht = 1.37,
+  cam_ht,
   verbose = FALSE
 ) {
   # Validate inputs

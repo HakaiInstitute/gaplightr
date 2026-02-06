@@ -21,7 +21,7 @@ gla_transform_lidar <- function(
   x_meters,
   y_meters,
   elev_m,
-  cam_ht = 1.37,
+  cam_ht,
   min_dist = 1
 ) {
   # Validate inputs
