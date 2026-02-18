@@ -243,7 +243,7 @@ gla_create_virtual_plots <- function(
             radius = plot_radius
           ),
           file = nullfile()
-        )
+        ))
 
         result
       },
