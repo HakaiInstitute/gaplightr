@@ -235,7 +235,7 @@ gla_create_virtual_plots <- function(
       {
         # capture.output() intercepts C-level stdout, which is the only reliable
         # way to suppress LASlib's progress bar
-        invisible(capture.output(
+        invisible(utils::capture.output(
           result <- lidR::clip_circle(
             ctg,
             batch_coords[, "X"],
