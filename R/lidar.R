@@ -233,8 +233,8 @@ gla_create_virtual_plots <- function(
 
     rois <- tryCatch(
       {
-        # capture.output() intercepts C-level stdout, which is the only reliable
-        # way to suppress LASlib's progress bar
+        # capture.output() captures R's stdout (including LASlib output routed via R),
+        # which in practice is an effective way to suppress LASlib's progress bar here
         invisible(utils::capture.output(
           result <- lidR::clip_circle(
             ctg,
