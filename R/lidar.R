@@ -233,19 +233,17 @@ gla_create_virtual_plots <- function(
 
     rois <- tryCatch(
       {
-        # Suppress progress bars via option
-        old_progress <- getOption("lidR.progress")
-        options(lidR.progress = FALSE)
-
-        result <- lidR::clip_circle(
-          ctg,
-          batch_coords[, "X"],
-          batch_coords[, "Y"],
-          radius = plot_radius
-        )
-
-        # Restore option
-        options(lidR.progress = old_progress)
+        # capture.output() captures R's stdout (including LASlib output routed via R),
+        # which in practice is an effective way to suppress LASlib's progress bar here
+        invisible(utils::capture.output(
+          result <- lidR::clip_circle(
+            ctg,
+            batch_coords[, "X"],
+            batch_coords[, "Y"],
+            radius = plot_radius
+          ),
+          file = nullfile()
+        ))
 
         result
       },
