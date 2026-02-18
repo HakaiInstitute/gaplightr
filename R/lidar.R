@@ -241,8 +241,9 @@ gla_create_virtual_plots <- function(
             batch_coords[, "X"],
             batch_coords[, "Y"],
             radius = plot_radius
-          )
-        ))
+          ),
+          file = nullfile()
+        )
 
         result
       },
