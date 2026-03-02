@@ -250,7 +250,7 @@ test_that("gla_create_fisheye_photos handles missing/invalid LAS files", {
       ),
       regexp = "No valid LAS files"
     ),
-    regexp = "missing or non-existent LAS files"
+    regexp = "missing, non-existent, or empty LAS files"
   )
 })
 
