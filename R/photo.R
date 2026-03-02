@@ -1235,6 +1235,11 @@ gla_create_fisheye_photos <- function(
     " fisheye photos..."
   )
 
+  # Drop the horizon_mask list-column from points before export to parallel workers.
+  # The lambda only needs las_files, x_meters, y_meters, and elevation - horizon data
+  # is already captured in horizon_list, so exporting it twice is wasteful.
+  points$horizon_mask <- NULL
+
   # Process each point that needs processing
   if (parallel) {
     new_fisheye_paths <- future.apply::future_lapply(
