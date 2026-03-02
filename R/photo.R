@@ -1089,13 +1089,15 @@ gla_create_fisheye_photos <- function(
     hint = "Use gla_extract_horizons() to add horizon_mask column"
   )
 
-  # Check for missing or invalid LAS files
-  invalid_files <- is.na(points$las_files) | !file.exists(points$las_files)
+  # Check for missing, non-existent, or empty LAS files.
+  invalid_files <- is.na(points$las_files) |
+    !file.exists(points$las_files) |
+    (file.exists(points$las_files) & file.size(points$las_files) == 0)
   if (any(invalid_files)) {
     n_invalid <- sum(invalid_files)
     warning(
       n_invalid,
-      " point(s) have missing or non-existent LAS files and will be skipped"
+      " point(s) have missing, non-existent, or empty LAS files and will be skipped"
     )
     # Filter to only valid points
     points <- points[!invalid_files, ]
