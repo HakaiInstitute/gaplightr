@@ -862,6 +862,15 @@ gla_process_fisheye_photos <- function(
     hint = "Use gla_create_fisheye_photos() to add fisheye_photo_path column"
   )
 
+  invalid_bmp <- !vapply(points$fisheye_photo_path, is_valid_bmp, logical(1))
+  if (any(invalid_bmp)) {
+    stop(
+      sum(invalid_bmp),
+      " point(s) have missing or corrupted BMP files: ",
+      paste(points$fisheye_photo_path[invalid_bmp], collapse = ", ")
+    )
+  }
+
   message("Processing ", nrow(points), " fisheye photos for solar radiation...")
 
   # Extract only the minimal data needed by workers (reduces memory footprint)
@@ -1090,21 +1099,12 @@ gla_create_fisheye_photos <- function(
   )
 
   # Check for missing, non-existent, or empty LAS files.
-  invalid_files <- is.na(points$las_files) |
-    !file.exists(points$las_files) |
-    (file.exists(points$las_files) & file.size(points$las_files) == 0)
+  invalid_files <- !vapply(points$las_files, is_valid_las_file, logical(1))
   if (any(invalid_files)) {
-    n_invalid <- sum(invalid_files)
-    warning(
-      n_invalid,
-      " point(s) have missing, non-existent, or empty LAS files and will be skipped"
+    stop(
+      sum(invalid_files),
+      " point(s) have missing, non-existent, or empty LAS files"
     )
-    # Filter to only valid points
-    points <- points[!invalid_files, ]
-
-    if (nrow(points) == 0) {
-      stop("No valid LAS files found in input points")
-    }
   }
 
   # Validate radial_distortion
