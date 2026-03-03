@@ -18,7 +18,8 @@ is_valid_las_file <- function(path) {
 
 # Validates a single BMP file path by checking the two-byte magic number (0x42 0x4D).
 # A corrupted or partially written BMP passes file.exists() but fails read.bitmap(),
-# which crashes parallel workers with no recoverable error.
+# which crashes parallel workers with no recoverable error. readBin() is wrapped in
+# tryCatch to handle permission errors or transient IO failures gracefully.
 is_valid_bmp <- function(path) {
   if (is.na(path) || !file.exists(path)) {
     return(FALSE)
@@ -27,5 +28,8 @@ is_valid_bmp <- function(path) {
   if (!isTRUE(size >= 2)) {
     return(FALSE)
   }
-  identical(readBin(path, raw(), n = 2L), as.raw(c(0x42, 0x4d)))
+  tryCatch(
+    identical(readBin(path, raw(), n = 2L), as.raw(c(0x42, 0x4d))),
+    error = function(e) FALSE
+  )
 }

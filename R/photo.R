@@ -1237,7 +1237,9 @@ gla_create_fisheye_photos <- function(
 
   # Drop the horizon_mask list-column from points before export to parallel workers.
   # The lambda only needs las_files, x_meters, y_meters, and elevation - horizon data
-  # is already captured in horizon_list, so exporting it twice is wasteful.
+  # is already captured in horizon_list, so exporting it twice is wasteful. Saved here
+  # and restored before return so callers receive the full points object unchanged.
+  saved_horizon_mask <- points$horizon_mask
   points$horizon_mask <- NULL
 
   # Process each point that needs processing
@@ -1363,7 +1365,8 @@ gla_create_fisheye_photos <- function(
   all_photo_paths <- existing_photo_paths
   all_photo_paths[points_to_process_indices] <- unlist(new_fisheye_paths)
 
-  # Add fisheye photo paths to points dataframe
+  # Restore horizon_mask and add fisheye photo paths to points dataframe
+  points$horizon_mask <- saved_horizon_mask
   points$fisheye_photo_path <- all_photo_paths
 
   # Move geometry column to end
