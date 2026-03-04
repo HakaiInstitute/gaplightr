@@ -134,6 +134,11 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   # Verify file was created
   expect_true(file.exists(stream_points$fisheye_photo_path[1]))
 
+  # horizon_mask must be preserved in the returned object - it is temporarily
+  # dropped before parallel export to reduce worker payload, then restored.
+  expect_true("horizon_mask" %in% names(stream_points))
+  expect_false(is.null(stream_points$horizon_mask[[1]]))
+
   # Get the actual filename
   actual_filename <- basename(stream_points$fisheye_photo_path[1])
 

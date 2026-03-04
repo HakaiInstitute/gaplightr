@@ -862,6 +862,15 @@ gla_process_fisheye_photos <- function(
     hint = "Use gla_create_fisheye_photos() to add fisheye_photo_path column"
   )
 
+  invalid_bmp <- !vapply(points$fisheye_photo_path, is_valid_bmp, logical(1))
+  if (any(invalid_bmp)) {
+    stop(
+      sum(invalid_bmp),
+      " point(s) have missing or corrupted BMP files: ",
+      paste(points$fisheye_photo_path[invalid_bmp], collapse = ", ")
+    )
+  }
+
   message("Processing ", nrow(points), " fisheye photos for solar radiation...")
 
   # Extract only the minimal data needed by workers (reduces memory footprint)
@@ -1089,20 +1098,14 @@ gla_create_fisheye_photos <- function(
     hint = "Use gla_extract_horizons() to add horizon_mask column"
   )
 
-  # Check for missing or invalid LAS files
-  invalid_files <- is.na(points$las_files) | !file.exists(points$las_files)
+  # Check for missing, non-existent, or empty LAS files.
+  invalid_files <- !vapply(points$las_files, is_valid_las_file, logical(1))
   if (any(invalid_files)) {
-    n_invalid <- sum(invalid_files)
-    warning(
-      n_invalid,
-      " point(s) have missing or non-existent LAS files and will be skipped"
+    stop(
+      sum(invalid_files),
+      " point(s) have missing, non-existent, or empty LAS files: ",
+      paste(points$las_files[invalid_files], collapse = ", ")
     )
-    # Filter to only valid points
-    points <- points[!invalid_files, ]
-
-    if (nrow(points) == 0) {
-      stop("No valid LAS files found in input points")
-    }
   }
 
   # Validate radial_distortion
@@ -1233,6 +1236,16 @@ gla_create_fisheye_photos <- function(
     " fisheye photos..."
   )
 
+  # Build a minimal data frame for parallel workers - geometry and list-columns like
+  # horizon_mask are not needed and would be serialized to every worker needlessly.
+  pts_worker <- data.frame(
+    las_files = points$las_files,
+    x_meters = points$x_meters,
+    y_meters = points$y_meters,
+    elevation = points$elevation,
+    stringsAsFactors = FALSE
+  )
+
   # Process each point that needs processing
   if (parallel) {
     new_fisheye_paths <- future.apply::future_lapply(
@@ -1242,19 +1255,19 @@ gla_create_fisheye_photos <- function(
 
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
           camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
         # Create site ID from coordinates
         site_id <- paste0(
-          round(points$x_meters[i], 0),
+          round(pts_worker$x_meters[i], 0),
           "_",
-          round(points$y_meters[i], 1)
+          round(pts_worker$y_meters[i], 1)
         )
 
         # Create fisheye photo with error handling
@@ -1300,19 +1313,19 @@ gla_create_fisheye_photos <- function(
         i <- points_to_process_indices[idx]
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
           camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
         # Create site ID from coordinates
         site_id <- paste0(
-          round(points$x_meters[i], 0),
+          round(pts_worker$x_meters[i], 0),
           "_",
-          round(points$y_meters[i], 1)
+          round(pts_worker$y_meters[i], 1)
         )
 
         # Create fisheye photo with error handling
@@ -1356,7 +1369,6 @@ gla_create_fisheye_photos <- function(
   all_photo_paths <- existing_photo_paths
   all_photo_paths[points_to_process_indices] <- unlist(new_fisheye_paths)
 
-  # Add fisheye photo paths to points dataframe
   points$fisheye_photo_path <- all_photo_paths
 
   # Move geometry column to end

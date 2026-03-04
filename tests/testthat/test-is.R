@@ -48,6 +48,52 @@ test_that("is_img_binary errors on non-cimg input", {
   )
 })
 
+test_that("is_valid_las_file returns FALSE for NA, missing, and empty files", {
+  expect_false(is_valid_las_file(NA_character_))
+  expect_false(is_valid_las_file("nonexistent.las"))
+
+  empty_las <- withr::local_tempfile(fileext = ".las")
+  file.create(empty_las)
+  expect_false(is_valid_las_file(empty_las))
+})
+
+test_that("is_valid_las_file returns TRUE for a non-empty file", {
+  valid_las <- withr::local_tempfile(fileext = ".las")
+  writeBin(as.raw(1:10), valid_las)
+  expect_true(is_valid_las_file(valid_las))
+})
+
+test_that("is_valid_bmp returns FALSE for NA, missing, and files too small for magic number", {
+  expect_false(is_valid_bmp(NA_character_))
+  expect_false(is_valid_bmp("nonexistent.bmp"))
+
+  one_byte <- withr::local_tempfile(fileext = ".bmp")
+  writeBin(as.raw(0x42), one_byte)
+  expect_false(is_valid_bmp(one_byte))
+})
+
+test_that("is_valid_bmp returns FALSE for wrong magic number", {
+  not_bmp <- withr::local_tempfile(fileext = ".bmp")
+  writeBin(as.raw(c(0x89, 0x50)), not_bmp) # PNG magic
+  expect_false(is_valid_bmp(not_bmp))
+})
+
+test_that("is_valid_bmp returns TRUE for correct BMP magic number", {
+  valid_bmp <- test_path(
+    "testdata",
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+  )
+  expect_true(is_valid_bmp(valid_bmp))
+})
+
+test_that("is_valid_bmp works with a real BMP file", {
+  test_photo <- test_path(
+    "testdata",
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+  )
+  expect_true(is_valid_bmp(test_photo))
+})
+
 test_that("is_img_binary works with real thresholded test image", {
   test_photo <- test_path(
     "testdata",

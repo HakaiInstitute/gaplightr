@@ -240,17 +240,13 @@ test_that("gla_create_fisheye_photos handles missing/invalid LAS files", {
     "nonexistent_file2.las"
   )
 
-  # Should warn about invalid files and then error (no valid files left)
-  expect_warning(
-    expect_error(
-      gla_create_fisheye_photos(
-        points = stream_points,
-        output_dir = output_dir,
-        parallel = FALSE
-      ),
-      regexp = "No valid LAS files"
+  expect_error(
+    gla_create_fisheye_photos(
+      points = stream_points,
+      output_dir = output_dir,
+      parallel = FALSE
     ),
-    regexp = "missing or non-existent LAS files"
+    regexp = "missing, non-existent, or empty LAS files"
   )
 })
 
@@ -279,13 +275,12 @@ test_that("gla_process_fisheye_photos handles corrupted image file", {
   stream_points$x_meters <- coords[, 1]
   stream_points$y_meters <- coords[, 2]
 
-  # Should error when trying to load image
   expect_error(
     gla_process_fisheye_photos(
       points = stream_points,
       parallel = FALSE
     ),
-    regexp = "does not appear to be|PNG, BMP, JPEG, or TIFF"
+    regexp = "missing or corrupted BMP"
   )
 })
 
