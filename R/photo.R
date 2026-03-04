@@ -1235,12 +1235,15 @@ gla_create_fisheye_photos <- function(
     " fisheye photos..."
   )
 
-  # Drop the horizon_mask list-column from points before export to parallel workers.
-  # The lambda only needs las_files, x_meters, y_meters, and elevation - horizon data
-  # is already captured in horizon_list, so exporting it twice is wasteful. Saved here
-  # and restored before return so callers receive the full points object unchanged.
-  saved_horizon_mask <- points$horizon_mask
-  points$horizon_mask <- NULL
+  # Build a minimal data frame for parallel workers - geometry and list-columns like
+  # horizon_mask are not needed and would be serialized to every worker needlessly.
+  pts_worker <- data.frame(
+    las_files = points$las_files,
+    x_meters = points$x_meters,
+    y_meters = points$y_meters,
+    elevation = points$elevation,
+    stringsAsFactors = FALSE
+  )
 
   # Process each point that needs processing
   if (parallel) {
@@ -1251,19 +1254,19 @@ gla_create_fisheye_photos <- function(
 
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
           camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
         # Create site ID from coordinates
         site_id <- paste0(
-          round(points$x_meters[i], 0),
+          round(pts_worker$x_meters[i], 0),
           "_",
-          round(points$y_meters[i], 1)
+          round(pts_worker$y_meters[i], 1)
         )
 
         # Create fisheye photo with error handling
@@ -1309,19 +1312,19 @@ gla_create_fisheye_photos <- function(
         i <- points_to_process_indices[idx]
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
           camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
         # Create site ID from coordinates
         site_id <- paste0(
-          round(points$x_meters[i], 0),
+          round(pts_worker$x_meters[i], 0),
           "_",
-          round(points$y_meters[i], 1)
+          round(pts_worker$y_meters[i], 1)
         )
 
         # Create fisheye photo with error handling
@@ -1365,8 +1368,6 @@ gla_create_fisheye_photos <- function(
   all_photo_paths <- existing_photo_paths
   all_photo_paths[points_to_process_indices] <- unlist(new_fisheye_paths)
 
-  # Restore horizon_mask and add fisheye photo paths to points dataframe
-  points$horizon_mask <- saved_horizon_mask
   points$fisheye_photo_path <- all_photo_paths
 
   # Move geometry column to end
