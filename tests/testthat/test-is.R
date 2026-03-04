@@ -79,8 +79,10 @@ test_that("is_valid_bmp returns FALSE for wrong magic number", {
 })
 
 test_that("is_valid_bmp returns TRUE for correct BMP magic number", {
-  valid_bmp <- withr::local_tempfile(fileext = ".bmp")
-  writeBin(as.raw(c(0x42, 0x4d, 0x00, 0x00)), valid_bmp)
+  valid_bmp <- test_path(
+    "testdata",
+    "R2D2_ps10_cex0pt3_600dpi_2800px_polar_cairo.bmp"
+  )
   expect_true(is_valid_bmp(valid_bmp))
 })
 
