@@ -1103,7 +1103,8 @@ gla_create_fisheye_photos <- function(
   if (any(invalid_files)) {
     stop(
       sum(invalid_files),
-      " point(s) have missing, non-existent, or empty LAS files"
+      " point(s) have missing, non-existent, or empty LAS files: ",
+      paste(points$las_files[invalid_files], collapse = ", ")
     )
   }
 
