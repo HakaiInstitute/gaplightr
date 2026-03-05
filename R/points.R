@@ -116,11 +116,14 @@ process_points_internal <- function(points, dem) {
     )
   }
 
+  # Assign a stable unique identifier for each point. This is used as the key
+  # for all downstream file naming (LAS, horizon CSV, fisheye BMP), eliminating
+  # the coordinate-collision problem that arises from rounded-coordinate filenames.
+  points$point_id <- seq_len(nrow(points))
+
   # Extract coordinates (validated to be in meters)
   points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)
   points$y_meters <- round(sf::st_coordinates(points)[, "Y"], 1)
-
-  check_if_coordinates_are_unique(points)
 
   # Transform to WGS84 for lat/lon output columns
   coords_wgs84 <- sf::st_transform(points, crs = 4326)

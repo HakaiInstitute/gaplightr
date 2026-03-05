@@ -57,7 +57,6 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
 })
 
 test_that("higher camera_height_m produces lower horizon angles", {
-
   # Create test DEM with a hill in the center
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
@@ -147,17 +146,14 @@ test_that("gla_extract_horizons extracts coordinates from geometry", {
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
-  # Create points WITHOUT lat/lon columns - should work now
-  points_data <- data.frame(
-    x_meters = 1000500,
-    y_meters = 500500
-  )
+  points_data <- data.frame(x_meters = 1000500, y_meters = 500500)
 
   stream_points <- sf::st_as_sf(
     points_data,
     coords = c("x_meters", "y_meters"),
     crs = 3005
   )
+  stream_points$point_id <- 1L
 
   # Should not error - coordinates extracted from geometry
   expect_no_error(
@@ -196,6 +192,7 @@ test_that("gla_extract_horizons handles missing DEM file", {
   coords <- sf::st_coordinates(stream_points)
   stream_points$x_meters <- coords[, 1]
   stream_points$y_meters <- coords[, 2]
+  stream_points$point_id <- 1L
 
   # Should error when trying to load DEM
   expect_error(

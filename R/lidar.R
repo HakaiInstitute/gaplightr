@@ -116,35 +116,24 @@ gla_create_virtual_plots <- function(
   # Check for existing output files if resume = TRUE
   existing_mask <- rep(FALSE, nrow(points))
 
+  validate_required_columns(
+    points,
+    "point_id",
+    hint = "Run gla_load_points() first"
+  )
+
   if (resume && dir.exists(output_dir)) {
-    existing_files <- list.files(
-      output_dir,
-      pattern = "\\.las$",
-      full.names = TRUE
+    existing_mask <- file.exists(
+      file.path(output_dir, paste0(points$point_id, ".las"))
     )
 
-    if (length(existing_files) > 0) {
-      # Parse existing filenames using shared helper
-      existing_info <- parse_las_filenames(existing_files)
-
-      # Match existing files to input points using tolerance to handle both
-      # old integer-named files (round(x, 0)) and new decimal-named files.
-      for (i in seq_len(nrow(points))) {
-        matches <- abs(existing_info$x_meters - coordinates[i, "X"]) < 0.5 &
-          abs(existing_info$y_meters - coordinates[i, "Y"]) < 0.05
-        if (any(matches)) {
-          existing_mask[i] <- TRUE
-        }
-      }
-
-      n_existing <- sum(existing_mask)
-      if (n_existing > 0) {
-        message(
-          "Found ",
-          n_existing,
-          " existing output files, skipping those points"
-        )
-      }
+    n_existing <- sum(existing_mask)
+    if (n_existing > 0) {
+      message(
+        "Found ",
+        n_existing,
+        " existing output files, skipping those points"
+      )
     }
   }
 
@@ -155,9 +144,7 @@ gla_create_virtual_plots <- function(
   # If all points already processed, return early
   if (n_to_process == 0) {
     message("All ", nrow(points), " plots already exist, skipping processing")
-    # Add las_files column to existing points
-    all_files <- list.files(output_dir, pattern = "\\.las$", full.names = TRUE)
-    points <- add_las_filename(points, all_files)
+    points$las_files <- file.path(output_dir, paste0(points$point_id, ".las"))
     return(invisible(points))
   }
 
@@ -171,7 +158,9 @@ gla_create_virtual_plots <- function(
     )
   }
 
-  # Extract only coordinates that need processing
+  # Extract only coordinates that need processing, retaining original row indices
+  # to map batch positions back to point_id values after clipping.
+  points_to_process_original_idx <- which(points_to_process_mask)
   coordinates_to_process <- coordinates[points_to_process_mask, , drop = FALSE]
 
   # Read catalog
@@ -231,6 +220,14 @@ gla_create_virtual_plots <- function(
 
     batch_coords <- coordinates_to_process[batch_indices, , drop = FALSE]
 
+    # Snapshot directory before clipping so we can identify exactly which files
+    # lidR writes for this batch, regardless of how it formats coordinate values.
+    before_files <- list.files(
+      output_dir,
+      pattern = "\\.las$",
+      full.names = TRUE
+    )
+
     rois <- tryCatch(
       {
         # capture.output() captures R's stdout (including LASlib output routed via R),
@@ -259,10 +256,52 @@ gla_create_virtual_plots <- function(
       }
     )
 
-    # Accumulate output files from this batch
     if (!is.null(rois)) {
-      batch_files <- rois@data$filename
-      all_new_files <- c(all_new_files, batch_files)
+      after_files <- list.files(
+        output_dir,
+        pattern = "\\.las$",
+        full.names = TRUE
+      )
+      new_raw_files <- setdiff(after_files, before_files)
+
+      # Rename each lidR output file from {XCENTER}_{YCENTER}.las to {point_id}.las.
+      # We parse the coordinates back from lidR's own filename string and compare
+      # with == against batch_coords - this is a safe exact comparison because we
+      # are round-tripping lidR's own values, not computing them independently.
+      for (k in seq_along(batch_indices)) {
+        match_idx <- which(vapply(
+          new_raw_files,
+          function(f) {
+            parsed <- parse_lidr_las_filename(f)
+            parsed$x == batch_coords[k, "X"] && parsed$y == batch_coords[k, "Y"]
+          },
+          logical(1)
+        ))
+
+        if (length(match_idx) == 1) {
+          orig_idx <- points_to_process_original_idx[batch_indices[k]]
+          pid <- points$point_id[orig_idx]
+          new_path <- file.path(output_dir, paste0(pid, ".las"))
+          file.rename(new_raw_files[match_idx], new_path)
+          all_new_files <- c(all_new_files, new_path)
+        } else if (length(match_idx) == 0) {
+          warning(
+            "No lidR output file found for point ",
+            points$point_id[points_to_process_original_idx[batch_indices[k]]],
+            " (batch ",
+            batch_idx,
+            ", position ",
+            k,
+            ")"
+          )
+        } else {
+          warning(
+            "Multiple lidR output files matched point ",
+            points$point_id[points_to_process_original_idx[batch_indices[k]]],
+            " - skipping rename"
+          )
+        }
+      }
     }
 
     # Clean up memory between batches
@@ -277,31 +316,15 @@ gla_create_virtual_plots <- function(
     message("No new plot files created")
   }
 
-  # Get all files from output directory
-  all_files <- list.files(output_dir, pattern = "\\.las$", full.names = TRUE)
+  # Assign las_files by point_id - exact, unambiguous lookup.
+  expected_paths <- file.path(output_dir, paste0(points$point_id, ".las"))
+  points$las_files <- ifelse(
+    file.exists(expected_paths),
+    expected_paths,
+    NA_character_
+  )
 
-  # Initialize columns if they don't exist
-  if (!"las_files" %in% names(points)) {
-    points$las_files <- NA_character_
-  }
-
-  # Only parse and match if there are files
-  if (length(all_files) > 0) {
-    # Parse all filenames
-    all_files_info <- parse_las_filenames(all_files)
-
-    # Match files to all points using tolerance to handle both old
-    # integer-named files and new decimal-named files from current lidR output.
-    for (i in seq_len(nrow(points))) {
-      match_idx <- which(
-        abs(all_files_info$x_meters - coordinates[i, "X"]) < 0.5 &
-          abs(all_files_info$y_meters - coordinates[i, "Y"]) < 0.05
-      )
-      if (length(match_idx) > 0) {
-        points$las_files[i] <- all_files_info$las_files[match_idx[1]]
-      }
-    }
-  } else {
+  if (all(is.na(points$las_files))) {
     message("No LAS files created - all plots may have failed")
   }
 

@@ -54,29 +54,15 @@ test_that("validate_crs_match errors when both CRS are NA", {
 
 # add_las_filename tests ----
 
-test_that("add_las_filename parses and merges correctly", {
-  # Create test stream points with x_meters and y_meters as both columns AND geometry
-  test_df <- data.frame(
-    x_meters = c(1000, 1001),
-    y_meters = c(2000.5, 2001.5)
-  )
-
+test_that("add_las_filename matches by point_id", {
   stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
+    data.frame(x = c(1000.1, 1000.4), y = c(2000.53, 2000.56)),
+    coords = c("x", "y"),
     crs = 3005
   )
+  stream_points$point_id <- c(1L, 2L)
 
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  # Create test LAS file names
-  las_files <- c(
-    "/path/to/1000_2000.5.las",
-    "/path/to/1001_2001.5.las"
-  )
-
+  las_files <- c("/path/to/1.las", "/path/to/2.las")
   result <- add_las_filename(stream_points, las_files)
 
   expect_s3_class(result, "sf")
@@ -85,31 +71,25 @@ test_that("add_las_filename parses and merges correctly", {
   expect_equal(result$las_files, las_files)
 })
 
-test_that("add_las_filename snapshot", {
-  test_df <- data.frame(
-    x_meters = c(1000),
-    y_meters = c(2000.5)
-  )
-
+test_that("add_las_filename correctly resolves points whose coordinates round to the same value", {
+  # Under the old coordinate-based scheme, these two points would have been
+  # assigned identical filenames (both round to 1000_2000.5) and caused a
+  # merge collision. With point_id as the key each point gets its own file.
   stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
+    data.frame(x = c(1000.1, 1000.4), y = c(2000.53, 2000.56)),
+    coords = c("x", "y"),
     crs = 3005
   )
+  stream_points$point_id <- c(1L, 2L)
 
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  las_files <- c("/path/to/1000_2000.5.las")
-
+  las_files <- c("/path/to/1.las", "/path/to/2.las")
   result <- add_las_filename(stream_points, las_files)
 
-  # Snapshot structure (use basename for las_files to avoid temp path differences)
-  result_snapshot <- sf::st_drop_geometry(result)
-  result_snapshot$las_files <- basename(result_snapshot$las_files)
-
-  expect_snapshot(result_snapshot)
+  # No row duplication and each point maps to its own unique file.
+  expect_equal(nrow(result), 2)
+  expect_equal(result$las_files[result$point_id == 1L], "/path/to/1.las")
+  expect_equal(result$las_files[result$point_id == 2L], "/path/to/2.las")
+  expect_equal(length(unique(result$las_files)), 2)
 })
 
 check_if_coordinates_are_unique <- function(df) {

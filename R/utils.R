@@ -60,19 +60,21 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   invisible(NULL)
 }
 
-## Internal helper to parse LAS filenames in format: X_Y.las
-## Returns data frame with x_meters, y_meters, and filename columns
+## Internal helper to parse LAS filenames in format: {point_id}.las
+## Returns data frame with point_id (integer) and las_files columns
 parse_las_filenames <- function(las_files) {
-  file_info <- data.frame(do.call(
-    rbind,
-    strsplit(tools::file_path_sans_ext(basename(las_files)), "_")
-  ))
-  colnames(file_info) <- c("x_meters", "y_meters")
-  file_info$las_files <- las_files
-  file_info$x_meters <- as.numeric(file_info$x_meters)
-  file_info$y_meters <- as.numeric(file_info$y_meters)
+  data.frame(
+    point_id = as.integer(tools::file_path_sans_ext(basename(las_files))),
+    las_files = las_files,
+    stringsAsFactors = FALSE
+  )
+}
 
-  file_info
+## Internal helper to parse lidR's raw {XCENTER}_{YCENTER}.las output filenames.
+## Returns a list with numeric x and y coordinate values.
+parse_lidr_las_filename <- function(las_file) {
+  parts <- strsplit(tools::file_path_sans_ext(basename(las_file)), "_")[[1]]
+  list(x = as.numeric(parts[1]), y = as.numeric(parts[2]))
 }
 
 add_las_filename <- function(stream_points, las_files) {
@@ -80,20 +82,8 @@ add_las_filename <- function(stream_points, las_files) {
     stream_points <- stream_points[, !names(stream_points) %in% "las_files"]
   }
   file_info <- parse_las_filenames(las_files)
-  coords <- sf::st_coordinates(stream_points)
-  stream_points$las_files <- NA_character_
-  # Tolerance-based matching handles both old integer-named files (where
-  # filenames used round(x, 0)) and new decimal-named files from current lidR
-  # output, which embed the raw coordinate values.
-  for (i in seq_len(nrow(stream_points))) {
-    match_idx <- which(
-      abs(file_info$x_meters - coords[i, "X"]) < 0.5 &
-        abs(file_info$y_meters - coords[i, "Y"]) < 0.05
-    )
-    if (length(match_idx) > 0) {
-      stream_points$las_files[i] <- file_info$las_files[match_idx[1]]
-    }
-  }
+  idx <- match(stream_points$point_id, file_info$point_id)
+  stream_points$las_files <- file_info$las_files[idx]
   class(stream_points) <- c("sf", "tbl_df", "tbl", "data.frame")
   stream_points
 }
