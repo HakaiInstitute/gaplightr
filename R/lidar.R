@@ -127,11 +127,11 @@ gla_create_virtual_plots <- function(
       # Parse existing filenames using shared helper
       existing_info <- parse_las_filenames(existing_files)
 
-      # Match existing files to input points (exact match)
-      # Note: filenames use round(x, 0) and round(y, 1)
+      # Match existing files to input points using tolerance to handle both
+      # old integer-named files (round(x, 0)) and new decimal-named files.
       for (i in seq_len(nrow(points))) {
-        matches <- existing_info$x_meters == round(coordinates[i, "X"], 0) &
-          existing_info$y_meters == round(coordinates[i, "Y"], 1)
+        matches <- abs(existing_info$x_meters - coordinates[i, "X"]) < 0.5 &
+          abs(existing_info$y_meters - coordinates[i, "Y"]) < 0.05
         if (any(matches)) {
           existing_mask[i] <- TRUE
         }
@@ -290,12 +290,12 @@ gla_create_virtual_plots <- function(
     # Parse all filenames
     all_files_info <- parse_las_filenames(all_files)
 
-    # Match files to all points by coordinates (exact match)
-    # Note: filenames use round(x, 0) and round(y, 1)
+    # Match files to all points using tolerance to handle both old
+    # integer-named files and new decimal-named files from current lidR output.
     for (i in seq_len(nrow(points))) {
       match_idx <- which(
-        all_files_info$x_meters == round(coordinates[i, "X"], 0) &
-          all_files_info$y_meters == round(coordinates[i, "Y"], 1)
+        abs(all_files_info$x_meters - coordinates[i, "X"]) < 0.5 &
+          abs(all_files_info$y_meters - coordinates[i, "Y"]) < 0.05
       )
       if (length(match_idx) > 0) {
         points$las_files[i] <- all_files_info$las_files[match_idx[1]]

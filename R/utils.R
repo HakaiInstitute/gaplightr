@@ -76,21 +76,24 @@ parse_las_filenames <- function(las_files) {
 }
 
 add_las_filename <- function(stream_points, las_files) {
-  # Check if las_files column already exists
   if ("las_files" %in% names(stream_points)) {
-    # Remove existing column to avoid duplication
-    stream_points <- stream_points[,
-      !names(stream_points) %in% c("las_files")
-    ]
+    stream_points <- stream_points[, !names(stream_points) %in% "las_files"]
   }
   file_info <- parse_las_filenames(las_files)
-
-  stream_points <- merge(
-    stream_points,
-    file_info,
-    by = c("x_meters", "y_meters")
-  )
-
+  coords <- sf::st_coordinates(stream_points)
+  stream_points$las_files <- NA_character_
+  # Tolerance-based matching handles both old integer-named files (where
+  # filenames used round(x, 0)) and new decimal-named files from current lidR
+  # output, which embed the raw coordinate values.
+  for (i in seq_len(nrow(stream_points))) {
+    match_idx <- which(
+      abs(file_info$x_meters - coords[i, "X"]) < 0.5 &
+        abs(file_info$y_meters - coords[i, "Y"]) < 0.05
+    )
+    if (length(match_idx) > 0) {
+      stream_points$las_files[i] <- file_info$las_files[match_idx[1]]
+    }
+  }
   class(stream_points) <- c("sf", "tbl_df", "tbl", "data.frame")
   stream_points
 }
