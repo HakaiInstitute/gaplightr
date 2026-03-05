@@ -110,19 +110,19 @@ gla_create_virtual_plots <- function(
     dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   }
 
-  # Extract coordinates
-  coordinates <- sf::st_coordinates(points)
-
-  # Check for existing output files if resume = TRUE
-  existing_mask <- rep(FALSE, nrow(points))
-
   validate_required_columns(
     points,
     "point_id",
     hint = "Run gla_load_points() first"
   )
 
-  if (resume && dir.exists(output_dir)) {
+  # Extract coordinates
+  coordinates <- sf::st_coordinates(points)
+
+  # Check for existing output files if resume = TRUE
+  existing_mask <- rep(FALSE, nrow(points))
+
+  if (resume) {
     existing_mask <- file.exists(
       file.path(output_dir, paste0(points$point_id, ".las"))
     )
@@ -269,6 +269,9 @@ gla_create_virtual_plots <- function(
       # with == against batch_coords - this is a safe exact comparison because we
       # are round-tripping lidR's own values, not computing them independently.
       for (k in seq_along(batch_indices)) {
+        orig_idx <- points_to_process_original_idx[batch_indices[k]]
+        pid <- points$point_id[orig_idx]
+
         match_idx <- which(vapply(
           new_raw_files,
           function(f) {
@@ -279,15 +282,13 @@ gla_create_virtual_plots <- function(
         ))
 
         if (length(match_idx) == 1) {
-          orig_idx <- points_to_process_original_idx[batch_indices[k]]
-          pid <- points$point_id[orig_idx]
           new_path <- file.path(output_dir, paste0(pid, ".las"))
           file.rename(new_raw_files[match_idx], new_path)
           all_new_files <- c(all_new_files, new_path)
         } else if (length(match_idx) == 0) {
           warning(
             "No lidR output file found for point ",
-            points$point_id[points_to_process_original_idx[batch_indices[k]]],
+            pid,
             " (batch ",
             batch_idx,
             ", position ",
@@ -297,7 +298,7 @@ gla_create_virtual_plots <- function(
         } else {
           warning(
             "Multiple lidR output files matched point ",
-            points$point_id[points_to_process_original_idx[batch_indices[k]]],
+            pid,
             " - skipping rename"
           )
         }
