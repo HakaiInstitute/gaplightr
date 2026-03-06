@@ -257,24 +257,23 @@ gla_create_virtual_plots <- function(
       )
       new_raw_files <- setdiff(after_files, before_files)
 
-      # Rename each lidR output file from {XCENTER}_{YCENTER}.las to {point_id}.las.
-      # Tolerances are calibrated to lidR's actual coordinate formatting: X is
-      # rounded to the nearest integer (up to 0.5m error) and Y to one decimal
-      # place (up to 0.05m error). These bounds are tight enough to avoid
-      # cross-matching two distinct points in normal usage.
+      # Pre-parse all new filenames once to avoid O(n*m) repeated parsing inside
+      # the per-point loop. Tolerances are calibrated to lidR's actual coordinate
+      # formatting: X is rounded to the nearest integer (up to 0.5m error) and Y
+      # to one decimal place (up to 0.05m error). These bounds are tight enough
+      # to avoid cross-matching two distinct points in normal usage.
+      parsed <- lapply(new_raw_files, parse_lidr_las_filename)
+      raw_x <- vapply(parsed, `[[`, numeric(1), "x")
+      raw_y <- vapply(parsed, `[[`, numeric(1), "y")
+
       for (k in seq_along(batch_indices)) {
         orig_idx <- points_to_process_original_idx[batch_indices[k]]
         pid <- points$point_id[orig_idx]
 
-        match_idx <- which(vapply(
-          new_raw_files,
-          function(f) {
-            parsed <- parse_lidr_las_filename(f)
-            abs(parsed$x - batch_coords[k, "X"]) < 0.5 &&
-              abs(parsed$y - batch_coords[k, "Y"]) < 0.05
-          },
-          logical(1)
-        ))
+        match_idx <- which(
+          abs(raw_x - batch_coords[k, "X"]) < 0.5 &
+            abs(raw_y - batch_coords[k, "Y"]) < 0.05
+        )
 
         if (length(match_idx) == 1) {
           new_path <- file.path(output_dir, paste0(pid, ".las"))
@@ -282,6 +281,8 @@ gla_create_virtual_plots <- function(
             all_new_files <- c(all_new_files, new_path)
             # Remove from candidates so the same file is not matched twice.
             new_raw_files <- new_raw_files[-match_idx]
+            raw_x <- raw_x[-match_idx]
+            raw_y <- raw_y[-match_idx]
           } else {
             warning(
               "Failed to rename ",
