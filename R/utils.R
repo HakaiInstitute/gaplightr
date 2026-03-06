@@ -63,8 +63,21 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
 ## Internal helper to parse LAS filenames in format: {point_id}.las
 ## Returns data frame with point_id (integer) and las_files columns
 parse_las_filenames <- function(las_files) {
+  basenames <- tools::file_path_sans_ext(basename(las_files))
+  point_id <- suppressWarnings(as.integer(basenames))
+
+  if (anyNA(point_id)) {
+    bad <- basenames[is.na(point_id)]
+    stop(
+      "LAS filenames must be in the format '{point_id}.las' where point_id is ",
+      "an integer. These do not match: ",
+      paste(bad, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
   data.frame(
-    point_id = as.integer(tools::file_path_sans_ext(basename(las_files))),
+    point_id = point_id,
     las_files = las_files,
     stringsAsFactors = FALSE
   )
@@ -79,6 +92,7 @@ parse_lidr_las_filename <- function(las_file) {
 }
 
 add_las_filename <- function(stream_points, las_files) {
+  validate_required_columns(stream_points, "point_id")
   if ("las_files" %in% names(stream_points)) {
     stream_points <- stream_points[, !names(stream_points) %in% "las_files"]
   }

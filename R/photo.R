@@ -1091,11 +1091,18 @@ gla_create_fisheye_photos <- function(
   # Validate inputs
   validate_sf_object(points)
 
-  required_cols <- c("las_files", "lat", "lon", "elevation", "horizon_mask")
+  required_cols <- c(
+    "point_id",
+    "las_files",
+    "lat",
+    "lon",
+    "elevation",
+    "horizon_mask"
+  )
   validate_required_columns(
     points,
     required_cols,
-    hint = "Use gla_extract_horizons() to add horizon_mask column"
+    hint = "Use gla_load_points() then gla_extract_horizons() to prepare points"
   )
 
   # Check for missing, non-existent, or empty LAS files.
