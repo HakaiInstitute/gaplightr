@@ -1,4 +1,4 @@
-# Utility functions for the 50-watersheds-analysis package
+# Utility functions for gaplightr
 
 #' Validate CRS match between two spatial objects
 #'

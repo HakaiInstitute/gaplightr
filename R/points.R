@@ -54,14 +54,12 @@ process_points_internal <- function(points, dem) {
 
   # Drop existing columns that will be recalculated
   if (any(toupper(names(points)) %in% c("LAT", "LON"))) {
-    message(paste0("Dropping existing LAT/LON columns and recalculating"))
+    message("Dropping existing LAT/LON columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("LAT", "LON")]
   }
 
   if (any(toupper(names(points)) %in% c("X_METERS", "Y_METERS"))) {
-    message(paste0(
-      "Dropping existing X_METERS/Y_METERS columns and recalculating"
-    ))
+    message("Dropping existing X_METERS/Y_METERS columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("X_METERS", "Y_METERS")]
   }
 
