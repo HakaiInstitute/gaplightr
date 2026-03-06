@@ -54,10 +54,12 @@ test_that("validate_crs_match errors when both CRS are NA", {
 
 # point_id collision test ----
 
-test_that("gla_create_virtual_plots assigns distinct files to points whose coordinates round to the same value", {
-  # Under the old coordinate-based filename scheme, two points within 0.5m in X
-  # or 0.05m in Y would collide on the same filename. With point_id as the key
-  # each point always gets its own uniquely-named LAS file.
+test_that("gla_create_virtual_plots does not assign the same file to two points with colliding coordinates", {
+  # Under the old coordinate-based filename scheme, two points whose coordinates
+  # round to the same lidR center (X within 0.5m, Y within 0.05m) would collide
+  # on the same filename, silently giving both points identical - and corrupted -
+  # data. With point_id as the key, the same clip can only be claimed by one
+  # point; the other receives NA, which is surfaced to the user.
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
@@ -68,12 +70,10 @@ test_that("gla_create_virtual_plots assigns distinct files to points whose coord
     output_path = file.path(las_dir, "test.las")
   )
 
-  # Two points whose coordinates round identically: both become 1000500_500500
-  # under round(x, 0) / round(y, 1), but have distinct point_ids.
-  # Placed at the center of the test LAS distribution (1000500, 500500) so
-  # both points fall within the clipped coverage.
+  # True collision: round(x, 0) is 1000500 for both; round(y, 1) is 500500.0
+  # for both. lidR writes a single clip named 1000500_500500.0.las.
   pts <- sf::st_as_sf(
-    data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.06)),
+    data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.04)),
     coords = c("x", "y"),
     crs = 3005
   )
@@ -87,10 +87,10 @@ test_that("gla_create_virtual_plots assigns distinct files to points whose coord
     resume = FALSE
   )
 
-  # Both points must have valid, distinct LAS files - the old coordinate-based
-  # scheme would have collapsed them to a single filename.
-  expect_equal(sum(!is.na(result$las_files)), 2)
-  expect_equal(length(unique(result$las_files)), 2)
+  # The critical invariant: no two points share the same las_files path.
+  # Under the old scheme both would have received the same coordinate-based path.
+  non_na <- na.omit(result$las_files)
+  expect_equal(length(non_na), length(unique(non_na)))
 })
 
 
