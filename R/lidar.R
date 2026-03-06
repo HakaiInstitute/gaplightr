@@ -271,11 +271,17 @@ gla_create_virtual_plots <- function(
         pid <- points$point_id[orig_idx]
 
         match_idx <- which(
-          abs(raw_x - batch_coords[k, "X"]) < 0.5 &
-            abs(raw_y - batch_coords[k, "Y"]) < 0.05
+          abs(raw_x - batch_coords[k, "X"]) <= 0.5 &
+            abs(raw_y - batch_coords[k, "Y"]) <= 0.05
         )
 
-        if (length(match_idx) == 1) {
+        if (length(match_idx) > 1) {
+          stop(
+            "Multiple LAS files matched point_id ",
+            pid,
+            ". This should not happen; check for duplicate coordinates in your input."
+          )
+        } else if (length(match_idx) == 1) {
           new_path <- file.path(output_dir, paste0(pid, ".las"))
           if (file.exists(new_path)) {
             warning(
