@@ -60,13 +60,6 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   invisible(NULL)
 }
 
-## Internal helper to parse lidR's raw {XCENTER}_{YCENTER}.las output filenames.
-## Returns a list with numeric x and y coordinate values.
-parse_lidr_las_filename <- function(las_file) {
-  parts <- strsplit(tools::file_path_sans_ext(basename(las_file)), "_")[[1]]
-  list(x = as.numeric(parts[1]), y = as.numeric(parts[2]))
-}
-
 write_points_gpkg <- function(points, output_dir, prefix = "stream_points") {
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)

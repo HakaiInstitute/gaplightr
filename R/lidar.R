@@ -183,8 +183,6 @@ gla_create_virtual_plots <- function(
   lidR::opt_filter(ctg) <- filter
   lidR::opt_chunk_size(ctg) <- chunk_size
 
-  lidR::opt_output_files(ctg) <- paste0(output_dir, "/", "{XCENTER}_{YCENTER}")
-
   message(
     "Clipping ",
     n_to_process,
@@ -213,15 +211,11 @@ gla_create_virtual_plots <- function(
 
     batch_coords <- coordinates_to_process[batch_indices, , drop = FALSE]
 
-    # Snapshot directory before clipping so we can identify exactly which files
-    # lidR writes for this batch. We cannot rely on rois@data$filename being
-    # order-preserving with respect to input coordinates when processing a
-    # LAScatalog, so we match files back to points by coordinate instead.
-    before_files <- list.files(
-      output_dir,
-      pattern = "\\.las$",
-      full.names = TRUE
-    )
+    # lidR replaces {ID} with the 1-to-N index of each input coordinate within
+    # this clip_circle call. A per-batch prefix prevents ID collisions across
+    # batches. Empty clips produce no file, so gaps in the sequence are possible.
+    tmp_prefix <- file.path(output_dir, paste0(".tmp_b", batch_idx, "_"))
+    lidR::opt_output_files(ctg) <- paste0(tmp_prefix, "{ID}")
 
     rois <- tryCatch(
       {
@@ -250,62 +244,20 @@ gla_create_virtual_plots <- function(
     )
 
     if (!is.null(rois)) {
-      after_files <- list.files(
-        output_dir,
-        pattern = "\\.las$",
-        full.names = TRUE
-      )
-      new_raw_files <- setdiff(after_files, before_files)
-
-      # Pre-parse all new filenames once to avoid O(n*m) repeated parsing inside
-      # the per-point loop. Tolerances are calibrated to lidR's actual coordinate
-      # formatting: X is rounded to the nearest integer (up to 0.5m error) and Y
-      # to one decimal place (up to 0.05m error). These bounds are tight enough
-      # to avoid cross-matching two distinct points in normal usage.
-      parsed <- lapply(new_raw_files, parse_lidr_las_filename)
-      raw_x <- vapply(parsed, `[[`, numeric(1), "x")
-      raw_y <- vapply(parsed, `[[`, numeric(1), "y")
-
       for (k in seq_along(batch_indices)) {
         orig_idx <- points_to_process_original_idx[batch_indices[k]]
         pid <- points$point_id[orig_idx]
+        tmp_path <- paste0(tmp_prefix, k, ".las")
 
-        match_idx <- which(
-          abs(raw_x - batch_coords[k, "X"]) <= 0.5 &
-            abs(raw_y - batch_coords[k, "Y"]) <= 0.05
-        )
-
-        if (length(match_idx) > 1) {
-          stop(
-            "Multiple LAS files matched point_id ",
-            pid,
-            ". This should not happen; check for duplicate coordinates in your input."
-          )
-        } else if (length(match_idx) == 1) {
+        if (file.exists(tmp_path)) {
           new_path <- file.path(output_dir, paste0(pid, ".las"))
-          if (file.exists(new_path)) {
-            warning(
-              "Output file already exists for point_id ",
-              pid,
-              " - overwriting with new clip result."
-            )
-            file.remove(new_path)
-          }
-          if (file.rename(new_raw_files[match_idx], new_path)) {
+          if (file.rename(tmp_path, new_path)) {
             all_new_files <- c(all_new_files, new_path)
-            # Remove from candidates so the same file is not matched twice.
-            new_raw_files <- new_raw_files[-match_idx]
-            raw_x <- raw_x[-match_idx]
-            raw_y <- raw_y[-match_idx]
           } else {
-            warning(
-              "Failed to rename ",
-              new_raw_files[match_idx],
-              " to ",
-              new_path
-            )
+            warning("Failed to rename ", tmp_path, " to ", new_path)
           }
         }
+        # No file means an empty clip; las_files will be NA for this point.
       }
     }
 
