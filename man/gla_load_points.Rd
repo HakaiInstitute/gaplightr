@@ -31,12 +31,10 @@ This function performs strict validation:
 Every point is assigned a \code{point_id}, a positive integer used to name all
 downstream output files (LAS clips, horizon CSVs, fisheye photos). If \code{x}
 does not contain a \code{point_id} column, sequential IDs are assigned
-automatically (1, 2, 3, ...). To use your own IDs - for example to preserve
-cached outputs across re-runs, or to match an existing site numbering scheme
-\itemize{
-\item include a \code{point_id} column containing unique positive integers before
+automatically (1, 2, 3, ...). To use your own IDs (for example to preserve
+cached outputs across re-runs, or to match an existing site numbering scheme),
+include a \code{point_id} column containing unique positive integers before
 calling this function.
-}
 }
 }
 \examples{

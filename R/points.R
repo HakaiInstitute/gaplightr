@@ -20,9 +20,9 @@
 #' Every point is assigned a `point_id`, a positive integer used to name all
 #' downstream output files (LAS clips, horizon CSVs, fisheye photos). If `x`
 #' does not contain a `point_id` column, sequential IDs are assigned
-#' automatically (1, 2, 3, ...). To use your own IDs - for example to preserve
-#' cached outputs across re-runs, or to match an existing site numbering scheme
-#' - include a `point_id` column containing unique positive integers before
+#' automatically (1, 2, 3, ...). To use your own IDs (for example to preserve
+#' cached outputs across re-runs, or to match an existing site numbering scheme),
+#' include a `point_id` column containing unique positive integers before
 #' calling this function.
 #'
 #' @examples
