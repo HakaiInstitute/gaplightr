@@ -426,8 +426,9 @@ test_that("End-to-end parallel workflow matches sequential results", {
 
   # Use sequential plan so the parallel = TRUE code path is exercised without
   # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  old_plan <- future::plan()
   future::plan(future::sequential)
-  withr::defer(future::plan(future::sequential))
+  withr::defer(future::plan(old_plan))
 
   par_result <- gla_extract_horizons(
     points = stream_points,
