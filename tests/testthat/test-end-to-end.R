@@ -386,3 +386,61 @@ test_that("End-to-end workflow works with 26912", {
   ))
   expect_true(all(stream_points$transmitted_global_irradiation_pct >= 0))
 })
+
+
+test_that("End-to-end parallel workflow matches sequential results", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+
+  las_dir <- withr::local_tempdir()
+  create_test_las(
+    crs = 3005,
+    n_points = 500,
+    output_path = file.path(las_dir, "test.las")
+  )
+
+  stream_points <- gla_load_points(stream_network_path, dem_path)
+  stream_points <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = las_dir,
+    output_dir = withr::local_tempdir(),
+    plot_radius = 50,
+    resume = FALSE
+  )
+  stream_points <- stream_points[!is.na(stream_points$las_files), ]
+
+  horizon_dir_seq <- withr::local_tempdir()
+  horizon_dir_par <- withr::local_tempdir()
+
+  seq_result <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = horizon_dir_seq,
+    step = 30,
+    max_search_distance = 1000,
+    parallel = FALSE
+  )
+
+  # Use sequential plan so the parallel = TRUE code path is exercised without
+  # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  future::plan(future::sequential)
+  withr::defer(future::plan(future::sequential))
+
+  par_result <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = horizon_dir_par,
+    step = 30,
+    max_search_distance = 1000,
+    parallel = TRUE
+  )
+
+  expect_equal(
+    par_result$horizon_mask,
+    seq_result$horizon_mask,
+    tolerance = 1e-6
+  )
+})

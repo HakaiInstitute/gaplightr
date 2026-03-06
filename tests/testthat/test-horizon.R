@@ -172,6 +172,39 @@ test_that("gla_extract_horizons extracts coordinates from geometry", {
 })
 
 
+test_that("gla_extract_horizons works with parallel = TRUE", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_points <- sf::st_as_sf(
+    data.frame(x_meters = c(1000500, 1000520), y_meters = c(500500, 500520)),
+    coords = c("x_meters", "y_meters"),
+    crs = 3005
+  )
+  stream_points$point_id <- 1:2
+
+  output_dir <- withr::local_tempdir()
+
+  # Use sequential plan so the parallel = TRUE code path is exercised without
+  # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  future::plan(future::sequential)
+  withr::defer(future::plan(future::sequential))
+
+  expect_no_error(
+    result <- gla_extract_horizons(
+      points = stream_points,
+      dem_path = dem_path,
+      output_dir = output_dir,
+      step = 30,
+      max_search_distance = 1000,
+      parallel = TRUE
+    )
+  )
+
+  expect_true("horizon_mask" %in% names(result))
+  expect_equal(nrow(result), 2)
+})
+
 test_that("gla_extract_horizons handles missing DEM file", {
   dem_path <- "nonexistent_dem.tif"
 

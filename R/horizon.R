@@ -610,8 +610,6 @@ gla_extract_horizons <- function(
       function(
         i,
         dem_path,
-        lats,
-        lons,
         step,
         max_search_distance,
         dist_step,
