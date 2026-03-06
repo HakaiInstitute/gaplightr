@@ -54,12 +54,11 @@ test_that("validate_crs_match errors when both CRS are NA", {
 
 # point_id collision test ----
 
-test_that("gla_create_virtual_plots does not assign the same file to two points with colliding coordinates", {
+test_that("gla_create_virtual_plots gives distinct files to points with colliding coordinates", {
   # Under the old coordinate-based filename scheme, two points whose coordinates
-  # round to the same lidR center (X within 0.5m, Y within 0.05m) would collide
-  # on the same filename, silently giving both points identical - and corrupted -
-  # data. With point_id as the key, the same clip can only be claimed by one
-  # point; the other receives NA, which is surfaced to the user.
+  # round to the same lidR center would collide on the same filename. The {ID}
+  # template assigns each input a unique positional index, so both points receive
+  # their own file regardless of how close their coordinates are.
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
@@ -70,8 +69,8 @@ test_that("gla_create_virtual_plots does not assign the same file to two points 
     output_path = file.path(las_dir, "test.las")
   )
 
-  # True collision: round(x, 0) is 1000500 for both; round(y, 1) is 500500.0
-  # for both. lidR writes a single clip named 1000500_500500.0.las.
+  # Coordinates that would have collided under the old scheme: X within 0.5m,
+  # Y within 0.05m - both would have mapped to the same XCENTER_YCENTER name.
   pts <- sf::st_as_sf(
     data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.04)),
     coords = c("x", "y"),
@@ -87,12 +86,9 @@ test_that("gla_create_virtual_plots does not assign the same file to two points 
     resume = FALSE
   )
 
-  # The critical invariant: no two points share the same las_files path.
-  # Under the old scheme both would have received the same coordinate-based path.
-  non_na <- na.omit(result$las_files)
-  expect_true(any(!is.na(result$las_files)))
-  expect_equal(sum(is.na(result$las_files)), 1L)
-  expect_equal(length(non_na), length(unique(non_na)))
+  # Both points get distinct files; {ID} eliminates the coordinate collision.
+  expect_true(all(!is.na(result$las_files)))
+  expect_equal(length(result$las_files), length(unique(result$las_files)))
 })
 
 
