@@ -116,10 +116,23 @@ process_points_internal <- function(points, dem) {
     )
   }
 
-  # Assign a stable unique identifier for each point. This is used as the key
-  # for all downstream file naming (LAS, horizon CSV, fisheye BMP), eliminating
-  # the coordinate-collision problem that arises from rounded-coordinate filenames.
-  points$point_id <- seq_len(nrow(points))
+  # Assign or validate a stable unique identifier used as the key for all
+  # downstream file naming (LAS, horizon CSV, fisheye BMP). If the input already
+  # carries a point_id column (e.g. from a previous run or a user-supplied ID),
+  # honour it so that cached outputs remain valid across re-loads.
+  if ("point_id" %in% names(points)) {
+    if (anyNA(points$point_id)) {
+      stop("Existing 'point_id' column contains NA values.", call. = FALSE)
+    }
+    if (anyDuplicated(points$point_id)) {
+      stop(
+        "Existing 'point_id' column contains duplicate values.",
+        call. = FALSE
+      )
+    }
+  } else {
+    points$point_id <- seq_len(nrow(points))
+  }
 
   # Extract coordinates (validated to be in meters)
   points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)

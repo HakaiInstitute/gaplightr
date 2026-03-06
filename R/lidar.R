@@ -221,7 +221,9 @@ gla_create_virtual_plots <- function(
     batch_coords <- coordinates_to_process[batch_indices, , drop = FALSE]
 
     # Snapshot directory before clipping so we can identify exactly which files
-    # lidR writes for this batch, regardless of how it formats coordinate values.
+    # lidR writes for this batch. We cannot rely on rois@data$filename being
+    # order-preserving with respect to input coordinates when processing a
+    # LAScatalog, so we match files back to points by coordinate instead.
     before_files <- list.files(
       output_dir,
       pattern = "\\.las$",
@@ -265,9 +267,9 @@ gla_create_virtual_plots <- function(
       new_raw_files <- setdiff(after_files, before_files)
 
       # Rename each lidR output file from {XCENTER}_{YCENTER}.las to {point_id}.las.
-      # We parse the coordinates back from lidR's own filename string and compare
-      # with == against batch_coords - this is a safe exact comparison because we
-      # are round-tripping lidR's own values, not computing them independently.
+      # Coordinates are parsed from lidR's filename and matched with a sub-millimetre
+      # tolerance to handle floating-point formatting differences, while remaining
+      # tight enough to never cross-match two distinct points.
       for (k in seq_along(batch_indices)) {
         orig_idx <- points_to_process_original_idx[batch_indices[k]]
         pid <- points$point_id[orig_idx]
@@ -276,31 +278,24 @@ gla_create_virtual_plots <- function(
           new_raw_files,
           function(f) {
             parsed <- parse_lidr_las_filename(f)
-            parsed$x == batch_coords[k, "X"] && parsed$y == batch_coords[k, "Y"]
+            abs(parsed$x - batch_coords[k, "X"]) < 1e-3 &&
+              abs(parsed$y - batch_coords[k, "Y"]) < 1e-3
           },
           logical(1)
         ))
 
         if (length(match_idx) == 1) {
           new_path <- file.path(output_dir, paste0(pid, ".las"))
-          file.rename(new_raw_files[match_idx], new_path)
-          all_new_files <- c(all_new_files, new_path)
-        } else if (length(match_idx) == 0) {
-          warning(
-            "No lidR output file found for point ",
-            pid,
-            " (batch ",
-            batch_idx,
-            ", position ",
-            k,
-            ")"
-          )
-        } else {
-          warning(
-            "Multiple lidR output files matched point ",
-            pid,
-            " - skipping rename"
-          )
+          if (file.rename(new_raw_files[match_idx], new_path)) {
+            all_new_files <- c(all_new_files, new_path)
+          } else {
+            warning(
+              "Failed to rename ",
+              new_raw_files[match_idx],
+              " to ",
+              new_path
+            )
+          }
         }
       }
     }

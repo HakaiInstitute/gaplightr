@@ -143,25 +143,14 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   actual_filename <- basename(stream_points$fisheye_photo_path[1])
 
   # Build expected filename format
-  site_id <- paste0(
-    stream_points$x_meters[1],
-    "_",
-    stream_points$y_meters[1]
-  )
   ss <- ifelse(max_cex == 0.2, "0pt2", ifelse(max_cex == 0.3, "0pt3", "0pt4"))
-
-  expected_filename <- paste0(
-    site_id,
-    "_ps",
+  expected_filename <- sprintf(
+    "%d_ps%s_cex%s_%sdpi_%spx_polar.bmp",
+    stream_points$point_id[1],
     pointsize,
-    "_cex",
     ss,
-    "_",
     dpi,
-    "dpi",
-    "_",
-    img_res,
-    "px_polar.bmp"
+    img_res
   )
 
   # Verify filename matches expected format

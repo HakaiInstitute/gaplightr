@@ -70,6 +70,7 @@ parse_las_filenames <- function(las_files) {
   )
 }
 
+
 ## Internal helper to parse lidR's raw {XCENTER}_{YCENTER}.las output filenames.
 ## Returns a list with numeric x and y coordinate values.
 parse_lidr_las_filename <- function(las_file) {
