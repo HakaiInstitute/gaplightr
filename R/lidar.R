@@ -277,6 +277,14 @@ gla_create_virtual_plots <- function(
 
         if (length(match_idx) == 1) {
           new_path <- file.path(output_dir, paste0(pid, ".las"))
+          if (file.exists(new_path)) {
+            warning(
+              "Output file already exists for point_id ",
+              pid,
+              " - overwriting with new clip result."
+            )
+            file.remove(new_path)
+          }
           if (file.rename(new_raw_files[match_idx], new_path)) {
             all_new_files <- c(all_new_files, new_path)
             # Remove from candidates so the same file is not matched twice.

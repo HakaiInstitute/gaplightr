@@ -15,6 +15,16 @@
 #'   \item All points must have valid elevation values (no NoData cells)
 #' }
 #'
+#' ## Point IDs
+#'
+#' Every point is assigned a `point_id`, a positive integer used to name all
+#' downstream output files (LAS clips, horizon CSVs, fisheye photos). If `x`
+#' does not contain a `point_id` column, sequential IDs are assigned
+#' automatically (1, 2, 3, ...). To use your own IDs - for example to preserve
+#' cached outputs across re-runs, or to match an existing site numbering scheme
+#' - include a `point_id` column containing unique positive integers before
+#' calling this function.
+#'
 #' @examples
 #' \dontrun{
 #'   points <- gla_load_points("stream_points.gpkg", "dem.tif")
@@ -121,17 +131,40 @@ process_points_internal <- function(points, dem) {
   # carries a point_id column (e.g. from a previous run or a user-supplied ID),
   # honour it so that cached outputs remain valid across re-loads.
   if ("point_id" %in% names(points)) {
-    if (anyNA(points$point_id)) {
-      stop("Existing 'point_id' column contains NA values.", call. = FALSE)
+    pid <- points$point_id
+    if (!is.numeric(pid)) {
+      stop("Existing 'point_id' column must be numeric.", call. = FALSE)
     }
-    if (anyDuplicated(points$point_id)) {
+    if (anyNA(pid) || !all(is.finite(pid))) {
+      stop(
+        "Existing 'point_id' column contains NA or non-finite values.",
+        call. = FALSE
+      )
+    }
+    if (any(pid != floor(pid)) || any(pid <= 0)) {
+      stop(
+        "Existing 'point_id' values must be positive whole numbers.",
+        call. = FALSE
+      )
+    }
+    if (anyDuplicated(pid)) {
       stop(
         "Existing 'point_id' column contains duplicate values.",
         call. = FALSE
       )
     }
+    message(
+      "Using existing point_id column (",
+      nrow(points),
+      " point(s))."
+    )
   } else {
     points$point_id <- seq_len(nrow(points))
+    message(
+      "Assigning sequential point_id (1 to ",
+      nrow(points),
+      ")."
+    )
   }
 
   # Extract coordinates (validated to be in meters)
