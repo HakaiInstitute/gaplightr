@@ -4,12 +4,10 @@
 \alias{load_horizon_csv}
 \title{Load horizon data from CSV file}
 \usage{
-load_horizon_csv(x_meters, y_meters, output_dir)
+load_horizon_csv(point_id, output_dir)
 }
 \arguments{
-\item{x_meters}{X coordinate in meters}
-
-\item{y_meters}{Y coordinate in meters}
+\item{point_id}{Integer unique point identifier}
 
 \item{output_dir}{Directory containing CSV file}
 }
