@@ -90,6 +90,8 @@ test_that("gla_create_virtual_plots does not assign the same file to two points 
   # The critical invariant: no two points share the same las_files path.
   # Under the old scheme both would have received the same coordinate-based path.
   non_na <- na.omit(result$las_files)
+  expect_true(any(!is.na(result$las_files)))
+  expect_equal(sum(is.na(result$las_files)), 1L)
   expect_equal(length(non_na), length(unique(non_na)))
 })
 
