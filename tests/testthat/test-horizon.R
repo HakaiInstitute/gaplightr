@@ -187,8 +187,9 @@ test_that("gla_extract_horizons works with parallel = TRUE", {
 
   # Use sequential plan so the parallel = TRUE code path is exercised without
   # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  old_plan <- future::plan()
   future::plan(future::sequential)
-  withr::defer(future::plan(future::sequential))
+  withr::defer(future::plan(old_plan))
 
   expect_no_error(
     result <- gla_extract_horizons(
