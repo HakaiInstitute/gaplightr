@@ -57,7 +57,6 @@ test_that("gla_extract_horizon_terra accepts custom parameters", {
 })
 
 test_that("higher camera_height_m produces lower horizon angles", {
-
   # Create test DEM with a hill in the center
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
@@ -147,17 +146,14 @@ test_that("gla_extract_horizons extracts coordinates from geometry", {
   dem_path <- withr::local_tempfile(fileext = ".tif")
   create_test_dem(crs = 3005, output_path = dem_path)
 
-  # Create points WITHOUT lat/lon columns - should work now
-  points_data <- data.frame(
-    x_meters = 1000500,
-    y_meters = 500500
-  )
+  points_data <- data.frame(x_meters = 1000500, y_meters = 500500)
 
   stream_points <- sf::st_as_sf(
     points_data,
     coords = c("x_meters", "y_meters"),
     crs = 3005
   )
+  stream_points$point_id <- 1L
 
   # Should not error - coordinates extracted from geometry
   expect_no_error(
@@ -175,6 +171,40 @@ test_that("gla_extract_horizons extracts coordinates from geometry", {
   expect_true("horizon_mask" %in% names(stream_points))
 })
 
+
+test_that("gla_extract_horizons works with parallel = TRUE", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_points <- sf::st_as_sf(
+    data.frame(x_meters = c(1000500, 1000520), y_meters = c(500500, 500520)),
+    coords = c("x_meters", "y_meters"),
+    crs = 3005
+  )
+  stream_points$point_id <- 1:2
+
+  output_dir <- withr::local_tempdir()
+
+  # Use sequential plan so the parallel = TRUE code path is exercised without
+  # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  old_plan <- future::plan()
+  future::plan(future::sequential)
+  withr::defer(future::plan(old_plan))
+
+  expect_no_error(
+    result <- gla_extract_horizons(
+      points = stream_points,
+      dem_path = dem_path,
+      output_dir = output_dir,
+      step = 30,
+      max_search_distance = 1000,
+      parallel = TRUE
+    )
+  )
+
+  expect_true("horizon_mask" %in% names(result))
+  expect_equal(nrow(result), 2)
+})
 
 test_that("gla_extract_horizons handles missing DEM file", {
   dem_path <- "nonexistent_dem.tif"
@@ -196,6 +226,7 @@ test_that("gla_extract_horizons handles missing DEM file", {
   coords <- sf::st_coordinates(stream_points)
   stream_points$x_meters <- coords[, 1]
   stream_points$y_meters <- coords[, 2]
+  stream_points$point_id <- 1L
 
   # Should error when trying to load DEM
   expect_error(

@@ -15,6 +15,16 @@
 #'   \item All points must have valid elevation values (no NoData cells)
 #' }
 #'
+#' ## Point IDs
+#'
+#' Every point is assigned a `point_id`, a positive integer used to name all
+#' downstream output files (LAS clips, horizon CSVs, fisheye photos). If `x`
+#' does not contain a `point_id` column, sequential IDs are assigned
+#' automatically (1, 2, 3, ...). To use your own IDs (for example to preserve
+#' cached outputs across re-runs, or to match an existing site numbering scheme),
+#' include a `point_id` column containing unique positive integers before
+#' calling this function.
+#'
 #' @examples
 #' \dontrun{
 #'   points <- gla_load_points("stream_points.gpkg", "dem.tif")
@@ -44,14 +54,12 @@ process_points_internal <- function(points, dem) {
 
   # Drop existing columns that will be recalculated
   if (any(toupper(names(points)) %in% c("LAT", "LON"))) {
-    message(paste0("Dropping existing LAT/LON columns and recalculating"))
+    message("Dropping existing LAT/LON columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("LAT", "LON")]
   }
 
   if (any(toupper(names(points)) %in% c("X_METERS", "Y_METERS"))) {
-    message(paste0(
-      "Dropping existing X_METERS/Y_METERS columns and recalculating"
-    ))
+    message("Dropping existing X_METERS/Y_METERS columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("X_METERS", "Y_METERS")]
   }
 
@@ -116,11 +124,50 @@ process_points_internal <- function(points, dem) {
     )
   }
 
+  # Assign or validate a stable unique identifier used as the key for all
+  # downstream file naming (LAS, horizon CSV, fisheye BMP). If the input already
+  # carries a point_id column (e.g. from a previous run or a user-supplied ID),
+  # honour it so that cached outputs remain valid across re-loads.
+  if ("point_id" %in% names(points)) {
+    pid <- points$point_id
+    if (!is.numeric(pid)) {
+      stop("Existing 'point_id' column must be numeric.", call. = FALSE)
+    }
+    if (anyNA(pid) || !all(is.finite(pid))) {
+      stop(
+        "Existing 'point_id' column contains NA or non-finite values.",
+        call. = FALSE
+      )
+    }
+    if (any(pid != floor(pid)) || any(pid <= 0)) {
+      stop(
+        "Existing 'point_id' values must be positive whole numbers.",
+        call. = FALSE
+      )
+    }
+    if (anyDuplicated(pid)) {
+      stop(
+        "Existing 'point_id' column contains duplicate values.",
+        call. = FALSE
+      )
+    }
+    message(
+      "Using existing point_id column (",
+      nrow(points),
+      " point(s))."
+    )
+  } else {
+    points$point_id <- seq_len(nrow(points))
+    message(
+      "Assigning sequential point_id (1 to ",
+      nrow(points),
+      ")."
+    )
+  }
+
   # Extract coordinates (validated to be in meters)
   points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)
   points$y_meters <- round(sf::st_coordinates(points)[, "Y"], 1)
-
-  check_if_coordinates_are_unique(points)
 
   # Transform to WGS84 for lat/lon output columns
   coords_wgs84 <- sf::st_transform(points, crs = 4326)

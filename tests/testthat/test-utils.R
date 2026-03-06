@@ -52,76 +52,48 @@ test_that("validate_crs_match errors when both CRS are NA", {
 })
 
 
-# add_las_filename tests ----
+# point_id collision test ----
 
-test_that("add_las_filename parses and merges correctly", {
-  # Create test stream points with x_meters and y_meters as both columns AND geometry
-  test_df <- data.frame(
-    x_meters = c(1000, 1001),
-    y_meters = c(2000.5, 2001.5)
+test_that("gla_create_virtual_plots does not assign the same file to two points with colliding coordinates", {
+  # Under the old coordinate-based filename scheme, two points whose coordinates
+  # round to the same lidR center (X within 0.5m, Y within 0.05m) would collide
+  # on the same filename, silently giving both points identical - and corrupted -
+  # data. With point_id as the key, the same clip can only be claimed by one
+  # point; the other receives NA, which is surfaced to the user.
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  las_dir <- withr::local_tempdir()
+  create_test_las(
+    crs = 3005,
+    n_points = 500,
+    output_path = file.path(las_dir, "test.las")
   )
 
-  stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
+  # True collision: round(x, 0) is 1000500 for both; round(y, 1) is 500500.0
+  # for both. lidR writes a single clip named 1000500_500500.0.las.
+  pts <- sf::st_as_sf(
+    data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.04)),
+    coords = c("x", "y"),
     crs = 3005
   )
+  pts <- gla_load_points(pts, dem_path)
 
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  # Create test LAS file names
-  las_files <- c(
-    "/path/to/1000_2000.5.las",
-    "/path/to/1001_2001.5.las"
+  result <- gla_create_virtual_plots(
+    points = pts,
+    folder = las_dir,
+    output_dir = withr::local_tempdir(),
+    plot_radius = 50,
+    resume = FALSE
   )
 
-  result <- add_las_filename(stream_points, las_files)
-
-  expect_s3_class(result, "sf")
-  expect_true("las_files" %in% names(result))
-  expect_equal(nrow(result), 2)
-  expect_equal(result$las_files, las_files)
+  # The critical invariant: no two points share the same las_files path.
+  # Under the old scheme both would have received the same coordinate-based path.
+  non_na <- na.omit(result$las_files)
+  expect_true(any(!is.na(result$las_files)))
+  expect_equal(sum(is.na(result$las_files)), 1L)
+  expect_equal(length(non_na), length(unique(non_na)))
 })
-
-test_that("add_las_filename snapshot", {
-  test_df <- data.frame(
-    x_meters = c(1000),
-    y_meters = c(2000.5)
-  )
-
-  stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  las_files <- c("/path/to/1000_2000.5.las")
-
-  result <- add_las_filename(stream_points, las_files)
-
-  # Snapshot structure (use basename for las_files to avoid temp path differences)
-  result_snapshot <- sf::st_drop_geometry(result)
-  result_snapshot$las_files <- basename(result_snapshot$las_files)
-
-  expect_snapshot(result_snapshot)
-})
-
-check_if_coordinates_are_unique <- function(df) {
-  if (any(duplicated(df[, c("x_meters", "y_meters")]))) {
-    stop(
-      "Warning: Some points have identical x_meters and y_meters coordinates.",
-      call. = FALSE
-    )
-  } else {
-    message("All points have unique x_meters and y_meters coordinates.")
-  }
-}
 
 
 # sshourangle tests ----

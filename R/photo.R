@@ -1091,11 +1091,18 @@ gla_create_fisheye_photos <- function(
   # Validate inputs
   validate_sf_object(points)
 
-  required_cols <- c("las_files", "lat", "lon", "elevation", "horizon_mask")
+  required_cols <- c(
+    "point_id",
+    "las_files",
+    "lat",
+    "lon",
+    "elevation",
+    "horizon_mask"
+  )
   validate_required_columns(
     points,
     required_cols,
-    hint = "Use gla_extract_horizons() to add horizon_mask column"
+    hint = "Use gla_load_points() then gla_extract_horizons() to prepare points"
   )
 
   # Check for missing, non-existent, or empty LAS files.
@@ -1133,33 +1140,21 @@ gla_create_fisheye_photos <- function(
     )
 
     if (length(existing_photos) > 0) {
-      # Generate expected filenames for each point
-      # Must match format from gla_create_fisheye_photo_single
-      expected_filenames <- sapply(seq_len(nrow(points)), function(i) {
-        site_id <- paste0(
-          round(points$x_meters[i], 0),
-          "_",
-          round(points$y_meters[i], 1)
-        )
-        ss <- ifelse(
-          max_cex == 0.2,
-          "0pt2",
-          ifelse(max_cex == 0.3, "0pt3", "0pt4")
-        )
-        paste0(
-          site_id,
-          "_ps",
-          pointsize,
-          "_cex",
-          ss,
-          "_",
-          dpi,
-          "dpi",
-          "_",
-          img_res,
-          "px_polar.bmp"
-        )
-      })
+      # Generate expected filenames for each point.
+      # Must match format from gla_create_fisheye_photo_single.
+      ss <- ifelse(
+        max_cex == 0.2,
+        "0pt2",
+        ifelse(max_cex == 0.3, "0pt3", "0pt4")
+      )
+      expected_filenames <- sprintf(
+        "%d_ps%s_cex%s_%sdpi_%spx_polar.bmp",
+        points$point_id,
+        pointsize,
+        ss,
+        dpi,
+        img_res
+      )
 
       # Check which photos already exist
       existing_mask <- file.path(output_dir, expected_filenames) %in%
@@ -1240,6 +1235,7 @@ gla_create_fisheye_photos <- function(
   # horizon_mask are not needed and would be serialized to every worker needlessly.
   pts_worker <- data.frame(
     las_files = points$las_files,
+    point_id = points$point_id,
     x_meters = points$x_meters,
     y_meters = points$y_meters,
     elevation = points$elevation,
@@ -1263,12 +1259,7 @@ gla_create_fisheye_photos <- function(
           min_dist = min_dist
         )
 
-        # Create site ID from coordinates
-        site_id <- paste0(
-          round(pts_worker$x_meters[i], 0),
-          "_",
-          round(pts_worker$y_meters[i], 1)
-        )
+        site_id <- as.character(pts_worker$point_id[i])
 
         # Create fisheye photo with error handling
         tryCatch(
@@ -1321,12 +1312,7 @@ gla_create_fisheye_photos <- function(
           min_dist = min_dist
         )
 
-        # Create site ID from coordinates
-        site_id <- paste0(
-          round(pts_worker$x_meters[i], 0),
-          "_",
-          round(pts_worker$y_meters[i], 1)
-        )
+        site_id <- as.character(pts_worker$point_id[i])
 
         # Create fisheye photo with error handling
         tryCatch(

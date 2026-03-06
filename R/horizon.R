@@ -3,51 +3,39 @@
 #' Save horizon data to CSV file
 #'
 #' @param horizon_df Data frame with horizon data (azimuth, horizon_height, x_msk, y_msk)
-#' @param x_meters X coordinate in meters
-#' @param y_meters Y coordinate in meters
+#' @param point_id Integer unique point identifier
 #' @param output_dir Directory to save CSV file
 #'
 #' @return File path where CSV was saved
 #' @keywords internal
-save_horizon_csv <- function(horizon_df, x_meters, y_meters, output_dir) {
+save_horizon_csv <- function(horizon_df, point_id, output_dir) {
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
 
-  file_path <- file.path(
-    output_dir,
-    sprintf("%d_%.1f_horizon.csv", round(x_meters, 0), round(y_meters, 1))
-  )
-
+  file_path <- file.path(output_dir, sprintf("%d_horizon.csv", point_id))
   write.csv(horizon_df, file_path, row.names = FALSE)
-
-  return(file_path)
+  file_path
 }
 
 #' Load horizon data from CSV file
 #'
-#' @param x_meters X coordinate in meters
-#' @param y_meters Y coordinate in meters
+#' @param point_id Integer unique point identifier
 #' @param output_dir Directory containing CSV file
 #'
 #' @return Data frame with horizon data, or NULL if file doesn't exist
 #' @keywords internal
-load_horizon_csv <- function(x_meters, y_meters, output_dir) {
-  file_path <- file.path(
-    output_dir,
-    sprintf("%d_%.1f_horizon.csv", round(x_meters, 0), round(y_meters, 1))
-  )
-
+load_horizon_csv <- function(point_id, output_dir) {
+  file_path <- file.path(output_dir, sprintf("%d_horizon.csv", point_id))
   if (!file.exists(file_path)) {
     return(NULL)
   }
-
   read.csv(file_path)
 }
 
 #' Find which points have existing horizon CSV files
 #'
-#' @param points sf object with points (must have x_meters and y_meters columns)
+#' @param points sf object with points (must have point_id column)
 #' @param output_dir Directory containing horizon CSV files
 #'
 #' @return Logical vector indicating which points have cached horizons
@@ -56,18 +44,7 @@ find_existing_horizons <- function(points, output_dir) {
   if (!dir.exists(output_dir)) {
     return(rep(FALSE, nrow(points)))
   }
-
-  sapply(seq_len(nrow(points)), function(i) {
-    file_path <- file.path(
-      output_dir,
-      sprintf(
-        "%d_%.1f_horizon.csv",
-        round(points$x_meters[i], 0),
-        round(points$y_meters[i], 1)
-      )
-    )
-    file.exists(file_path)
-  })
+  file.exists(file.path(output_dir, sprintf("%d_horizon.csv", points$point_id)))
 }
 
 #' Extract horizon angles from DEM using terra
@@ -289,16 +266,20 @@ gla_extract_horizon_terra <- function(
       }
 
       # Calculate projected height on current horizon line
-      z_horizon <- cam_elev + curvature_corrections[j] + distances[j] * tan_horizon
+      z_horizon <- cam_elev +
+        curvature_corrections[j] +
+        distances[j] * tan_horizon
 
       # Update horizon if this point is above current horizon line
       if (elev > z_horizon) {
-        tan_horizon <- (elev - cam_elev - curvature_corrections[j]) / distances[j]
+        tan_horizon <- (elev - cam_elev - curvature_corrections[j]) /
+          distances[j]
       }
 
       # Early termination: if horizon line is above global max elevation
       if (
-        cam_elev + curvature_corrections[j] + distances[j] * tan_horizon >= dem_max
+        cam_elev + curvature_corrections[j] + distances[j] * tan_horizon >=
+          dem_max
       ) {
         break
       }
@@ -535,7 +516,13 @@ gla_extract_horizons <- function(
     " locations using terra method..."
   )
 
-  # Ensure x_meters and y_meters columns exist (needed for caching filenames)
+  validate_required_columns(
+    points,
+    "point_id",
+    hint = "Run gla_load_points() first"
+  )
+
+  # Ensure x_meters and y_meters columns exist (needed for coordinate passing)
   if (!("x_meters" %in% names(points))) {
     coords <- sf::st_coordinates(points)
     points$x_meters <- coords[, 1]
@@ -554,11 +541,7 @@ gla_extract_horizons <- function(
       message("Found ", n_cached, " cached horizon files, loading...")
 
       for (i in which(has_cached)) {
-        horizon_df <- load_horizon_csv(
-          points$x_meters[i],
-          points$y_meters[i],
-          output_dir
-        )
+        horizon_df <- load_horizon_csv(points$point_id[i], output_dir)
 
         if (!is.null(horizon_df)) {
           # Convert cached horizon angles to cartesian coordinates
@@ -627,8 +610,6 @@ gla_extract_horizons <- function(
       function(
         i,
         dem_path,
-        lats,
-        lons,
         step,
         max_search_distance,
         dist_step,
@@ -637,6 +618,7 @@ gla_extract_horizons <- function(
         verbose,
         x_meters,
         y_meters,
+        point_ids,
         output_dir
       ) {
         # Load DEM in worker (each worker loads independently)
@@ -664,7 +646,7 @@ gla_extract_horizons <- function(
           )
 
         # Save to CSV
-        save_horizon_csv(horizon_df, x_meters[i], y_meters[i], output_dir)
+        save_horizon_csv(horizon_df, point_ids[i], output_dir)
 
         list(
           azimuth = horizon_df$azimuth,
@@ -682,6 +664,7 @@ gla_extract_horizons <- function(
       verbose = verbose,
       x_meters = points$x_meters,
       y_meters = points$y_meters,
+      point_ids = points$point_id,
       output_dir = output_dir,
       future.seed = TRUE
     )
@@ -716,12 +699,7 @@ gla_extract_horizons <- function(
         )
 
       # Save to CSV
-      save_horizon_csv(
-        horizon_df,
-        points$x_meters[i],
-        points$y_meters[i],
-        output_dir
-      )
+      save_horizon_csv(horizon_df, points$point_id[i], output_dir)
 
       list(
         azimuth = horizon_df$azimuth,

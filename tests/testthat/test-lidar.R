@@ -151,6 +151,7 @@ test_that("gla_create_virtual_plots handles empty output gracefully", {
   )
   test_points$x_meters <- test_df$x_meters
   test_points$y_meters <- test_df$y_meters
+  test_points$point_id <- 1L
 
   temp_output <- withr::local_tempdir()
 
@@ -190,9 +191,9 @@ test_that("gla_create_virtual_plots snapshot", {
     crs = 3005
   )
 
-  # Add x_meters and y_meters back as columns (required by add_las_filename)
   test_points$x_meters <- test_df$x_meters
   test_points$y_meters <- test_df$y_meters
+  test_points$point_id <- 1L
 
   temp_output <- withr::local_tempdir()
 
