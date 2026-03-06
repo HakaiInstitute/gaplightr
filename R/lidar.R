@@ -170,27 +170,21 @@ gla_create_virtual_plots <- function(
     lidR::las_check(ctg)
   }
 
-  # Check CRS match - strict validation to prevent spatial errors
-  ctg_crs <- sf::st_crs(ctg)
-  pts_crs <- sf::st_crs(points)
+  validate_crs_match(
+    sf::st_crs(points),
+    sf::st_crs(ctg),
+    "Points",
+    "LiDAR catalog"
+  )
 
-  validate_crs_match(pts_crs, ctg_crs, "Points", "LiDAR catalog")
-
-  # Set options
   lidR::opt_select(ctg) <- "xyzc"
   lidR::opt_chunk_buffer(ctg) <- 0
   lidR::opt_progress(ctg) <- FALSE
   lidR::opt_filter(ctg) <- filter
-  lidR::opt_chunk_size(ctg) <- chunk_size # Chunk size to balance memory usage across workers
+  lidR::opt_chunk_size(ctg) <- chunk_size
 
-  # Set output files with template
-  lidR::opt_output_files(ctg) <- paste0(
-    output_dir,
-    "/",
-    "{XCENTER}_{YCENTER}"
-  )
+  lidR::opt_output_files(ctg) <- paste0(output_dir, "/", "{XCENTER}_{YCENTER}")
 
-  # Clip circles in batches to avoid memory exhaustion
   message(
     "Clipping ",
     n_to_process,
@@ -199,7 +193,6 @@ gla_create_virtual_plots <- function(
     "m"
   )
 
-  # Split points into batches
   n_batches <- ceiling(n_to_process / batch_size)
   all_new_files <- character(0)
 
@@ -232,8 +225,6 @@ gla_create_virtual_plots <- function(
 
     rois <- tryCatch(
       {
-        # capture.output() captures R's stdout (including LASlib output routed via R),
-        # which in practice is an effective way to suppress LASlib's progress bar here
         invisible(utils::capture.output(
           result <- lidR::clip_circle(
             ctg,
@@ -267,9 +258,10 @@ gla_create_virtual_plots <- function(
       new_raw_files <- setdiff(after_files, before_files)
 
       # Rename each lidR output file from {XCENTER}_{YCENTER}.las to {point_id}.las.
-      # Coordinates are parsed from lidR's filename and matched with a sub-millimetre
-      # tolerance to handle floating-point formatting differences, while remaining
-      # tight enough to never cross-match two distinct points.
+      # Tolerances are calibrated to lidR's actual coordinate formatting: X is
+      # rounded to the nearest integer (up to 0.5m error) and Y to one decimal
+      # place (up to 0.05m error). These bounds are tight enough to avoid
+      # cross-matching two distinct points in normal usage.
       for (k in seq_along(batch_indices)) {
         orig_idx <- points_to_process_original_idx[batch_indices[k]]
         pid <- points$point_id[orig_idx]
@@ -278,8 +270,8 @@ gla_create_virtual_plots <- function(
           new_raw_files,
           function(f) {
             parsed <- parse_lidr_las_filename(f)
-            abs(parsed$x - batch_coords[k, "X"]) < 1e-3 &&
-              abs(parsed$y - batch_coords[k, "Y"]) < 1e-3
+            abs(parsed$x - batch_coords[k, "X"]) < 0.5 &&
+              abs(parsed$y - batch_coords[k, "Y"]) < 0.05
           },
           logical(1)
         ))
@@ -288,6 +280,8 @@ gla_create_virtual_plots <- function(
           new_path <- file.path(output_dir, paste0(pid, ".las"))
           if (file.rename(new_raw_files[match_idx], new_path)) {
             all_new_files <- c(all_new_files, new_path)
+            # Remove from candidates so the same file is not matched twice.
+            new_raw_files <- new_raw_files[-match_idx]
           } else {
             warning(
               "Failed to rename ",
@@ -300,12 +294,10 @@ gla_create_virtual_plots <- function(
       }
     }
 
-    # Clean up memory between batches
     rm(rois)
     gc()
   }
 
-  # Report results
   if (length(all_new_files) > 0) {
     message("Created ", length(all_new_files), " new plot files")
   } else {
@@ -324,7 +316,6 @@ gla_create_virtual_plots <- function(
     message("No LAS files created - all plots may have failed")
   }
 
-  # Ensure geometry column is last
   points <- move_geom_col_to_end(points)
 
   if (resume && sum(existing_mask) > 0) {
@@ -339,6 +330,5 @@ gla_create_virtual_plots <- function(
     )
   }
 
-  # Return summary
   invisible(points)
 }

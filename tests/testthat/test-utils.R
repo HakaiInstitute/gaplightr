@@ -70,6 +70,8 @@ test_that("gla_create_virtual_plots assigns distinct files to points whose coord
 
   # Two points whose coordinates round identically: both become 1000500_500500
   # under round(x, 0) / round(y, 1), but have distinct point_ids.
+  # Placed at the center of the test LAS distribution (1000500, 500500) so
+  # both points fall within the clipped coverage.
   pts <- sf::st_as_sf(
     data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.06)),
     coords = c("x", "y"),
@@ -85,8 +87,10 @@ test_that("gla_create_virtual_plots assigns distinct files to points whose coord
     resume = FALSE
   )
 
-  valid <- result$las_files[!is.na(result$las_files)]
-  expect_equal(length(unique(valid)), length(valid))
+  # Both points must have valid, distinct LAS files - the old coordinate-based
+  # scheme would have collapsed them to a single filename.
+  expect_equal(sum(!is.na(result$las_files)), 2)
+  expect_equal(length(unique(result$las_files)), 2)
 })
 
 
