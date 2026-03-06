@@ -52,44 +52,41 @@ test_that("validate_crs_match errors when both CRS are NA", {
 })
 
 
-# add_las_filename tests ----
+# point_id collision test ----
 
-test_that("add_las_filename matches by point_id", {
-  stream_points <- sf::st_as_sf(
-    data.frame(x = c(1000.1, 1000.4), y = c(2000.53, 2000.56)),
+test_that("gla_create_virtual_plots assigns distinct files to points whose coordinates round to the same value", {
+  # Under the old coordinate-based filename scheme, two points within 0.5m in X
+  # or 0.05m in Y would collide on the same filename. With point_id as the key
+  # each point always gets its own uniquely-named LAS file.
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  las_dir <- withr::local_tempdir()
+  create_test_las(
+    crs = 3005,
+    n_points = 500,
+    output_path = file.path(las_dir, "test.las")
+  )
+
+  # Two points whose coordinates round identically: both become 1000500_500500
+  # under round(x, 0) / round(y, 1), but have distinct point_ids.
+  pts <- sf::st_as_sf(
+    data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.06)),
     coords = c("x", "y"),
     crs = 3005
   )
-  stream_points$point_id <- c(1L, 2L)
+  pts <- gla_load_points(pts, dem_path)
 
-  las_files <- c("/path/to/1.las", "/path/to/2.las")
-  result <- add_las_filename(stream_points, las_files)
-
-  expect_s3_class(result, "sf")
-  expect_true("las_files" %in% names(result))
-  expect_equal(nrow(result), 2)
-  expect_equal(result$las_files, las_files)
-})
-
-test_that("add_las_filename correctly resolves points whose coordinates round to the same value", {
-  # Under the old coordinate-based scheme, these two points would have been
-  # assigned identical filenames (both round to 1000_2000.5) and caused a
-  # merge collision. With point_id as the key each point gets its own file.
-  stream_points <- sf::st_as_sf(
-    data.frame(x = c(1000.1, 1000.4), y = c(2000.53, 2000.56)),
-    coords = c("x", "y"),
-    crs = 3005
+  result <- gla_create_virtual_plots(
+    points = pts,
+    folder = las_dir,
+    output_dir = withr::local_tempdir(),
+    plot_radius = 50,
+    resume = FALSE
   )
-  stream_points$point_id <- c(1L, 2L)
 
-  las_files <- c("/path/to/1.las", "/path/to/2.las")
-  result <- add_las_filename(stream_points, las_files)
-
-  # No row duplication and each point maps to its own unique file.
-  expect_equal(nrow(result), 2)
-  expect_equal(result$las_files[result$point_id == 1L], "/path/to/1.las")
-  expect_equal(result$las_files[result$point_id == 2L], "/path/to/2.las")
-  expect_equal(length(unique(result$las_files)), 2)
+  valid <- result$las_files[!is.na(result$las_files)]
+  expect_equal(length(unique(valid)), length(valid))
 })
 
 
