@@ -136,6 +136,14 @@ process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
       call. = FALSE
     )
     points <- points[!na_mask, ]
+    if (nrow(points) == 0) {
+      stop(
+        "All points have NA elevation values (NoData cells in DEM); ",
+        "no points remain after dropping. ",
+        "Please check your DEM or input points.",
+        call. = FALSE
+      )
+    }
   }
 
   # Assign or validate a stable unique identifier used as the key for all
