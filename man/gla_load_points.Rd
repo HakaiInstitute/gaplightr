@@ -4,13 +4,17 @@
 \alias{gla_load_points}
 \title{Load points}
 \usage{
-gla_load_points(x, dem, ...)
+gla_load_points(x, dem, drop_na_dem = FALSE, ...)
 }
 \arguments{
 \item{x}{Either a file path to any file that \code{sf::read_sf} can read, or an
 sf object containing point geometries}
 
 \item{dem}{Either a file path to a DEM raster file, or a \code{SpatRaster} object}
+
+\item{drop_na_dem}{Logical. If \code{FALSE} (default), points falling on NoData
+cells in the DEM cause an error. If \code{TRUE}, those points are dropped with
+a warning and processing continues with the remaining points.}
 
 \item{...}{Additional arguments passed to \code{sf::read_sf()} when \code{x} is a file path}
 }
@@ -24,7 +28,8 @@ This function performs strict validation:
 \item CRS must be defined and projected (not geographic lat/lon)
 \item Point and DEM CRS must match exactly
 \item All points must fall within DEM spatial extent
-\item All points must have valid elevation values (no NoData cells)
+\item Points on NoData cells error by default; set \code{drop_na_dem = TRUE} to
+drop them with a warning instead
 }
 \subsection{Point IDs}{
 

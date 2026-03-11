@@ -294,6 +294,44 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
   )
 })
 
+test_that("gla_load_points with drop_na_dem = TRUE warns and drops NA-elevation points", {
+  dem_vals <- rep(250, 100)
+  dem_vals[45:55] <- NA
+
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1000000,
+    xmax = 1000100,
+    ymin = 500000,
+    ymax = 500100,
+    crs = "EPSG:3005",
+    vals = dem_vals
+  )
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(dem_rast, dem_path, overwrite = TRUE)
+
+  # One point on a valid cell, one on an NA cell
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:2),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000005, 500005)), # valid cell
+      sf::st_point(c(1000045, 500045)), # NA cell
+      crs = 3005
+    )
+  )
+
+  result <- withCallingHandlers(
+    gla_load_points(test_points, dem_path, drop_na_dem = TRUE),
+    warning = function(w) {
+      expect_match(conditionMessage(w), "1 point\\(s\\) dropped")
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_s3_class(result, "sf")
+  expect_equal(nrow(result), 1)
+})
+
 test_that("gla_load_points handles all points outside DEM extent", {
   # Create small DEM
   dem_rast <- terra::rast(

@@ -3,6 +3,9 @@
 #' @param x Either a file path to any file that `sf::read_sf` can read, or an
 #'   sf object containing point geometries
 #' @param dem Either a file path to a DEM raster file, or a `SpatRaster` object
+#' @param drop_na_dem Logical. If `FALSE` (default), points falling on NoData
+#'   cells in the DEM cause an error. If `TRUE`, those points are dropped with
+#'   a warning and processing continues with the remaining points.
 #' @param ... Additional arguments passed to `sf::read_sf()` when `x` is a file path
 #'
 #' @details
@@ -12,7 +15,8 @@
 #'   \item CRS must be defined and projected (not geographic lat/lon)
 #'   \item Point and DEM CRS must match exactly
 #'   \item All points must fall within DEM spatial extent
-#'   \item All points must have valid elevation values (no NoData cells)
+#'   \item Points on NoData cells error by default; set `drop_na_dem = TRUE` to
+#'     drop them with a warning instead
 #' }
 #'
 #' ## Point IDs
@@ -31,7 +35,7 @@
 #' }
 #'
 #' @export
-gla_load_points <- function(x, dem, ...) {
+gla_load_points <- function(x, dem, drop_na_dem = FALSE, ...) {
   # Handle both file paths and sf objects
   if (inherits(x, "sf")) {
     points <- x
@@ -42,11 +46,11 @@ gla_load_points <- function(x, dem, ...) {
   }
 
   # Process points with DEM (common logic)
-  process_points_internal(points, dem)
+  process_points_internal(points, dem, drop_na_dem = drop_na_dem)
 }
 
 # Internal helper - no documentation needed
-process_points_internal <- function(points, dem) {
+process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
   # Validate geometry type
   if (!all(sf::st_geometry_type(points) == "POINT")) {
     stop("object must contain only POINT geometries")
@@ -115,13 +119,31 @@ process_points_internal <- function(points, dem) {
   points$elevation <- terra::extract(dem_rast, points)[[2]]
 
   # Check for NoData cells inside DEM extent
-  na_indices <- which(is.na(points$elevation))
-  if (length(na_indices) > 0) {
-    stop(
-      length(na_indices),
-      " point(s) have NA elevation values (NoData cells in DEM)",
+  na_mask <- is.na(points$elevation)
+  n_na <- sum(na_mask)
+  if (n_na > 0) {
+    if (!drop_na_dem) {
+      stop(
+        n_na,
+        " point(s) have NA elevation values (NoData cells in DEM).\n",
+        "To drop these points and continue, set drop_na_dem = TRUE.",
+        call. = FALSE
+      )
+    }
+    warning(
+      n_na,
+      " point(s) dropped: NA elevation values (NoData cells in DEM)",
       call. = FALSE
     )
+    points <- points[!na_mask, ]
+    if (nrow(points) == 0) {
+      stop(
+        "All points have NA elevation values (NoData cells in DEM); ",
+        "no points remain after dropping. ",
+        "Please check your DEM or input points.",
+        call. = FALSE
+      )
+    }
   }
 
   # Assign or validate a stable unique identifier used as the key for all
