@@ -393,7 +393,11 @@ test_that("End-to-end parallel workflow matches sequential results", {
   create_test_dem(crs = 3005, output_path = dem_path)
 
   stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
-  create_test_points(crs = 3005, n_points = 2, output_path = stream_network_path)
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
+  )
 
   las_dir <- withr::local_tempdir()
   create_test_las(
