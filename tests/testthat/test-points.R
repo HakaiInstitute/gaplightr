@@ -190,6 +190,30 @@ test_that("gla_load_points errors on invalid input type", {
   )
 })
 
+test_that("gla_load_points preserves fractional coordinates in x_meters and y_meters", {
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1022600,
+    xmax = 1022800,
+    ymin = 574650,
+    ymax = 574800,
+    crs = "EPSG:3005",
+    vals = rep(250, 100)
+  )
+
+  # Use coordinates with sub-meter fractional parts
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1L),
+    geom = sf::st_sfc(sf::st_point(c(1022655.7, 574704.3)), crs = 3005)
+  )
+
+  result <- gla_load_points(test_points, dem_rast)
+
+  expect_equal(result$x_meters, 1022655.7)
+  expect_equal(result$y_meters, 574704.3)
+})
+
 test_that("gla_load_points snapshot", {
   # Create minimal test data
   test_points <- sf::st_as_sf(
