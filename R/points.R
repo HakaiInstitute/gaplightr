@@ -188,8 +188,8 @@ process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
   }
 
   # Extract coordinates (validated to be in meters)
-  points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)
-  points$y_meters <- round(sf::st_coordinates(points)[, "Y"], 1)
+  points$x_meters <- sf::st_coordinates(points)[, "X"]
+  points$y_meters <- sf::st_coordinates(points)[, "Y"]
 
   # Transform to WGS84 for lat/lon output columns
   coords_wgs84 <- sf::st_transform(points, crs = 4326)
