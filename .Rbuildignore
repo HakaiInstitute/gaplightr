@@ -6,3 +6,4 @@ gaplightr.Rproj
 ^\.Rproj\.user$
 ^doc$
 ^Meta$
+^data-raw$

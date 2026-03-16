@@ -6,7 +6,7 @@ library(terra)
 library(sf)
 library(lidR)
 
-dir.create("inst/demo/lidar", recursive = TRUE, showWarnings = FALSE)
+dir.create("inst/extdata/lidar", recursive = TRUE, showWarnings = FALSE)
 
 # ---- DEM -----------------------------------------------------------------
 # 200x200 cells at 2m resolution, EPSG:3005 (BC Albers).
@@ -48,8 +48,8 @@ dem <- terra::rast(
   crs = "EPSG:3005"
 )
 names(dem) <- "elevation"
-terra::writeRaster(dem, "inst/demo/dem.tif", overwrite = TRUE)
-message("Created inst/demo/dem.tif")
+terra::writeRaster(dem, "inst/extdata/dem.tif", overwrite = TRUE)
+message("Created inst/extdata/dem.tif")
 
 # ---- Sample points -------------------------------------------------------
 # Three points inside the DEM, spaced ~140m apart, each at least 50m from the edge.
@@ -63,11 +63,11 @@ points <- sf::st_as_sf(
 )
 sf::st_write(
   points,
-  "inst/demo/points.geojson",
+  "inst/extdata/points.geojson",
   delete_dsn = TRUE,
   quiet = TRUE
 )
-message("Created inst/demo/points.geojson")
+message("Created inst/extdata/points.geojson")
 
 # ---- LiDAR point cloud ---------------------------------------------------
 # Ground returns (class 2) sit at terrain elevation and are filtered below
@@ -199,11 +199,11 @@ las_data <- data.frame(
 
 las <- suppressMessages(lidR::LAS(las_data))
 lidR::projection(las) <- 3005
-lidR::writeLAS(las, "inst/demo/lidar/points.laz")
+lidR::writeLAS(las, "inst/extdata/lidar/points.laz")
 
-laz_size <- file.size("inst/demo/lidar/points.laz")
+laz_size <- file.size("inst/extdata/lidar/points.laz")
 message(sprintf(
-  "Created inst/demo/lidar/points.laz (%d points: %d ground, %d vegetation; %.0fK)",
+  "Created inst/extdata/lidar/points.laz (%d points: %d ground, %d vegetation; %.0fK)",
   n_total,
   n_ground,
   nrow(veg_df),
