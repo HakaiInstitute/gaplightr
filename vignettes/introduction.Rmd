@@ -1,0 +1,193 @@
+---
+title: "Introduction to gaplightr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to gaplightr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+gaplightr estimates forest canopy light transmission by combining LiDAR point
+clouds, terrain data, and hemispherical photography. Given a set of sampling
+points, it generates synthetic fisheye photographs and computes solar radiation
+metrics such as canopy openness, transmitted global irradiation, and the light
+penetration index.
+
+The package is designed for batch workflows on large stream networks. Each
+pipeline step writes output files to disk because the intermediate files are useful on
+their own and so interrupted runs can resume from where they left off using `resume = TRUE`.
+
+## Inputs
+
+We will use a small internal demo dataset to demonstrate a basic gaplightr pipeline:
+
+- a 1 km x 1 km DEM,
+- three sampling points
+- a matching LiDAR tile
+
+```{r load-demo-data}
+library(gaplightr)
+library(terra)
+library(sf)
+
+dem_path <- system.file("demo", "dem.tif", package = "gaplightr")
+points_path <- system.file("demo", "points.geojson", package = "gaplightr")
+lidar_dir <- system.file("demo", "lidar", package = "gaplightr")
+
+output_dir <- tempdir()
+```
+
+```{r plot-inputs}
+#| fig.alt: "DEM with three sampling points overlaid"
+#| fig.width: 7
+#| fig.height: 5
+dem <- terra::rast(dem_path)
+pts <- sf::read_sf(points_path)
+
+terra::plot(dem, main = "Demo DEM with sampling points")
+plot(pts, add = TRUE, pch = 21, bg = "white", cex = 1.5)
+```
+
+## Step 1: Load points
+
+`gla_load_points()` validates the CRS, extracts elevation from the DEM, and
+assigns a `point_id` used to name all downstream output files.
+
+```{r load-points}
+points <- gla_load_points(points_path, dem_path)
+str(points)
+```
+
+## Step 2: Create virtual plots
+
+`gla_create_virtual_plots()` clips a circular LiDAR plot around each point and
+saves one `.las` file per point.
+
+```{r virtual-plots}
+vp_dir <- file.path(output_dir, "vp")
+
+points <- gla_create_virtual_plots(
+  points = points,
+  folder = lidar_dir,
+  output_dir = vp_dir,
+  plot_radius = 25,
+  resume = FALSE
+)
+
+list.files(vp_dir)
+```
+
+## Step 3: Extract horizons
+
+`gla_extract_horizons()` calculates the terrain horizon angle at each azimuth
+direction and caches the result as a `_horizon.csv` file. This mask prevents
+terrain from being counted as sky in the fisheye photo.
+
+```{r extract-horizons}
+hz_dir <- file.path(output_dir, "hz")
+
+points <- gla_extract_horizons(
+  points = points,
+  dem_path = dem_path,
+  output_dir = hz_dir,
+  parallel = FALSE,
+  resume = FALSE
+)
+
+list.files(hz_dir)
+```
+
+The `horizon_mask` list-column stores polar-projected horizon coordinates for
+each point:
+
+```{r inspect-horizon}
+str(points$horizon_mask[[1]])
+```
+
+## Step 4: Create fisheye photos
+
+`gla_create_fisheye_photos()` projects the clipped LiDAR onto a hemispherical
+plane, overlays the horizon mask, and writes a `.bmp` image per point.
+
+```{r create-photos}
+photo_dir <- file.path(output_dir, "photos")
+
+points <- gla_create_fisheye_photos(
+  points = points,
+  output_dir = photo_dir,
+  camera_height_m = 1.37,
+  min_dist = 1,
+  max_dist = 70,
+  img_res = 2800,
+  max_cex = 0.5,
+  min_cex = 0.03,
+  pointsize = 10,
+  dpi = 1200,
+  parallel = FALSE,
+  resume = FALSE
+)
+
+list.files(photo_dir)
+```
+
+```{r show-photo}
+#| fig.alt: "Synthetic fisheye photograph showing canopy gap pattern"
+#| fig.width: 7
+#| fig.height: 5
+photo_file <- points$fisheye_photo_path[[1]]
+img <- imager::load.image(photo_file)
+plot(img, axes = FALSE, main = "Synthetic fisheye photo - point 1")
+```
+
+## Step 5: Process for solar radiation
+
+`gla_process_fisheye_photos()` reads each fisheye photo, computes gap fractions
+by sky ring and sector, and integrates solar irradiance over the specified day
+range. Here we use Julian days 105-288 (mid-April to mid-October).
+
+```{r process-photos}
+results <- gla_process_fisheye_photos(
+  points = points,
+  clearsky_coef = 0.65,
+  time_step_min = 2,
+  day_start = 105,
+  day_end = 288,
+  day_res = 1,
+  elev_res = 5,
+  azi_res = 5,
+  Kt = 0.54,
+  parallel = FALSE
+)
+
+str(results)
+```
+
+## Next steps
+
+For larger datasets, enable parallel processing by configuring a `future` plan
+before any pipeline step:
+
+```r
+future::plan(future::multisession, workers = 4)
+
+points <- gla_extract_horizons(
+  points     = points,
+  dem_path   = dem_path,
+  output_dir = hz_dir,
+  parallel   = TRUE,
+  resume     = TRUE   # skip points already processed
+)
+```
+
+The `resume = TRUE` default means you can safely interrupt and restart any batch
+step without reprocessing completed points.
