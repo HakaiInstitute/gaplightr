@@ -1,0 +1,179 @@
+---
+title: "Analysing a Real Fisheye Photo"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysing a Real Fisheye Photo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+This vignette demonstrates the real-photo workflow: loading a raw hemispherical
+photograph, preprocessing it for gap fraction analysis, and computing solar
+irradiance metrics. This path is an alternative to the synthetic LiDAR-based
+fisheye pipeline shown in the introduction vignette.
+
+The bundled photo `example-photo.jpg` was taken with a Sigma 8mm fisheye lens
+mounted on a camera body held at breast height under a forest canopy.
+
+## Step 1: Load the raw photo
+
+```{r load-photo}
+#| fig.alt: "Raw hemispherical photograph before preprocessing"
+#| fig.width: 7
+#| fig.height: 5
+library(gaplightr)
+library(imager, warn.conflicts = FALSE)
+
+img_path <- system.file("extdata", "example-photo.jpg", package = "gaplightr")
+img <- imager::load.image(img_path)
+plot(img, axes = FALSE, main = "Raw fisheye photo")
+```
+
+## Step 2: Preprocess the photo
+
+Real fisheye photos require several preprocessing steps before gap fraction can
+be extracted. The exact parameters are photo-specific and must be determined
+visually for each image:
+
+- **Crop**: remove the camera body and any non-circular border from the frame
+- **Rotate**: rotate counterclockwise to align true north to the top
+- **Channel extraction**: isolate the blue channel, which gives the best
+  contrast between sky and canopy
+- **Threshold**: convert to a binary sky/canopy mask
+
+```{r preprocess}
+#| fig.alt: "Binary sky/canopy mask after thresholding"
+#| fig.width: 5
+#| fig.height: 5
+
+# Crop to the circular fisheye area. These pixel bounds are specific to
+# example-photo.jpg (2184 x 1456 px) and were determined by visual inspection.
+img_crop <- imager::imsub(
+  img,
+  x %inr% c(372, 1818),
+  y %inr% c(2, 1448)
+)
+
+# # Rotate fisheye 90 degrees so that true north is up. Nearest-neighbour
+# interpolation avoids mixing sky and canopy pixel values at boundaries.
+img_rotated <- imager::imrotate(img_crop, 90, interpolation = 0)
+
+# Split RGB and keep the blue channel (best contrast)
+img_blue <- imager::channel(img_rotated, 3)
+
+# Threshold to produce a binary sky mask. The adjust value of 1.75 is specific
+# to this photo; images taken under different conditions will need re-tuning.
+img_thresh <- imager::threshold(img_blue, adjust = 1.75)
+fisheye <- imager::as.cimg(img_thresh)
+
+plot(fisheye, axes = FALSE, main = "Thresholded fisheye (white = sky)")
+```
+
+Save the preprocessed image as a BMP file. BMP is required by
+`gla_process_fisheye_photos()`.
+
+```{r save-bmp}
+preprocessed_path <- file.path(tempdir(), "example-photo-preprocessed.bmp")
+w <- imager::width(fisheye)
+h <- imager::height(fisheye)
+grDevices::bmp(
+  preprocessed_path,
+  width = w,
+  height = h,
+  units = "px",
+  res = 72,
+  type = "cairo"
+)
+graphics::par(mar = c(0, 0, 0, 0))
+plot(fisheye, axes = FALSE)
+grDevices::dev.off()
+```
+
+## Step 3: Load a point location
+
+`gla_load_points()` reads a spatial points file, reprojects to match the DEM,
+and extracts elevation and coordinates. We take a single point and attach the
+path to the preprocessed fisheye image.
+
+```{r load-point}
+dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+
+points <- gla_load_points(points_path, dem_path)
+points <- points[1, ]
+points$fisheye_photo_path <- preprocessed_path
+
+str(points)
+```
+
+## Step 4: Inspect gap fractions
+
+Before computing irradiance, it is useful to inspect the gap fraction grid
+directly. `gla_extract_gap_fraction()` maps sky-visible pixels into rings
+(elevation bands) and sectors (azimuth wedges).
+
+The Sigma 8mm lens uses an equisolid-angle projection rather than the
+equidistant polar projection assumed by default. `gla_lens_sigma_8mm()`
+returns the corresponding radial distortion calibration.
+
+`rotation_deg = 16` is the clockwise angular offset between camera orientation
+and true north for this particular photo.
+
+```{r gap-fraction}
+sigma_cal <- gla_lens_sigma_8mm()
+
+gap_result <- gla_extract_gap_fraction(
+  img_file = preprocessed_path,
+  elev_res = 5,
+  azi_res = 5,
+  rotation_deg = 16,
+  radial_distortion = sigma_cal
+)
+
+gap_result
+```
+
+## Step 5: Compute solar irradiance
+
+`gla_process_fisheye_photos()` integrates gap fractions with the solar geometry
+model to produce canopy openness and irradiance metrics. We use Julian days
+172-182 (around the summer solstice) with a coarser time step to keep
+computation fast.
+
+```{r process-photos}
+results <- gla_process_fisheye_photos(
+  points = points,
+  clearsky_coef = 0.65,
+  time_step_min = 10,
+  day_start = 172,
+  day_end = 182,
+  day_res = 2,
+  elev_res = 5,
+  azi_res = 5,
+  Kt = 0.54,
+  rotation_deg = 16,
+  radial_distortion = sigma_cal,
+  parallel = FALSE
+)
+
+str(results[, c(
+  "canopy_openness_pct",
+  "transmitted_global_irradiation_MJm2d",
+  "light_penetration_index"
+)])
+```
+
+## Next steps
+
+For a batch of real photos, create an sf object with one row per photo and set
+`fisheye_photo_path` to the preprocessed BMP path for each row. The same
+`gla_process_fisheye_photos()` call then processes all points.
