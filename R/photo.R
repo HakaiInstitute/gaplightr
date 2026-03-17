@@ -538,6 +538,9 @@ gla_extract_gap_fraction <- function(
 #'   \item{radius}{Normalized radial distance from image center (0 to 1)}
 #'   \item{elevation}{Elevation angle in radians (0 at horizon, pi/2 at zenith)}
 #'
+#' @return A list with components \code{radius} (normalized image radius),
+#'   \code{elevation} (elevation angle in radians), and \code{name} (lens
+#'   identifier for this calibration; currently \code{"sigma8mm"}).
 #' @export
 gla_lens_sigma_8mm <- function() {
   # Image radius (mm) for Sigma 8mm lens sequenced by 0.5
