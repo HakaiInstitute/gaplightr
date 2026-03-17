@@ -26,7 +26,7 @@ fisheye_filename <- function(
   }
   distortion_label <- if (identical(radial_distortion, "equidistant")) {
     "equidistant"
-  } else if (!is.null(radial_distortion$name)) {
+  } else if (is.list(radial_distortion) && !is.null(radial_distortion$name)) {
     radial_distortion$name
   } else {
     "custom"
