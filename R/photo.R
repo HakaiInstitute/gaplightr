@@ -24,16 +24,17 @@ fisheye_filename <- function(
     }
     gsub("\\.", "pt", s)
   }
+  safe <- function(x) gsub("[^A-Za-z0-9_-]", "_", as.character(x))
   distortion_label <- if (identical(radial_distortion, "equidistant")) {
     "equidistant"
   } else if (is.list(radial_distortion) && !is.null(radial_distortion$name)) {
-    radial_distortion$name
+    safe(radial_distortion$name)
   } else {
     "custom"
   }
   sprintf(
     "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
-    site_id,
+    safe(site_id),
     fmt(pointsize),
     fmt(max_cex),
     fmt(min_cex),
