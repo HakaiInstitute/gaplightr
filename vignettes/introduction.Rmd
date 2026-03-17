@@ -153,16 +153,18 @@ plot(img, axes = FALSE, main = "Synthetic fisheye photo - point 1")
 
 `gla_process_fisheye_photos()` reads each fisheye photo, computes gap fractions
 by sky ring and sector, and integrates solar irradiance over the specified day
-range. Here we use Julian days 105-288 (mid-April to mid-October).
+range. For this vignette, we use a short illustrative window (Julian days 172–182,
+i.e., around the summer solstice) and a coarser time step to keep computation
+fast during automated checks.
 
 ```{r process-photos}
 results <- gla_process_fisheye_photos(
   points = points,
   clearsky_coef = 0.65,
-  time_step_min = 2,
-  day_start = 105,
-  day_end = 288,
-  day_res = 1,
+  time_step_min = 10,
+  day_start = 172,
+  day_end = 182,
+  day_res = 2,
   elev_res = 5,
   azi_res = 5,
   Kt = 0.54,
