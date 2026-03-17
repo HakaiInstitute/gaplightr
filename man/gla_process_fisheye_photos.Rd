@@ -46,7 +46,9 @@ Ratio of measured to extraterrestrial radiation.}
 
 \item{rotation_deg}{Rotation angle in degrees to align image with true north (default 0)}
 
-\item{parallel}{Use parallel processing (default TRUE)}
+\item{parallel}{Logical. If TRUE (default), use parallel processing via
+\code{future.apply}. Set up parallel plan with \code{future::plan()} before
+calling this function}
 
 \item{keep_gap_fraction_data}{Include gap fraction matrix in output (default FALSE).
 If TRUE, adds \code{gap_fraction_data} column to output.}

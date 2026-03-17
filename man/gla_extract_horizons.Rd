@@ -36,18 +36,17 @@ Each point's horizon data is saved as x_y_horizon.csv. Required parameter.}
 \item{distance_step}{Distance step size in meters for sampling along line of
 sight (default: NULL, uses raster resolution)}
 
-\item{camera_height_m}{Camera height above ground in meters (default: 1.37). The observer
-elevation is calculated as ground elevation (from DEM) plus this height.}
+\item{camera_height_m}{Camera height above ground in meters. The observer elevation
+is calculated as ground elevation (from DEM) plus this height.}
 
-\item{parallel}{Logical indicating whether to process points in parallel
-(default: TRUE). When TRUE, uses the future backend configured with
-\code{future::plan()}. When FALSE, processes sequentially.}
+\item{parallel}{Logical. If TRUE (default), use parallel processing via
+\code{future.apply}. Set up parallel plan with \code{future::plan()} before
+calling this function}
 
 \item{resume}{Logical indicating whether to skip points that already have
 cached horizon files (default: TRUE). When FALSE, recomputes all horizons.}
 
-\item{verbose}{Logical indicating whether to print progress messages
-(default: FALSE)}
+\item{verbose}{Logical indicating whether to print progress messages (default: FALSE)}
 }
 \value{
 The input sf object with an added horizon_mask list-column. Each element
