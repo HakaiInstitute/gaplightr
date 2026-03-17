@@ -30,3 +30,4 @@ Suggests:
     rmarkdown
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+URL: https://hakaiinstitute.github.io/gaplightr/

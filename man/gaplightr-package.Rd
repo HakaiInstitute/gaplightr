@@ -8,6 +8,13 @@
 \description{
 Analyzes forest canopy gap light transmission using LiDAR point cloud data and hemispherical photography. Provides tools for processing LiDAR data, computing horizon angles, and calculating gap light metrics.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://hakaiinstitute.github.io/gaplightr/}
+}
+
+}
 \author{
 \strong{Maintainer}: Sam Albers \email{sam.albers@hakai.org}
 
