@@ -26,11 +26,11 @@ gla_transform_lidar <- function(
 ) {
   # Validate inputs
   if (missing(x_meters) || missing(y_meters) || missing(elev_m)) {
-    stop("x_meters, y_meters, and elev_m must all be provided")
+    stop("x_meters, y_meters, and elev_m must all be provided", call. = FALSE)
   }
 
   if (!is.numeric(x_meters) || !is.numeric(y_meters) || !is.numeric(elev_m)) {
-    stop("x_meters, y_meters, and elev_m must be numeric")
+    stop("x_meters, y_meters, and elev_m must be numeric", call. = FALSE)
   }
 
   # Read LAS or LAZ formatted file (only keep point classes 1 - non-ground and 2 - ground)
@@ -100,7 +100,7 @@ gla_create_virtual_plots <- function(
 ) {
   # Validate inputs
   if (!dir.exists(folder)) {
-    stop("folder does not exist: ", folder)
+    stop("folder does not exist: ", folder, call. = FALSE)
   }
 
   validate_sf_object(points)

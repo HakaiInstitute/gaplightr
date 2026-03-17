@@ -42,7 +42,10 @@ gla_load_points <- function(x, dem, drop_na_dem = FALSE, ...) {
   } else if (is.character(x) && length(x) == 1) {
     points <- sf::read_sf(x, ...)
   } else {
-    stop("x must be either a file path (character) or an sf object")
+    stop(
+      "x must be either a file path (character) or an sf object",
+      call. = FALSE
+    )
   }
 
   # Process points with DEM (common logic)
@@ -53,7 +56,7 @@ gla_load_points <- function(x, dem, drop_na_dem = FALSE, ...) {
 process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
   # Validate geometry type
   if (!all(sf::st_geometry_type(points) == "POINT")) {
-    stop("object must contain only POINT geometries")
+    stop("object must contain only POINT geometries", call. = FALSE)
   }
 
   # Drop existing columns that will be recalculated
@@ -71,7 +74,8 @@ process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
   pts_crs <- sf::st_crs(points)
   if (is.na(pts_crs)) {
     stop(
-      "Input shapefile has no CRS defined. Please assign a CRS before loading."
+      "Input shapefile has no CRS defined. Please assign a CRS before loading.",
+      call. = FALSE
     )
   }
 
@@ -81,7 +85,8 @@ process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
       "Input shapefile is in geographic coordinates (lat/lon).\n",
       "This function requires projected coordinates in meters.\n",
       "Current CRS: ",
-      pts_crs$input
+      pts_crs$input,
+      call. = FALSE
     )
   }
 
