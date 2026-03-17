@@ -7,3 +7,6 @@ gaplightr.Rproj
 ^doc$
 ^Meta$
 ^data-raw$
+^\.claude$
+^possible-vignettes$
+
