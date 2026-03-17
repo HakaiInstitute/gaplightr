@@ -103,15 +103,18 @@ gla_extract_horizon_terra <- function(
 ) {
   # Validate inputs
   if (!inherits(dem_rast, "SpatRaster")) {
-    stop("dem_rast must be a SpatRaster object from terra package")
+    stop(
+      "dem_rast must be a SpatRaster object from terra package",
+      call. = FALSE
+    )
   }
 
   if (missing(x_meters) || missing(y_meters)) {
-    stop("Both x_meters and y_meters must be provided")
+    stop("Both x_meters and y_meters must be provided", call. = FALSE)
   }
 
   if (!is.numeric(x_meters) || !is.numeric(y_meters)) {
-    stop("x_meters and y_meters must be numeric")
+    stop("x_meters and y_meters must be numeric", call. = FALSE)
   }
 
   # Use projected coordinates directly
@@ -136,7 +139,10 @@ gla_extract_horizon_terra <- function(
   obs_elev <- terra::extract(dem_rast, obs_point)[1, 2]
 
   if (is.na(obs_elev)) {
-    stop("Observer location is outside DEM extent or has no data")
+    stop(
+      "Observer location is outside DEM extent or has no data",
+      call. = FALSE
+    )
   }
 
   # Camera elevation = ground elevation + camera height above ground
@@ -348,11 +354,17 @@ prepare_horizon_mask <- function(
   if (
     missing(horizon_data) || is.null(horizon_data) || nrow(horizon_data) == 0
   ) {
-    stop("horizon_data parameter is required and must contain data")
+    stop(
+      "horizon_data parameter is required and must contain data",
+      call. = FALSE
+    )
   }
 
   if (ncol(horizon_data) < 2) {
-    stop("horizon_data must have at least 2 columns (azimuth, elevation)")
+    stop(
+      "horizon_data must have at least 2 columns (azimuth, elevation)",
+      call. = FALSE
+    )
   }
 
   # Validate radial_distortion
@@ -506,7 +518,7 @@ gla_extract_horizons <- function(
   validate_sf_object(points)
 
   if (!file.exists(dem_path)) {
-    stop("DEM file not found: ", dem_path)
+    stop("DEM file not found: ", dem_path, call. = FALSE)
   }
 
   n_points <- nrow(points)

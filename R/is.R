@@ -1,6 +1,6 @@
 is_img_binary <- function(img) {
   if (!inherits(img, "cimg")) {
-    stop("img must be an imager cimg object")
+    stop("img must be an imager cimg object", call. = FALSE)
   }
 
   unique_vals <- unique(as.vector(img))

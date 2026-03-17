@@ -897,7 +897,8 @@ gla_process_fisheye_photos <- function(
   if (already_processed) {
     stop(
       "Points appear to be already processed (contains solar radiation columns). ",
-      "Remove existing solar radiation columns before reprocessing."
+      "Remove existing solar radiation columns before reprocessing.",
+      call. = FALSE
     )
   }
 
@@ -913,7 +914,8 @@ gla_process_fisheye_photos <- function(
     stop(
       sum(invalid_bmp),
       " point(s) have missing or corrupted BMP files: ",
-      paste(points$fisheye_photo_path[invalid_bmp], collapse = ", ")
+      paste(points$fisheye_photo_path[invalid_bmp], collapse = ", "),
+      call. = FALSE
     )
   }
 
@@ -1031,11 +1033,14 @@ gla_process_fisheye_photos <- function(
   class(merged) <- c("sf", "tbl_df", "tbl", "data.frame")
 
   if (nrow(merged) != nrow(points)) {
-    stop(sprintf(
-      "Merge failed: expected %d rows, got %d",
-      nrow(points),
-      nrow(merged)
-    ))
+    stop(
+      sprintf(
+        "Merge failed: expected %d rows, got %d",
+        nrow(points),
+        nrow(merged)
+      ),
+      call. = FALSE
+    )
   }
 
   message("Completed processing ", nrow(merged), " fisheye photos")
@@ -1157,7 +1162,8 @@ gla_create_fisheye_photos <- function(
     stop(
       sum(invalid_files),
       " point(s) have missing, non-existent, or empty LAS files: ",
-      paste(points$las_files[invalid_files], collapse = ", ")
+      paste(points$las_files[invalid_files], collapse = ", "),
+      call. = FALSE
     )
   }
 
