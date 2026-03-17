@@ -146,7 +146,14 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   actual_filename <- basename(stream_points$fisheye_photo_path[1])
 
   expected_filename <- fisheye_filename(
-    stream_points$point_id[1], pointsize, max_cex, min_cex, min_dist, max_dist, dpi, img_res,
+    stream_points$point_id[1],
+    pointsize,
+    max_cex,
+    min_cex,
+    min_dist,
+    max_dist,
+    dpi,
+    img_res,
     "equidistant"
   )
 
