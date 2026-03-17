@@ -10,3 +10,6 @@ gaplightr.Rproj
 ^\.claude$
 ^possible-vignettes$
 
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
