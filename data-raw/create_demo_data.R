@@ -148,7 +148,7 @@ generate_stand_points <- function(
 ) {
   n_trees <- max(5L, as.integer(pi * cluster_r^2 * 0.03))
   tree_pos <- sample_circle(n_trees, cluster_cx, cluster_cy, cluster_r)
-  elev <- terra::extract(dem, cbind(tree_pos$x, tree_pos$y))[, 1]
+  elev <- terra::extract(dem, cbind(tree_pos$x, tree_pos$y), ID = FALSE)[, 1]
   pts_list <- lapply(seq_len(n_trees), function(k) {
     generate_tree_points(
       cx = tree_pos$x[k],
@@ -166,7 +166,7 @@ generate_stand_points <- function(
 # Ground points: sparse across the full LiDAR circle.
 n_ground <- 4500
 grd <- sample_circle(n_ground, lidar_cx, lidar_cy, lidar_radius)
-grd_elev <- terra::extract(dem, cbind(grd$x, grd$y))[, 1]
+grd_elev <- terra::extract(dem, cbind(grd$x, grd$y), ID = FALSE)[, 1]
 
 # Vegetation: individual trees within each stand cluster.
 veg_list <- lapply(seq_len(nrow(tree_clusters)), function(k) {
