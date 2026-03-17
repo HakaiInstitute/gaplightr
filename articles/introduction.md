@@ -86,7 +86,7 @@ points <- gla_create_virtual_plots(
   plot_radius = 25,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpxfcQfN/vp
+#> Creating output directory: /tmp/Rtmpr5EoS9/vp
 #> Clipping 3 circular plots with radius 25m
 #> Processing batch 1/1 (3 plots)
 #> Created 3 new plot files
@@ -158,7 +158,7 @@ points <- gla_create_fisheye_photos(
   parallel = FALSE,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpxfcQfN/photos
+#> Creating output directory: /tmp/Rtmpr5EoS9/photos
 #> Processing 3 fisheye photos...
 ```
 
@@ -205,14 +205,14 @@ results <- gla_process_fisheye_photos(
 
 str(results)
 #> sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)
-#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpxfcQfN/photos/1_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpxfcQfN/photos/2_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpxfcQfN/photos/3_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
+#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/Rtmpr5EoS9/photos/1_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpr5EoS9/photos/2_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpr5EoS9/photos/3_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
 #>  $ elevation                                 : num [1:3] 104 108 108
 #>  $ point_id                                  : int [1:3] 1 2 3
 #>  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06
 #>  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05
 #>  $ lon                                       : num [1:3] -126 -126 -126
 #>  $ lat                                       : num [1:3] 49.5 49.5 49.5
-#>  $ las_files                                 : chr [1:3] "/tmp/RtmpxfcQfN/vp/1.las" "/tmp/RtmpxfcQfN/vp/2.las" "/tmp/RtmpxfcQfN/vp/3.las"
+#>  $ las_files                                 : chr [1:3] "/tmp/Rtmpr5EoS9/vp/1.las" "/tmp/Rtmpr5EoS9/vp/2.las" "/tmp/Rtmpr5EoS9/vp/3.las"
 #>  $ horizon_mask                              :List of 3
 #>   ..$ :List of 4
 #>   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...
@@ -246,6 +246,32 @@ str(results)
 #>  - attr(*, "sf_column")= chr "geometry"
 #>  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
 #>   ..- attr(*, "names")= chr [1:22] "fisheye_photo_path" "elevation" "point_id" "x_meters" ...
+```
+
+Setting `keep_gap_fraction_data = TRUE` retains the full gap fraction
+matrix for each point as a list-column, which is useful for diagnostic
+plots or custom downstream analyses.
+
+``` r
+results_with_gf <- gla_process_fisheye_photos(
+  points = points,
+  clearsky_coef = 0.65,
+  time_step_min = 10,
+  day_start = 172,
+  day_end = 182,
+  day_res = 2,
+  elev_res = 5,
+  azi_res = 5,
+  Kt = 0.54,
+  keep_gap_fraction_data = TRUE,
+  parallel = FALSE
+)
+#> Processing 3 fisheye photos for solar radiation...
+#> Completed processing 3 fisheye photos
+
+str(results_with_gf$gap_fraction_data[[1]])
+#> Warning: Unknown or uninitialised column: `gap_fraction_data`.
+#>  NULL
 ```
 
 ## Next steps

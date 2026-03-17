@@ -115,7 +115,7 @@ str(points)
 #>  $ lon               : num -126
 #>  $ lat               : num 49.5
 #>  $ geometry          :sfc_POINT of length 1; first list element:  'XY' num [1:2] 1e+06 5e+05
-#>  $ fisheye_photo_path: chr "/tmp/RtmpMCTCQS/example-photo-preprocessed.bmp"
+#>  $ fisheye_photo_path: chr "/tmp/RtmpyvXRTv/example-photo-preprocessed.bmp"
 #>  - attr(*, "sf_column")= chr "geometry"
 #>  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA
 #>   ..- attr(*, "names")= chr [1:7] "elevation" "point_id" "x_meters" "y_meters" ...
