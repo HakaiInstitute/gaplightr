@@ -12,7 +12,18 @@ fisheye_filename <- function(
   width,
   radial_distortion
 ) {
-  fmt <- function(x) gsub("\\.", "pt", as.character(x))
+  fmt <- function(x) {
+    if (is.numeric(x)) {
+      if (all(is.finite(x)) && all(x == as.integer(x))) {
+        s <- formatC(as.integer(x), format = "d")
+      } else {
+        s <- formatC(x, format = "f", digits = 6)
+      }
+    } else {
+      s <- as.character(x)
+    }
+    gsub("\\.", "pt", s)
+  }
   distortion_label <- if (identical(radial_distortion, "equidistant")) {
     "equidistant"
   } else if (!is.null(radial_distortion$name)) {
