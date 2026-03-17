@@ -1186,7 +1186,7 @@ gla_create_fisheye_photos <- function(
 
     if (length(existing_photos) > 0) {
       expected_filenames <- fisheye_filename(
-        points$point_id,
+        paste0(points$point_id, "_h", camera_height_m),
         pointsize,
         max_cex,
         min_cex,
