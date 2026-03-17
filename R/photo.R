@@ -47,12 +47,7 @@ gla_create_fisheye_photo_single <- function(
     processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
   }
 
-  # Create maximum symbol size character string for file name
-  ss <- ifelse(
-    max_cex == 0.2,
-    "0pt2",
-    ifelse(max_cex == 0.3, "0pt3", "0pt4")
-  )
+  ss <- gsub("\\.", "pt", as.character(max_cex))
 
   # Concatenate site name, point size, and maximum symbol size for output bitmap filename
   img_file <- paste0(
@@ -1142,11 +1137,7 @@ gla_create_fisheye_photos <- function(
     if (length(existing_photos) > 0) {
       # Generate expected filenames for each point.
       # Must match format from gla_create_fisheye_photo_single.
-      ss <- ifelse(
-        max_cex == 0.2,
-        "0pt2",
-        ifelse(max_cex == 0.3, "0pt3", "0pt4")
-      )
+      ss <- gsub("\\.", "pt", as.character(max_cex))
       expected_filenames <- sprintf(
         "%d_ps%s_cex%s_%sdpi_%spx_polar.bmp",
         points$point_id,
