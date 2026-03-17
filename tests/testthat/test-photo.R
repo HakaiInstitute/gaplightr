@@ -115,16 +115,19 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   dpi <- 300
   img_res <- 2800
   max_cex <- 0.2
+  min_cex <- 0.05
+  min_dist <- 1
+  max_dist <- 50
 
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
     camera_height_m = 1.37,
-    min_dist = 1,
-    max_dist = 50,
+    min_dist = min_dist,
+    max_dist = max_dist,
     img_res = img_res,
     max_cex = max_cex,
-    min_cex = 0.05,
+    min_cex = min_cex,
     pointsize = pointsize,
     dpi = dpi,
     parallel = FALSE,
@@ -142,15 +145,9 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   # Get the actual filename
   actual_filename <- basename(stream_points$fisheye_photo_path[1])
 
-  # Build expected filename format
-  ss <- ifelse(max_cex == 0.2, "0pt2", ifelse(max_cex == 0.3, "0pt3", "0pt4"))
-  expected_filename <- sprintf(
-    "%d_ps%s_cex%s_%sdpi_%spx_polar.bmp",
-    stream_points$point_id[1],
-    pointsize,
-    ss,
-    dpi,
-    img_res
+  expected_filename <- fisheye_filename(
+    stream_points$point_id[1], pointsize, max_cex, min_cex, min_dist, max_dist, dpi, img_res,
+    "equidistant"
   )
 
   # Verify filename matches expected format
@@ -376,7 +373,7 @@ test_that("gla_lens_sigma_8mm returns correct structure", {
   sigma_cal <- gla_lens_sigma_8mm()
 
   expect_type(sigma_cal, "list")
-  expect_named(sigma_cal, c("radius", "elevation"))
+  expect_named(sigma_cal, c("radius", "elevation", "name"))
 
   # Check dimensions - 24 calibration points
   expect_equal(length(sigma_cal$radius), 24)
