@@ -323,9 +323,7 @@ gla_extract_horizon_terra <- function(
 #'
 #' @param horizon_data Data frame with horizon data. Must contain at least
 #'   two columns: azimuth (degrees, 0-360) and elevation angle (degrees)
-#' @param radial_distortion Lens projection method. Use "equidistant" (default)
-#'   for standard equidistant polar projection, or provide custom lens calibration
-#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
+#' @inheritParams gla_extract_gap_fraction
 #' @param verbose Logical indicating whether to print the processed data
 #'   (default: FALSE)
 #'
@@ -431,15 +429,10 @@ prepare_horizon_mask <- function(
 #'   (default: NULL, uses full DEM extent)
 #' @param distance_step Distance step size in meters for sampling along line of
 #'   sight (default: NULL, uses raster resolution)
-#' @param camera_height_m Camera height above ground in meters (default: 1.37). The observer
-#'   elevation is calculated as ground elevation (from DEM) plus this height.
-#' @param parallel Logical indicating whether to process points in parallel
-#'   (default: TRUE). When TRUE, uses the future backend configured with
-#'   \code{future::plan()}. When FALSE, processes sequentially.
+#' @inheritParams gla_extract_horizon_terra
+#' @inheritParams gla_create_fisheye_photos
 #' @param resume Logical indicating whether to skip points that already have
 #'   cached horizon files (default: TRUE). When FALSE, recomputes all horizons.
-#' @param verbose Logical indicating whether to print progress messages
-#'   (default: FALSE)
 #'
 #' @return The input sf object with an added horizon_mask list-column. Each element
 #'   is a list containing:

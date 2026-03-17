@@ -48,9 +48,7 @@ fisheye_filename <- function(
 
 
 #' Create fisheye image (single point)
-#' @param radial_distortion Lens projection method. Use "equidistant" (default)
-#'   for standard equidistant polar projection, or provide custom lens calibration
-#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
+#' @inheritParams gla_extract_gap_fraction
 #' @keywords internal
 gla_create_fisheye_photo_single <- function(
   processed_lidar,
@@ -615,8 +613,7 @@ apply_radial_distortion_mapping <- function(input_values, from, to) {
 #' Checks that radial_distortion is either "equidistant" (default) or a valid
 #' calibration list with required components and normalized radius values.
 #'
-#' @param radial_distortion Either "equidistant" string or calibration list
-#'   with radius and elevation components
+#' @inheritParams gla_extract_gap_fraction
 #' @return TRUE invisibly if valid, otherwise stops with error
 #' @keywords internal
 validate_radial_distortion <- function(radial_distortion) {
@@ -822,7 +819,7 @@ gla_process_fisheye_photo_single <- function(
 #' @param day_res Day resolution - compute every N days (default 1 for daily).
 #' @param Kt Mean cloudiness index (Kt = H/Ho) for the period of interest (default 0.45).
 #'   Ratio of measured to extraterrestrial radiation.
-#' @param parallel Use parallel processing (default TRUE)
+#' @inheritParams gla_create_fisheye_photos
 #' @param keep_gap_fraction_data Include gap fraction matrix in output (default FALSE).
 #'   If TRUE, adds \code{gap_fraction_data} column to output.
 #' @param solar_constant Solar constant in W/m² (default 1367). The total solar
@@ -1079,11 +1076,7 @@ gla_process_fisheye_photos <- function(
 #'   calling this function
 #' @param resume Logical. If TRUE (default), skip points that already have
 #'   fisheye photos in the output directory
-#' @param radial_distortion Lens projection method. Use "equidistant" (default)
-#'   for standard equidistant polar projection, or provide custom lens calibration
-#'   data with \code{radius} (normalized 0-1) and \code{elevation} (radians) components.
-#'   See \code{\link{gla_lens_sigma_8mm}} for example format. Applied to both LiDAR
-#'   points and horizon mask during photo creation.
+#' @inheritParams gla_extract_gap_fraction
 #'
 #' @return The input \code{points} sf object with an added column
 #'   \code{fisheye_photo_path} containing the file paths to the generated

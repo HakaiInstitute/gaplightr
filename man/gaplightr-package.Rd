@@ -12,6 +12,8 @@ Analyzes forest canopy gap light transmission using LiDAR point cloud data and h
 Useful links:
 \itemize{
   \item \url{https://hakaiinstitute.github.io/gaplightr/}
+  \item \url{https://github.com/HakaiInstitute/gaplightr}
+  \item Report bugs at \url{https://github.com/HakaiInstitute/gaplightr/issues}
 }
 
 }
