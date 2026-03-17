@@ -1,3 +1,40 @@
+# Construct the output filename for a synthetic fisheye photo. The name encodes
+# all parameters that affect pixel content so filenames are unambiguous and
+# caching semantics remain correct when any parameter changes.
+fisheye_filename <- function(
+  site_id,
+  pointsize,
+  max_cex,
+  min_cex,
+  min_dist,
+  max_dist,
+  res,
+  width,
+  radial_distortion
+) {
+  fmt <- function(x) gsub("\\.", "pt", as.character(x))
+  distortion_label <- if (identical(radial_distortion, "equidistant")) {
+    "equidistant"
+  } else if (!is.null(radial_distortion$name)) {
+    radial_distortion$name
+  } else {
+    "custom"
+  }
+  sprintf(
+    "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
+    site_id,
+    fmt(pointsize),
+    fmt(max_cex),
+    fmt(min_cex),
+    fmt(min_dist),
+    fmt(max_dist),
+    fmt(res),
+    fmt(width),
+    distortion_label
+  )
+}
+
+
 #' Create fisheye image (single point)
 #' @param radial_distortion Lens projection method. Use "equidistant" (default)
 #'   for standard equidistant polar projection, or provide custom lens calibration
@@ -47,21 +84,16 @@ gla_create_fisheye_photo_single <- function(
     processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
   }
 
-  ss <- gsub("\\.", "pt", as.character(max_cex))
-
-  # Concatenate site name, point size, and maximum symbol size for output bitmap filename
-  img_file <- paste0(
+  img_file <- fisheye_filename(
     site_id,
-    "_ps",
     pointsize,
-    "_cex",
-    ss,
-    "_",
+    max_cex,
+    min_cex,
+    min_dist,
+    max_dist,
     res,
-    "dpi",
-    "_",
     width,
-    "px_polar.bmp"
+    radial_distortion
   )
   out_file <- paste0(img_path, "/", img_file)
 
@@ -533,7 +565,11 @@ gla_lens_sigma_8mm <- function() {
   sigma_zen_rad <- sigma_zen_deg * deg_to_rad()
   sigma_elev_rad <- rad_90() - sigma_zen_rad
 
-  list(radius = norm_sigma_radius, elevation = sigma_elev_rad)
+  list(
+    radius = norm_sigma_radius,
+    elevation = sigma_elev_rad,
+    name = "sigma8mm"
+  )
 }
 
 
@@ -1135,16 +1171,16 @@ gla_create_fisheye_photos <- function(
     )
 
     if (length(existing_photos) > 0) {
-      # Generate expected filenames for each point.
-      # Must match format from gla_create_fisheye_photo_single.
-      ss <- gsub("\\.", "pt", as.character(max_cex))
-      expected_filenames <- sprintf(
-        "%d_ps%s_cex%s_%sdpi_%spx_polar.bmp",
+      expected_filenames <- fisheye_filename(
         points$point_id,
         pointsize,
-        ss,
+        max_cex,
+        min_cex,
+        min_dist,
+        max_dist,
         dpi,
-        img_res
+        img_res,
+        radial_distortion
       )
 
       # Check which photos already exist
