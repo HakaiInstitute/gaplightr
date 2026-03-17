@@ -4,14 +4,12 @@
 \alias{save_horizon_csv}
 \title{Save horizon data to CSV file}
 \usage{
-save_horizon_csv(horizon_df, x_meters, y_meters, output_dir)
+save_horizon_csv(horizon_df, point_id, output_dir)
 }
 \arguments{
 \item{horizon_df}{Data frame with horizon data (azimuth, horizon_height, x_msk, y_msk)}
 
-\item{x_meters}{X coordinate in meters}
-
-\item{y_meters}{Y coordinate in meters}
+\item{point_id}{Integer unique point identifier}
 
 \item{output_dir}{Directory to save CSV file}
 }

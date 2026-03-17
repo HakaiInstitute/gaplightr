@@ -10,6 +10,10 @@ gla_lens_sigma_8mm()
 A list with two components:
 \item{radius}{Normalized radial distance from image center (0 to 1)}
 \item{elevation}{Elevation angle in radians (0 at horizon, pi/2 at zenith)}
+
+A list with components \code{radius} (normalized image radius),
+\code{elevation} (elevation angle in radians), and \code{name} (lens
+identifier for this calibration; currently \code{"sigma8mm"}).
 }
 \description{
 Returns the radial distortion calibration data for a Sigma 8mm f/3.5 EX DG

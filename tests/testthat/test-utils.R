@@ -52,76 +52,44 @@ test_that("validate_crs_match errors when both CRS are NA", {
 })
 
 
-# add_las_filename tests ----
+# point_id collision test ----
 
-test_that("add_las_filename parses and merges correctly", {
-  # Create test stream points with x_meters and y_meters as both columns AND geometry
-  test_df <- data.frame(
-    x_meters = c(1000, 1001),
-    y_meters = c(2000.5, 2001.5)
+test_that("gla_create_virtual_plots gives distinct files to points with colliding coordinates", {
+  # Under the old coordinate-based filename scheme, two points whose coordinates
+  # round to the same lidR center would collide on the same filename. The {ID}
+  # template assigns each input a unique positional index, so both points receive
+  # their own file regardless of how close their coordinates are.
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  las_dir <- withr::local_tempdir()
+  create_test_las(
+    crs = 3005,
+    n_points = 500,
+    output_path = file.path(las_dir, "test.las")
   )
 
-  stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
+  # Coordinates that would have collided under the old scheme: X within 0.5m,
+  # Y within 0.05m - both would have mapped to the same XCENTER_YCENTER name.
+  pts <- sf::st_as_sf(
+    data.frame(x = c(1000500.1, 1000500.4), y = c(500500.03, 500500.04)),
+    coords = c("x", "y"),
     crs = 3005
   )
+  pts <- gla_load_points(pts, dem_path)
 
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  # Create test LAS file names
-  las_files <- c(
-    "/path/to/1000_2000.5.las",
-    "/path/to/1001_2001.5.las"
+  result <- gla_create_virtual_plots(
+    points = pts,
+    folder = las_dir,
+    output_dir = withr::local_tempdir(),
+    plot_radius = 50,
+    resume = FALSE
   )
 
-  result <- add_las_filename(stream_points, las_files)
-
-  expect_s3_class(result, "sf")
-  expect_true("las_files" %in% names(result))
-  expect_equal(nrow(result), 2)
-  expect_equal(result$las_files, las_files)
+  # Both points get distinct files; {ID} eliminates the coordinate collision.
+  expect_true(all(!is.na(result$las_files)))
+  expect_equal(length(result$las_files), length(unique(result$las_files)))
 })
-
-test_that("add_las_filename snapshot", {
-  test_df <- data.frame(
-    x_meters = c(1000),
-    y_meters = c(2000.5)
-  )
-
-  stream_points <- sf::st_as_sf(
-    test_df,
-    coords = c("x_meters", "y_meters"),
-    crs = 3005
-  )
-
-  # Add x_meters and y_meters back as regular columns
-  stream_points$x_meters <- test_df$x_meters
-  stream_points$y_meters <- test_df$y_meters
-
-  las_files <- c("/path/to/1000_2000.5.las")
-
-  result <- add_las_filename(stream_points, las_files)
-
-  # Snapshot structure (use basename for las_files to avoid temp path differences)
-  result_snapshot <- sf::st_drop_geometry(result)
-  result_snapshot$las_files <- basename(result_snapshot$las_files)
-
-  expect_snapshot(result_snapshot)
-})
-
-check_if_coordinates_are_unique <- function(df) {
-  if (any(duplicated(df[, c("x_meters", "y_meters")]))) {
-    stop(
-      "Warning: Some points have identical x_meters and y_meters coordinates.",
-      call. = FALSE
-    )
-  } else {
-    message("All points have unique x_meters and y_meters coordinates.")
-  }
-}
 
 
 # sshourangle tests ----
@@ -241,4 +209,98 @@ test_that("solpos handles sun directly overhead (SZA = 0)", {
   # Cartesian coordinates should be (0, 0) when overhead
   expect_equal(x_sun, 0, tolerance = 1e-10)
   expect_equal(y_sun, 0, tolerance = 1e-10)
+})
+
+
+# angular_bin_idx tests ----
+
+test_that("angular_bin_idx places zero angle in bin 1", {
+  expect_equal(angular_bin_idx(0, pi / 2, 9), 1L)
+  expect_equal(angular_bin_idx(0, 2 * pi, 8), 1L)
+})
+
+test_that("angular_bin_idx caps max angle at n_bins", {
+  # Angle exactly at max_rad should be in last bin, not overflow
+
+  expect_equal(angular_bin_idx(pi / 2, pi / 2, 9), 9L)
+  expect_equal(angular_bin_idx(2 * pi, 2 * pi, 8), 8L)
+})
+
+test_that("angular_bin_idx distributes angles evenly across bins", {
+  n_bins <- 9
+  max_rad <- pi / 2
+
+  # First bin: [0, pi/18)
+
+  expect_equal(angular_bin_idx(0, max_rad, n_bins), 1L)
+  expect_equal(angular_bin_idx(pi / 36, max_rad, n_bins), 1L)
+
+  # Second bin: [pi/18, 2*pi/18)
+  expect_equal(angular_bin_idx(pi / 18, max_rad, n_bins), 2L)
+
+  # Last bin: [8*pi/18, pi/2]
+  expect_equal(angular_bin_idx(8 * pi / 18, max_rad, n_bins), 9L)
+})
+
+test_that("angular_bin_idx handles vector input", {
+  angles <- c(0, pi / 4, pi / 2)
+  result <- angular_bin_idx(angles, pi / 2, 9)
+
+  expect_equal(length(result), 3)
+
+  expect_equal(result[1], 1L)
+  expect_equal(result[2], 5L) # pi/4 is halfway, bin 5 of 9
+
+  expect_equal(result[3], 9L)
+})
+
+test_that("angular_bin_idx works for azimuth use case", {
+  # 8 azimuth sectors covering 0 to 2*pi
+  n_sectors <- 8
+  max_rad <- 2 * pi
+
+  # North (0 rad) -> bin 1
+
+  expect_equal(angular_bin_idx(0, max_rad, n_sectors), 1L)
+
+  # East (pi/2 rad) -> bin 3
+  expect_equal(angular_bin_idx(pi / 2, max_rad, n_sectors), 3L)
+
+  # South (pi rad) -> bin 5
+  expect_equal(angular_bin_idx(pi, max_rad, n_sectors), 5L)
+
+  # West (3*pi/2 rad) -> bin 7
+  expect_equal(angular_bin_idx(3 * pi / 2, max_rad, n_sectors), 7L)
+})
+
+
+# convert_to_geographic_azimuth tests ----
+
+test_that("convert_to_geographic_azimuth handles zero (north)", {
+  # Zero input should return zero
+
+  expect_equal(convert_to_geographic_azimuth(0), 0)
+})
+
+test_that("convert_to_geographic_azimuth handles negative angles (west)", {
+  # Negative angles are negated to positive
+  expect_equal(convert_to_geographic_azimuth(-pi / 2), pi / 2)
+  expect_equal(convert_to_geographic_azimuth(-pi), pi)
+  expect_equal(convert_to_geographic_azimuth(-pi / 4), pi / 4)
+})
+
+test_that("convert_to_geographic_azimuth handles positive angles (east flip)", {
+  # Positive angles are flipped: 2*pi - angle
+  expect_equal(convert_to_geographic_azimuth(pi / 2), 2 * pi - pi / 2)
+  expect_equal(convert_to_geographic_azimuth(pi), 2 * pi - pi)
+  expect_equal(convert_to_geographic_azimuth(pi / 4), 2 * pi - pi / 4)
+})
+
+test_that("convert_to_geographic_azimuth handles vector input", {
+  input <- c(-pi / 2, 0, pi / 2)
+  expected <- c(pi / 2, 0, 2 * pi - pi / 2)
+
+  result <- convert_to_geographic_azimuth(input)
+
+  expect_equal(result, expected)
 })

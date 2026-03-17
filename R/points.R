@@ -3,6 +3,9 @@
 #' @param x Either a file path to any file that `sf::read_sf` can read, or an
 #'   sf object containing point geometries
 #' @param dem Either a file path to a DEM raster file, or a `SpatRaster` object
+#' @param drop_na_dem Logical. If `FALSE` (default), points falling on NoData
+#'   cells in the DEM cause an error. If `TRUE`, those points are dropped with
+#'   a warning and processing continues with the remaining points.
 #' @param ... Additional arguments passed to `sf::read_sf()` when `x` is a file path
 #'
 #' @details
@@ -12,8 +15,19 @@
 #'   \item CRS must be defined and projected (not geographic lat/lon)
 #'   \item Point and DEM CRS must match exactly
 #'   \item All points must fall within DEM spatial extent
-#'   \item All points must have valid elevation values (no NoData cells)
+#'   \item Points on NoData cells error by default; set `drop_na_dem = TRUE` to
+#'     drop them with a warning instead
 #' }
+#'
+#' ## Point IDs
+#'
+#' Every point is assigned a `point_id`, a positive integer used to name all
+#' downstream output files (LAS clips, horizon CSVs, fisheye photos). If `x`
+#' does not contain a `point_id` column, sequential IDs are assigned
+#' automatically (1, 2, 3, ...). To use your own IDs (for example to preserve
+#' cached outputs across re-runs, or to match an existing site numbering scheme),
+#' include a `point_id` column containing unique positive integers before
+#' calling this function.
 #'
 #' @examples
 #' \dontrun{
@@ -21,37 +35,38 @@
 #' }
 #'
 #' @export
-gla_load_points <- function(x, dem, ...) {
+gla_load_points <- function(x, dem, drop_na_dem = FALSE, ...) {
   # Handle both file paths and sf objects
   if (inherits(x, "sf")) {
     points <- x
   } else if (is.character(x) && length(x) == 1) {
     points <- sf::read_sf(x, ...)
   } else {
-    stop("x must be either a file path (character) or an sf object")
+    stop(
+      "x must be either a file path (character) or an sf object",
+      call. = FALSE
+    )
   }
 
   # Process points with DEM (common logic)
-  process_points_internal(points, dem)
+  process_points_internal(points, dem, drop_na_dem = drop_na_dem)
 }
 
 # Internal helper - no documentation needed
-process_points_internal <- function(points, dem) {
+process_points_internal <- function(points, dem, drop_na_dem = FALSE) {
   # Validate geometry type
   if (!all(sf::st_geometry_type(points) == "POINT")) {
-    stop("object must contain only POINT geometries")
+    stop("object must contain only POINT geometries", call. = FALSE)
   }
 
   # Drop existing columns that will be recalculated
   if (any(toupper(names(points)) %in% c("LAT", "LON"))) {
-    message(paste0("Dropping existing LAT/LON columns and recalculating"))
+    message("Dropping existing LAT/LON columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("LAT", "LON")]
   }
 
   if (any(toupper(names(points)) %in% c("X_METERS", "Y_METERS"))) {
-    message(paste0(
-      "Dropping existing X_METERS/Y_METERS columns and recalculating"
-    ))
+    message("Dropping existing X_METERS/Y_METERS columns and recalculating")
     points <- points[, !toupper(names(points)) %in% c("X_METERS", "Y_METERS")]
   }
 
@@ -59,7 +74,8 @@ process_points_internal <- function(points, dem) {
   pts_crs <- sf::st_crs(points)
   if (is.na(pts_crs)) {
     stop(
-      "Input shapefile has no CRS defined. Please assign a CRS before loading."
+      "Input shapefile has no CRS defined. Please assign a CRS before loading.",
+      call. = FALSE
     )
   }
 
@@ -69,7 +85,8 @@ process_points_internal <- function(points, dem) {
       "Input shapefile is in geographic coordinates (lat/lon).\n",
       "This function requires projected coordinates in meters.\n",
       "Current CRS: ",
-      pts_crs$input
+      pts_crs$input,
+      call. = FALSE
     )
   }
 
@@ -79,7 +96,7 @@ process_points_internal <- function(points, dem) {
   } else {
     dem_rast <- terra::rast(dem)
   }
-  dem_crs <- sf::st_crs(terra::crs(dem_rast))
+  dem_crs <- get_raster_crs(dem_rast)
 
   validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
 
@@ -107,20 +124,77 @@ process_points_internal <- function(points, dem) {
   points$elevation <- terra::extract(dem_rast, points)[[2]]
 
   # Check for NoData cells inside DEM extent
-  na_indices <- which(is.na(points$elevation))
-  if (length(na_indices) > 0) {
-    stop(
-      length(na_indices),
-      " point(s) have NA elevation values (NoData cells in DEM)",
+  na_mask <- is.na(points$elevation)
+  n_na <- sum(na_mask)
+  if (n_na > 0) {
+    if (!drop_na_dem) {
+      stop(
+        n_na,
+        " point(s) have NA elevation values (NoData cells in DEM).\n",
+        "To drop these points and continue, set drop_na_dem = TRUE.",
+        call. = FALSE
+      )
+    }
+    warning(
+      n_na,
+      " point(s) dropped: NA elevation values (NoData cells in DEM)",
       call. = FALSE
+    )
+    points <- points[!na_mask, ]
+    if (nrow(points) == 0) {
+      stop(
+        "All points have NA elevation values (NoData cells in DEM); ",
+        "no points remain after dropping. ",
+        "Please check your DEM or input points.",
+        call. = FALSE
+      )
+    }
+  }
+
+  # Assign or validate a stable unique identifier used as the key for all
+  # downstream file naming (LAS, horizon CSV, fisheye BMP). If the input already
+  # carries a point_id column (e.g. from a previous run or a user-supplied ID),
+  # honour it so that cached outputs remain valid across re-loads.
+  if ("point_id" %in% names(points)) {
+    pid <- points$point_id
+    if (!is.numeric(pid)) {
+      stop("Existing 'point_id' column must be numeric.", call. = FALSE)
+    }
+    if (anyNA(pid) || !all(is.finite(pid))) {
+      stop(
+        "Existing 'point_id' column contains NA or non-finite values.",
+        call. = FALSE
+      )
+    }
+    if (any(pid != floor(pid)) || any(pid <= 0)) {
+      stop(
+        "Existing 'point_id' values must be positive whole numbers.",
+        call. = FALSE
+      )
+    }
+    if (anyDuplicated(pid)) {
+      stop(
+        "Existing 'point_id' column contains duplicate values.",
+        call. = FALSE
+      )
+    }
+    message(
+      "Using existing point_id column (",
+      nrow(points),
+      " point(s))."
+    )
+  } else {
+    points$point_id <- seq_len(nrow(points))
+    message(
+      "Assigning sequential point_id (1 to ",
+      nrow(points),
+      ")."
     )
   }
 
   # Extract coordinates (validated to be in meters)
-  points$x_meters <- round(sf::st_coordinates(points)[, "X"], 0)
-  points$y_meters <- round(sf::st_coordinates(points)[, "Y"], 1)
-
-  check_if_coordinates_are_unique(points)
+  points$x_meters <- sf::st_coordinates(points)[, "X"]
+  points$y_meters <- sf::st_coordinates(points)[, "Y"]
 
   # Transform to WGS84 for lat/lon output columns
   coords_wgs84 <- sf::st_transform(points, crs = 4326)

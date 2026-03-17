@@ -4,3 +4,12 @@ CLAUDE.md
 gaplightr.Rproj
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^doc$
+^Meta$
+^data-raw$
+^\.claude$
+^possible-vignettes$
+
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

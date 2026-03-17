@@ -1,0 +1,10 @@
+url: https://hakaiinstitute.github.io/gaplightr/
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#aa2025"
+    link-color: "#aa2025"
+    navbar-bg: "#2c3e50"
+    navbar-dark: true
+

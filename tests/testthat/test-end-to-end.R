@@ -69,7 +69,7 @@ test_that("End-to-end terra workflow completes successfully", {
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50, # Shorter distance for fast test
     img_res = 100, # Much smaller resolution for fast test
@@ -203,7 +203,7 @@ test_that("End-to-end workflow with resume=TRUE skips existing files", {
   stream_points_first <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,
@@ -228,7 +228,7 @@ test_that("End-to-end workflow with resume=TRUE skips existing files", {
   stream_points_second <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,
@@ -327,7 +327,7 @@ test_that("End-to-end workflow works with 26912", {
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
+    camera_height_m = 1.37,
     min_dist = 1,
     max_dist = 50,
     img_res = 100,
@@ -385,4 +385,67 @@ test_that("End-to-end workflow works with 26912", {
       stream_points$light_penetration_index <= 1
   ))
   expect_true(all(stream_points$transmitted_global_irradiation_pct >= 0))
+})
+
+
+test_that("End-to-end parallel workflow matches sequential results", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 2,
+    output_path = stream_network_path
+  )
+
+  las_dir <- withr::local_tempdir()
+  create_test_las(
+    crs = 3005,
+    n_points = 500,
+    output_path = file.path(las_dir, "test.las")
+  )
+
+  stream_points <- gla_load_points(stream_network_path, dem_path)
+  stream_points <- gla_create_virtual_plots(
+    points = stream_points,
+    folder = las_dir,
+    output_dir = withr::local_tempdir(),
+    plot_radius = 50,
+    resume = FALSE
+  )
+  stream_points <- stream_points[!is.na(stream_points$las_files), ]
+
+  horizon_dir_seq <- withr::local_tempdir()
+  horizon_dir_par <- withr::local_tempdir()
+
+  seq_result <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = horizon_dir_seq,
+    step = 30,
+    max_search_distance = 1000,
+    parallel = FALSE
+  )
+
+  # Use sequential plan so the parallel = TRUE code path is exercised without
+  # spawning subprocesses, which fail to serialize devtools-loaded namespaces.
+  old_plan <- future::plan()
+  future::plan(future::sequential)
+  withr::defer(future::plan(old_plan))
+
+  par_result <- gla_extract_horizons(
+    points = stream_points,
+    dem_path = dem_path,
+    output_dir = horizon_dir_par,
+    step = 30,
+    max_search_distance = 1000,
+    parallel = TRUE
+  )
+
+  expect_equal(
+    par_result$horizon_mask,
+    seq_result$horizon_mask,
+    tolerance = 1e-6
+  )
 })

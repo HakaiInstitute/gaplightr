@@ -115,16 +115,19 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   dpi <- 300
   img_res <- 2800
   max_cex <- 0.2
+  min_cex <- 0.05
+  min_dist <- 1
+  max_dist <- 50
 
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
-    cam_ht = 1.37,
-    min_dist = 1,
-    max_dist = 50,
+    camera_height_m = 1.37,
+    min_dist = min_dist,
+    max_dist = max_dist,
     img_res = img_res,
     max_cex = max_cex,
-    min_cex = 0.05,
+    min_cex = min_cex,
     pointsize = pointsize,
     dpi = dpi,
     parallel = FALSE,
@@ -134,29 +137,24 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   # Verify file was created
   expect_true(file.exists(stream_points$fisheye_photo_path[1]))
 
+  # horizon_mask must be preserved in the returned object - it is temporarily
+  # dropped before parallel export to reduce worker payload, then restored.
+  expect_true("horizon_mask" %in% names(stream_points))
+  expect_false(is.null(stream_points$horizon_mask[[1]]))
+
   # Get the actual filename
   actual_filename <- basename(stream_points$fisheye_photo_path[1])
 
-  # Build expected filename format
-  site_id <- paste0(
-    stream_points$x_meters[1],
-    "_",
-    stream_points$y_meters[1]
-  )
-  ss <- ifelse(max_cex == 0.2, "0pt2", ifelse(max_cex == 0.3, "0pt3", "0pt4"))
-
-  expected_filename <- paste0(
-    site_id,
-    "_ps",
+  expected_filename <- fisheye_filename(
+    stream_points$point_id[1],
     pointsize,
-    "_cex",
-    ss,
-    "_",
+    max_cex,
+    min_cex,
+    min_dist,
+    max_dist,
     dpi,
-    "dpi",
-    "_",
     img_res,
-    "px_polar.bmp"
+    "equidistant"
   )
 
   # Verify filename matches expected format
@@ -382,7 +380,7 @@ test_that("gla_lens_sigma_8mm returns correct structure", {
   sigma_cal <- gla_lens_sigma_8mm()
 
   expect_type(sigma_cal, "list")
-  expect_named(sigma_cal, c("radius", "elevation"))
+  expect_named(sigma_cal, c("radius", "elevation", "name"))
 
   # Check dimensions - 24 calibration points
   expect_equal(length(sigma_cal$radius), 24)
@@ -727,7 +725,10 @@ test_that("prepare_horizon_mask applies radial distortion correctly", {
   )
 
   # Process with equidistant projection
-  result_equi <- prepare_horizon_mask(test_horizon, radial_distortion = "equidistant")
+  result_equi <- prepare_horizon_mask(
+    test_horizon,
+    radial_distortion = "equidistant"
+  )
 
   # Process with Sigma 8mm distortion
   result_sigma <- prepare_horizon_mask(
@@ -814,13 +815,13 @@ test_that("apply_radial_distortion_mapping works bidirectionally", {
   # Simple linear calibration for testing
   # Note: approx() requires 'from' values to be in increasing order
   cal <- list(
-    elevation = c(0, 0.785, 1.57),  # 0°, 45°, 90° (increasing)
-    radius = c(0.0, 0.6, 1.0)       # Normalized 0-1 (increasing from center to edge)
+    elevation = c(0, 0.785, 1.57), # 0°, 45°, 90° (increasing)
+    radius = c(0.0, 0.6, 1.0) # Normalized 0-1 (increasing from center to edge)
   )
 
   # Forward: elevation -> radius
   result_fwd <- apply_radial_distortion_mapping(
-    0.785,  # 45° input
+    0.785, # 45° input
     from = cal$elevation,
     to = cal$radius
   )
@@ -828,7 +829,7 @@ test_that("apply_radial_distortion_mapping works bidirectionally", {
 
   # Reverse: radius -> elevation
   result_rev <- apply_radial_distortion_mapping(
-    0.6,  # Normalized radius
+    0.6, # Normalized radius
     from = cal$radius,
     to = cal$elevation
   )
@@ -836,24 +837,24 @@ test_that("apply_radial_distortion_mapping works bidirectionally", {
 
   # Test interpolation between points (forward direction)
   result_interp <- apply_radial_distortion_mapping(
-    0.3925,  # 22.5° (halfway between 0 and 45)
+    0.3925, # 22.5° (halfway between 0 and 45)
     from = cal$elevation,
     to = cal$radius
   )
-  expect_equal(result_interp, 0.3, tolerance = 0.01)  # Should be ~0.3
+  expect_equal(result_interp, 0.3, tolerance = 0.01) # Should be ~0.3
 
   # Test rule=2 boundary handling (forward)
   result_below <- apply_radial_distortion_mapping(
-    -0.1,  # Below range
+    -0.1, # Below range
     from = cal$elevation,
     to = cal$radius
   )
-  expect_equal(result_below, 0.0)  # Should use first value
+  expect_equal(result_below, 0.0) # Should use first value
 
   result_above <- apply_radial_distortion_mapping(
-    2.0,  # Above range
+    2.0, # Above range
     from = cal$elevation,
     to = cal$radius
   )
-  expect_equal(result_above, 1.0)  # Should use last value
+  expect_equal(result_above, 1.0) # Should use last value
 })

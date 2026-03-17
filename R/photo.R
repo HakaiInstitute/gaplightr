@@ -1,3 +1,52 @@
+# Construct the output filename for a synthetic fisheye photo. The name encodes
+# all parameters that affect pixel content so filenames are unambiguous and
+# caching semantics remain correct when any parameter changes.
+fisheye_filename <- function(
+  site_id,
+  pointsize,
+  max_cex,
+  min_cex,
+  min_dist,
+  max_dist,
+  res,
+  width,
+  radial_distortion
+) {
+  fmt <- function(x) {
+    if (is.numeric(x)) {
+      if (all(is.finite(x)) && all(x == as.integer(x))) {
+        s <- formatC(as.integer(x), format = "d")
+      } else {
+        s <- formatC(x, format = "f", digits = 6)
+      }
+    } else {
+      s <- as.character(x)
+    }
+    gsub("\\.", "pt", s)
+  }
+  safe <- function(x) gsub("[^A-Za-z0-9_-]", "_", as.character(x))
+  distortion_label <- if (identical(radial_distortion, "equidistant")) {
+    "equidistant"
+  } else if (is.list(radial_distortion) && !is.null(radial_distortion$name)) {
+    safe(radial_distortion$name)
+  } else {
+    "custom"
+  }
+  sprintf(
+    "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
+    safe(site_id),
+    fmt(pointsize),
+    fmt(max_cex),
+    fmt(min_cex),
+    fmt(min_dist),
+    fmt(max_dist),
+    fmt(res),
+    fmt(width),
+    distortion_label
+  )
+}
+
+
 #' Create fisheye image (single point)
 #' @param radial_distortion Lens projection method. Use "equidistant" (default)
 #'   for standard equidistant polar projection, or provide custom lens calibration
@@ -47,26 +96,16 @@ gla_create_fisheye_photo_single <- function(
     processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
   }
 
-  # Create maximum symbol size character string for file name
-  ss <- ifelse(
-    max_cex == 0.2,
-    "0pt2",
-    ifelse(max_cex == 0.3, "0pt3", "0pt4")
-  )
-
-  # Concatenate site name, point size, and maximum symbol size for output bitmap filename
-  img_file <- paste0(
+  img_file <- fisheye_filename(
     site_id,
-    "_ps",
     pointsize,
-    "_cex",
-    ss,
-    "_",
+    max_cex,
+    min_cex,
+    min_dist,
+    max_dist,
     res,
-    "dpi",
-    "_",
     width,
-    "px_polar.bmp"
+    radial_distortion
   )
   out_file <- paste0(img_path, "/", img_file)
 
@@ -455,23 +494,11 @@ gla_extract_gap_fraction <- function(
 
   # Convert to geographic direction (East/West flipped for skyward fisheye view)
   # North at 0 degrees, South at 180 degrees
-  azi_rad <- ifelse(
-    rot_azi < 0,
-    rot_azi * -1,
-    ifelse(rot_azi == 0, 0, two_pi() - rot_azi)
-  )
+  azi_rad <- convert_to_geographic_azimuth(rot_azi)
 
   # Compute sky region indices using elevation angle
-  elev_bin_idx <- ifelse(
-    elev_rad < rad_90(),
-    floor(elev_rad / rad_90() * nRings) + 1,
-    floor(elev_rad / rad_90() * nRings)
-  )
-  azi_bin_idx <- ifelse(
-    azi_rad < two_pi(),
-    floor(azi_rad / two_pi() * nSectors) + 1,
-    floor(azi_rad / two_pi() * nSectors)
-  )
+  elev_bin_idx <- angular_bin_idx(elev_rad, rad_90(), nRings)
+  azi_bin_idx <- angular_bin_idx(azi_rad, two_pi(), nSectors)
 
   # Count pixels in each bin
   for (i in 1:length(elev_bin_idx)) {
@@ -512,6 +539,9 @@ gla_extract_gap_fraction <- function(
 #'   \item{radius}{Normalized radial distance from image center (0 to 1)}
 #'   \item{elevation}{Elevation angle in radians (0 at horizon, pi/2 at zenith)}
 #'
+#' @return A list with components \code{radius} (normalized image radius),
+#'   \code{elevation} (elevation angle in radians), and \code{name} (lens
+#'   identifier for this calibration; currently \code{"sigma8mm"}).
 #' @export
 gla_lens_sigma_8mm <- function() {
   # Image radius (mm) for Sigma 8mm lens sequenced by 0.5
@@ -550,7 +580,11 @@ gla_lens_sigma_8mm <- function() {
   sigma_zen_rad <- sigma_zen_deg * deg_to_rad()
   sigma_elev_rad <- rad_90() - sigma_zen_rad
 
-  list(radius = norm_sigma_radius, elevation = sigma_elev_rad)
+  list(
+    radius = norm_sigma_radius,
+    elevation = sigma_elev_rad,
+    name = "sigma8mm"
+  )
 }
 
 
@@ -619,8 +653,11 @@ validate_radial_distortion <- function(radial_distortion) {
   if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
     stop(
       "radial_distortion$radius must be normalized to 0-1 range.\n",
-      "Found values outside [0, 1]: min = ", min(radial_distortion$radius),
-      ", max = ", max(radial_distortion$radius), "\n",
+      "Found values outside [0, 1]: min = ",
+      min(radial_distortion$radius),
+      ", max = ",
+      max(radial_distortion$radius),
+      "\n",
       "Normalize by dividing by maximum physical radius.",
       call. = FALSE
     )
@@ -847,9 +884,7 @@ gla_process_fisheye_photos <- function(
   solar_constant = 1367
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   # Check if already processed
   solar_rad_cols <- c(
@@ -862,7 +897,8 @@ gla_process_fisheye_photos <- function(
   if (already_processed) {
     stop(
       "Points appear to be already processed (contains solar radiation columns). ",
-      "Remove existing solar radiation columns before reprocessing."
+      "Remove existing solar radiation columns before reprocessing.",
+      call. = FALSE
     )
   }
 
@@ -872,6 +908,16 @@ gla_process_fisheye_photos <- function(
     required_cols,
     hint = "Use gla_create_fisheye_photos() to add fisheye_photo_path column"
   )
+
+  invalid_bmp <- !vapply(points$fisheye_photo_path, is_valid_bmp, logical(1))
+  if (any(invalid_bmp)) {
+    stop(
+      sum(invalid_bmp),
+      " point(s) have missing or corrupted BMP files: ",
+      paste(points$fisheye_photo_path[invalid_bmp], collapse = ", "),
+      call. = FALSE
+    )
+  }
 
   message("Processing ", nrow(points), " fisheye photos for solar radiation...")
 
@@ -987,11 +1033,14 @@ gla_process_fisheye_photos <- function(
   class(merged) <- c("sf", "tbl_df", "tbl", "data.frame")
 
   if (nrow(merged) != nrow(points)) {
-    stop(sprintf(
-      "Merge failed: expected %d rows, got %d",
-      nrow(points),
-      nrow(merged)
-    ))
+    stop(
+      sprintf(
+        "Merge failed: expected %d rows, got %d",
+        nrow(points),
+        nrow(merged)
+      ),
+      call. = FALSE
+    )
   }
 
   message("Completed processing ", nrow(merged), " fisheye photos")
@@ -1011,7 +1060,7 @@ gla_process_fisheye_photos <- function(
 #'   \code{horizon_mask}. Use \code{gla_extract_horizons()} to add the
 #'   horizon_mask column.
 #' @param output_dir Directory path where fisheye photo BMP files will be saved
-#' @param cam_ht Camera height above ground in meters. Default is 1.37m
+#' @param camera_height_m Camera height above ground in meters. Default is 1.37m
 #' @param min_dist Minimum distance from camera to include LiDAR points (meters).
 #'   Points closer than this distance are excluded. Default is 1m
 #' @param max_dist Distance at which point symbols reach minimum size (meters).
@@ -1068,7 +1117,7 @@ gla_process_fisheye_photos <- function(
 #'   points_with_photos <- gla_create_fisheye_photos(
 #'     points = stream_points,
 #'     output_dir = "output/fisheye_photos",
-#'     cam_ht = 1.37,
+#'     camera_height_m = 1.37,
 #'     max_dist = 220,
 #'     parallel = TRUE,
 #'     resume = TRUE
@@ -1078,7 +1127,7 @@ gla_process_fisheye_photos <- function(
 gla_create_fisheye_photos <- function(
   points,
   output_dir,
-  cam_ht = 1.37,
+  camera_height_m = 1.37,
   min_dist = 1,
   max_dist = 220,
   img_res = 2800,
@@ -1091,31 +1140,31 @@ gla_create_fisheye_photos <- function(
   radial_distortion = "equidistant"
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
-  required_cols <- c("las_files", "lat", "lon", "elevation", "horizon_mask")
+  required_cols <- c(
+    "point_id",
+    "las_files",
+    "lat",
+    "lon",
+    "elevation",
+    "horizon_mask"
+  )
   validate_required_columns(
     points,
     required_cols,
-    hint = "Use gla_extract_horizons() to add horizon_mask column"
+    hint = "Use gla_load_points() then gla_extract_horizons() to prepare points"
   )
 
-  # Check for missing or invalid LAS files
-  invalid_files <- is.na(points$las_files) | !file.exists(points$las_files)
+  # Check for missing, non-existent, or empty LAS files.
+  invalid_files <- !vapply(points$las_files, is_valid_las_file, logical(1))
   if (any(invalid_files)) {
-    n_invalid <- sum(invalid_files)
-    warning(
-      n_invalid,
-      " point(s) have missing or non-existent LAS files and will be skipped"
+    stop(
+      sum(invalid_files),
+      " point(s) have missing, non-existent, or empty LAS files: ",
+      paste(points$las_files[invalid_files], collapse = ", "),
+      call. = FALSE
     )
-    # Filter to only valid points
-    points <- points[!invalid_files, ]
-
-    if (nrow(points) == 0) {
-      stop("No valid LAS files found in input points")
-    }
   }
 
   # Validate radial_distortion
@@ -1143,33 +1192,17 @@ gla_create_fisheye_photos <- function(
     )
 
     if (length(existing_photos) > 0) {
-      # Generate expected filenames for each point
-      # Must match format from gla_create_fisheye_photo_single
-      expected_filenames <- sapply(seq_len(nrow(points)), function(i) {
-        site_id <- paste0(
-          round(points$x_meters[i], 0),
-          "_",
-          round(points$y_meters[i], 1)
-        )
-        ss <- ifelse(
-          max_cex == 0.2,
-          "0pt2",
-          ifelse(max_cex == 0.3, "0pt3", "0pt4")
-        )
-        paste0(
-          site_id,
-          "_ps",
-          pointsize,
-          "_cex",
-          ss,
-          "_",
-          dpi,
-          "dpi",
-          "_",
-          img_res,
-          "px_polar.bmp"
-        )
-      })
+      expected_filenames <- fisheye_filename(
+        paste0(points$point_id, "_h", camera_height_m),
+        pointsize,
+        max_cex,
+        min_cex,
+        min_dist,
+        max_dist,
+        dpi,
+        img_res,
+        radial_distortion
+      )
 
       # Check which photos already exist
       existing_mask <- file.path(output_dir, expected_filenames) %in%
@@ -1246,6 +1279,17 @@ gla_create_fisheye_photos <- function(
     " fisheye photos..."
   )
 
+  # Build a minimal data frame for parallel workers - geometry and list-columns like
+  # horizon_mask are not needed and would be serialized to every worker needlessly.
+  pts_worker <- data.frame(
+    las_files = points$las_files,
+    point_id = points$point_id,
+    x_meters = points$x_meters,
+    y_meters = points$y_meters,
+    elevation = points$elevation,
+    stringsAsFactors = FALSE
+  )
+
   # Process each point that needs processing
   if (parallel) {
     new_fisheye_paths <- future.apply::future_lapply(
@@ -1255,20 +1299,15 @@ gla_create_fisheye_photos <- function(
 
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
-          cam_ht = cam_ht,
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
+          camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
-        # Create site ID from coordinates
-        site_id <- paste0(
-          round(points$x_meters[i], 0),
-          "_",
-          round(points$y_meters[i], 1)
-        )
+        site_id <- as.character(pts_worker$point_id[i])
 
         # Create fisheye photo with error handling
         tryCatch(
@@ -1313,20 +1352,15 @@ gla_create_fisheye_photos <- function(
         i <- points_to_process_indices[idx]
         # Transform lidar
         processed_lidar <- gla_transform_lidar(
-          las_input = points$las_files[i],
-          x_meters = points$x_meters[i],
-          y_meters = points$y_meters[i],
-          elev_m = points$elevation[i],
-          cam_ht = cam_ht,
+          las_input = pts_worker$las_files[i],
+          x_meters = pts_worker$x_meters[i],
+          y_meters = pts_worker$y_meters[i],
+          elev_m = pts_worker$elevation[i],
+          camera_height_m = camera_height_m,
           min_dist = min_dist
         )
 
-        # Create site ID from coordinates
-        site_id <- paste0(
-          round(points$x_meters[i], 0),
-          "_",
-          round(points$y_meters[i], 1)
-        )
+        site_id <- as.character(pts_worker$point_id[i])
 
         # Create fisheye photo with error handling
         tryCatch(
@@ -1369,7 +1403,6 @@ gla_create_fisheye_photos <- function(
   all_photo_paths <- existing_photo_paths
   all_photo_paths[points_to_process_indices] <- unlist(new_fisheye_paths)
 
-  # Add fisheye photo paths to points dataframe
   points$fisheye_photo_path <- all_photo_paths
 
   # Move geometry column to end

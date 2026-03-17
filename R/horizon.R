@@ -1,54 +1,41 @@
 # Pure R implementation of horizon angle calculation using terra
-# Replicates GRASS GIS r.horizon algorithm without requiring GRASS
 
 #' Save horizon data to CSV file
 #'
 #' @param horizon_df Data frame with horizon data (azimuth, horizon_height, x_msk, y_msk)
-#' @param x_meters X coordinate in meters
-#' @param y_meters Y coordinate in meters
+#' @param point_id Integer unique point identifier
 #' @param output_dir Directory to save CSV file
 #'
 #' @return File path where CSV was saved
 #' @keywords internal
-save_horizon_csv <- function(horizon_df, x_meters, y_meters, output_dir) {
+save_horizon_csv <- function(horizon_df, point_id, output_dir) {
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
 
-  file_path <- file.path(
-    output_dir,
-    sprintf("%d_%.1f_horizon.csv", round(x_meters, 0), round(y_meters, 1))
-  )
-
+  file_path <- file.path(output_dir, sprintf("%d_horizon.csv", point_id))
   write.csv(horizon_df, file_path, row.names = FALSE)
-
-  return(file_path)
+  file_path
 }
 
 #' Load horizon data from CSV file
 #'
-#' @param x_meters X coordinate in meters
-#' @param y_meters Y coordinate in meters
+#' @param point_id Integer unique point identifier
 #' @param output_dir Directory containing CSV file
 #'
 #' @return Data frame with horizon data, or NULL if file doesn't exist
 #' @keywords internal
-load_horizon_csv <- function(x_meters, y_meters, output_dir) {
-  file_path <- file.path(
-    output_dir,
-    sprintf("%d_%.1f_horizon.csv", round(x_meters, 0), round(y_meters, 1))
-  )
-
+load_horizon_csv <- function(point_id, output_dir) {
+  file_path <- file.path(output_dir, sprintf("%d_horizon.csv", point_id))
   if (!file.exists(file_path)) {
     return(NULL)
   }
-
   read.csv(file_path)
 }
 
 #' Find which points have existing horizon CSV files
 #'
-#' @param points sf object with points (must have x_meters and y_meters columns)
+#' @param points sf object with points (must have point_id column)
 #' @param output_dir Directory containing horizon CSV files
 #'
 #' @return Logical vector indicating which points have cached horizons
@@ -57,25 +44,13 @@ find_existing_horizons <- function(points, output_dir) {
   if (!dir.exists(output_dir)) {
     return(rep(FALSE, nrow(points)))
   }
-
-  sapply(seq_len(nrow(points)), function(i) {
-    file_path <- file.path(
-      output_dir,
-      sprintf(
-        "%d_%.1f_horizon.csv",
-        round(points$x_meters[i], 0),
-        round(points$y_meters[i], 1)
-      )
-    )
-    file.exists(file_path)
-  })
+  file.exists(file.path(output_dir, sprintf("%d_horizon.csv", points$point_id)))
 }
 
-#' Extract horizon angles from DEM using terra (GRASS r.horizon replacement)
+#' Extract horizon angles from DEM using terra
 #'
 #' Calculates the horizon elevation angle for each azimuth direction from a given
-#' observation point using a digital elevation model (DEM). This is a pure R
-#' implementation that replicates GRASS GIS r.horizon algorithm.
+#' observation point using a digital elevation model (DEM).
 #'
 #' @param dem_rast SpatRaster object from terra package containing the DEM
 #' @param x_meters Numeric X coordinate in meters (in the DEM's coordinate system)
@@ -87,18 +62,22 @@ find_existing_horizons <- function(points, output_dir) {
 #' @param dem_max Maximum elevation in the DEM for early termination optimization
 #'   (default: NULL, will be computed). When processing multiple points with the same
 #'   DEM, pass this value to avoid recomputing (expensive on large DEMs).
+#' @param camera_height_m Camera height above ground in meters. The observer elevation
+#'   is calculated as ground elevation (from DEM) plus this height.
 #' @param verbose Logical indicating whether to print progress messages (default: FALSE)
 #'
 #' @return Data frame with two columns:
 #'   - azimuth: azimuth angles in degrees (0-360, East=0, counterclockwise)
 #'   - horizon_height: horizon elevation angles in degrees
 #'
-#' @details The algorithm replicates GRASS r.horizon using the exact algorithm:
-#'   1. Uses tanh (tan of horizon angle) for tracking maximum
-#'   2. Compares each point against current horizon line
-#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tanh
+#' @details The algorithm:
+#'   1. Tracks the tangent of the current maximum horizon angle, tan(theta)
+#'   2. Compares each point against the current horizon line
+#'   3. Updates horizon when: z_point > z_origin + curvature + distance * tan(theta)
 #'   4. Applies Earth curvature correction: 0.5 * distance^2 / 6371000
 #'   5. Terminates when reaching max elevation or max distance
+#'
+#'   The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
 #'
 #' @examples
 #' \dontrun{
@@ -107,7 +86,8 @@ find_existing_horizons <- function(points, output_dir) {
 #'     dem_rast = dem,
 #'     x_meters = 500000,
 #'     y_meters = 5500000,
-#'     step = 5
+#'     step = 5,
+#'     camera_height_m = 1.37
 #'   )
 #' }
 gla_extract_horizon_terra <- function(
@@ -118,19 +98,23 @@ gla_extract_horizon_terra <- function(
   max_search_distance = NULL,
   distance_step = NULL,
   dem_max = NULL,
+  camera_height_m,
   verbose = FALSE
 ) {
   # Validate inputs
   if (!inherits(dem_rast, "SpatRaster")) {
-    stop("dem_rast must be a SpatRaster object from terra package")
+    stop(
+      "dem_rast must be a SpatRaster object from terra package",
+      call. = FALSE
+    )
   }
 
   if (missing(x_meters) || missing(y_meters)) {
-    stop("Both x_meters and y_meters must be provided")
+    stop("Both x_meters and y_meters must be provided", call. = FALSE)
   }
 
   if (!is.numeric(x_meters) || !is.numeric(y_meters)) {
-    stop("x_meters and y_meters must be numeric")
+    stop("x_meters and y_meters must be numeric", call. = FALSE)
   }
 
   # Use projected coordinates directly
@@ -155,14 +139,22 @@ gla_extract_horizon_terra <- function(
   obs_elev <- terra::extract(dem_rast, obs_point)[1, 2]
 
   if (is.na(obs_elev)) {
-    stop("Observer location is outside DEM extent or has no data")
+    stop(
+      "Observer location is outside DEM extent or has no data",
+      call. = FALSE
+    )
   }
+
+  # Camera elevation = ground elevation + camera height above ground
+
+  cam_elev <- obs_elev + camera_height_m
 
   if (verbose) {
-    cat("Observer elevation:", obs_elev, "m\n")
+    cat("Ground elevation:", obs_elev, "m\n")
+    cat("Camera elevation:", cam_elev, "m (ground +", camera_height_m, "m)\n")
   }
 
-  # Get global maximum elevation for early termination (GRASS does this)
+  # Get global maximum elevation for early termination
   # Only compute if not provided (expensive operation on large DEMs)
   if (is.null(dem_max)) {
     dem_max <- terra::global(dem_rast, "max", na.rm = TRUE)[1, 1]
@@ -204,11 +196,10 @@ gla_extract_horizon_terra <- function(
     }
   }
 
-  # Generate azimuth angles (0 = East, counterclockwise)
-  # GRASS r.horizon uses: 0=East, 90=North, 180=West, 270=South
+  # Generate azimuth angles (0=East, 90=North, 180=West, 270=South)
   azimuths <- seq(0, 360 - step, by = step)
 
-  # Earth radius in meters (same as GRASS: 6371000)
+  # Earth radius in meters
   earth_radius <- 6371000
   inv_earth <- 1.0 / earth_radius
 
@@ -268,8 +259,8 @@ gla_extract_horizon_terra <- function(
     azimuth_mask <- azimuth_index == i
     elevations <- all_elevations[azimuth_mask]
 
-    # Initialize horizon tracking (GRASS uses tan of horizon angle)
-    tanh0 <- 0.0
+    # Initialize horizon tracking: stores tan(theta) where theta is the horizon angle
+    tan_horizon <- 0.0
 
     # Process points along line of sight
     for (j in seq_along(distances)) {
@@ -281,30 +272,34 @@ gla_extract_horizon_terra <- function(
       }
 
       # Calculate projected height on current horizon line
-      z_horizon <- obs_elev + curvature_corrections[j] + distances[j] * tanh0
+      z_horizon <- cam_elev +
+        curvature_corrections[j] +
+        distances[j] * tan_horizon
 
       # Update horizon if this point is above current horizon line
       if (elev > z_horizon) {
-        tanh0 <- (elev - obs_elev - curvature_corrections[j]) / distances[j]
+        tan_horizon <- (elev - cam_elev - curvature_corrections[j]) /
+          distances[j]
       }
 
       # Early termination: if horizon line is above global max elevation
       if (
-        obs_elev + curvature_corrections[j] + distances[j] * tanh0 >= dem_max
+        cam_elev + curvature_corrections[j] + distances[j] * tan_horizon >=
+          dem_max
       ) {
         break
       }
     }
 
     # Convert tan to angle in degrees
-    horizon_angles[i] <- atan(tanh0) * rad_to_deg_factor
+    horizon_angles[i] <- atan(tan_horizon) * rad_to_deg_factor
 
     if (verbose && i %% 10 == 0) {
       cat("Processed azimuth", azimuths[i], "degrees\n")
     }
   }
 
-  # Create output dataframe (same format as GRASS r.horizon)
+  # Create output dataframe
   result <- data.frame(
     azimuth = azimuths,
     horizon_height = horizon_angles
@@ -359,11 +354,17 @@ prepare_horizon_mask <- function(
   if (
     missing(horizon_data) || is.null(horizon_data) || nrow(horizon_data) == 0
   ) {
-    stop("horizon_data parameter is required and must contain data")
+    stop(
+      "horizon_data parameter is required and must contain data",
+      call. = FALSE
+    )
   }
 
   if (ncol(horizon_data) < 2) {
-    stop("horizon_data must have at least 2 columns (azimuth, elevation)")
+    stop(
+      "horizon_data must have at least 2 columns (azimuth, elevation)",
+      call. = FALSE
+    )
   }
 
   # Validate radial_distortion
@@ -430,6 +431,8 @@ prepare_horizon_mask <- function(
 #'   (default: NULL, uses full DEM extent)
 #' @param distance_step Distance step size in meters for sampling along line of
 #'   sight (default: NULL, uses raster resolution)
+#' @param camera_height_m Camera height above ground in meters (default: 1.37). The observer
+#'   elevation is calculated as ground elevation (from DEM) plus this height.
 #' @param parallel Logical indicating whether to process points in parallel
 #'   (default: TRUE). When TRUE, uses the future backend configured with
 #'   \code{future::plan()}. When FALSE, processes sequentially.
@@ -506,17 +509,16 @@ gla_extract_horizons <- function(
   step = 5,
   max_search_distance = NULL,
   distance_step = NULL,
+  camera_height_m = 1.37,
   parallel = TRUE,
   resume = TRUE,
   verbose = FALSE
 ) {
   # Validate inputs
-  if (!inherits(points, "sf")) {
-    stop("points must be an sf object")
-  }
+  validate_sf_object(points)
 
   if (!file.exists(dem_path)) {
-    stop("DEM file not found: ", dem_path)
+    stop("DEM file not found: ", dem_path, call. = FALSE)
   }
 
   n_points <- nrow(points)
@@ -526,7 +528,13 @@ gla_extract_horizons <- function(
     " locations using terra method..."
   )
 
-  # Ensure x_meters and y_meters columns exist (needed for caching filenames)
+  validate_required_columns(
+    points,
+    "point_id",
+    hint = "Run gla_load_points() first"
+  )
+
+  # Ensure x_meters and y_meters columns exist (needed for coordinate passing)
   if (!("x_meters" %in% names(points))) {
     coords <- sf::st_coordinates(points)
     points$x_meters <- coords[, 1]
@@ -545,11 +553,7 @@ gla_extract_horizons <- function(
       message("Found ", n_cached, " cached horizon files, loading...")
 
       for (i in which(has_cached)) {
-        horizon_df <- load_horizon_csv(
-          points$x_meters[i],
-          points$y_meters[i],
-          output_dir
-        )
+        horizon_df <- load_horizon_csv(points$point_id[i], output_dir)
 
         if (!is.null(horizon_df)) {
           # Convert cached horizon angles to cartesian coordinates
@@ -595,7 +599,7 @@ gla_extract_horizons <- function(
   dem_rast <- terra::rast(dem_path)
 
   # Strict CRS validation to prevent spatial errors
-  dem_crs <- sf::st_crs(terra::crs(dem_rast))
+  dem_crs <- get_raster_crs(dem_rast)
   pts_crs <- sf::st_crs(points)
 
   validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
@@ -618,15 +622,15 @@ gla_extract_horizons <- function(
       function(
         i,
         dem_path,
-        lats,
-        lons,
         step,
         max_search_distance,
         dist_step,
         dem_max,
+        camera_height_m,
         verbose,
         x_meters,
         y_meters,
+        point_ids,
         output_dir
       ) {
         # Load DEM in worker (each worker loads independently)
@@ -645,6 +649,7 @@ gla_extract_horizons <- function(
           max_search_distance = max_search_distance,
           distance_step = dist_step,
           dem_max = dem_max,
+          camera_height_m = camera_height_m,
           verbose = FALSE
         ) |>
           prepare_horizon_mask(
@@ -653,7 +658,7 @@ gla_extract_horizons <- function(
           )
 
         # Save to CSV
-        save_horizon_csv(horizon_df, x_meters[i], y_meters[i], output_dir)
+        save_horizon_csv(horizon_df, point_ids[i], output_dir)
 
         list(
           azimuth = horizon_df$azimuth,
@@ -667,18 +672,18 @@ gla_extract_horizons <- function(
       max_search_distance = max_search_distance,
       dist_step = distance_step,
       dem_max = dem_max,
+      camera_height_m = camera_height_m,
       verbose = verbose,
       x_meters = points$x_meters,
       y_meters = points$y_meters,
+      point_ids = points$point_id,
       output_dir = output_dir,
       future.seed = TRUE
     )
 
     # Merge cached and computed horizons
     horizon_list <- cached_horizons
-    for (idx in seq_along(points_to_compute)) {
-      horizon_list[[points_to_compute[idx]]] <- computed_horizons[[idx]]
-    }
+    horizon_list[points_to_compute] <- computed_horizons
   } else {
     message("Using sequential processing")
 
@@ -697,6 +702,7 @@ gla_extract_horizons <- function(
         max_search_distance = max_search_distance,
         distance_step = distance_step,
         dem_max = dem_max,
+        camera_height_m = camera_height_m,
         verbose = FALSE
       ) |>
         prepare_horizon_mask(
@@ -705,12 +711,7 @@ gla_extract_horizons <- function(
         )
 
       # Save to CSV
-      save_horizon_csv(
-        horizon_df,
-        points$x_meters[i],
-        points$y_meters[i],
-        output_dir
-      )
+      save_horizon_csv(horizon_df, points$point_id[i], output_dir)
 
       list(
         azimuth = horizon_df$azimuth,
@@ -722,9 +723,7 @@ gla_extract_horizons <- function(
 
     # Merge cached and computed horizons
     horizon_list <- cached_horizons
-    for (idx in seq_along(points_to_compute)) {
-      horizon_list[[points_to_compute[idx]]] <- computed_horizons[[idx]]
-    }
+    horizon_list[points_to_compute] <- computed_horizons
   }
 
   # Clean up

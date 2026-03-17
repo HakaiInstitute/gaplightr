@@ -7,7 +7,7 @@
 find_existing_horizons(points, output_dir)
 }
 \arguments{
-\item{points}{sf object with points (must have x_meters and y_meters columns)}
+\item{points}{sf object with points (must have point_id column)}
 
 \item{output_dir}{Directory containing horizon CSV files}
 }

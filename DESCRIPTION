@@ -11,7 +11,7 @@ Description: Analyzes forest canopy gap light transmission using LiDAR point clo
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: 
     R (>= 4.2.0)
 Imports:
@@ -25,5 +25,10 @@ Suggests:
     testthat (>= 3.0.0),
     withr,
     devtools,
-    future
+    future,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 Config/testthat/edition: 3
+URL: https://hakaiinstitute.github.io/gaplightr/, https://github.com/HakaiInstitute/gaplightr
+BugReports: https://github.com/HakaiInstitute/gaplightr/issues

@@ -190,6 +190,30 @@ test_that("gla_load_points errors on invalid input type", {
   )
 })
 
+test_that("gla_load_points preserves fractional coordinates in x_meters and y_meters", {
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1022600,
+    xmax = 1022800,
+    ymin = 574650,
+    ymax = 574800,
+    crs = "EPSG:3005",
+    vals = rep(250, 100)
+  )
+
+  # Use coordinates with sub-meter fractional parts
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1L),
+    geom = sf::st_sfc(sf::st_point(c(1022655.7, 574704.3)), crs = 3005)
+  )
+
+  result <- gla_load_points(test_points, dem_rast)
+
+  expect_equal(result$x_meters, 1022655.7)
+  expect_equal(result$y_meters, 574704.3)
+})
+
 test_that("gla_load_points snapshot", {
   # Create minimal test data
   test_points <- sf::st_as_sf(
@@ -232,9 +256,9 @@ test_that("gla_load_points errors when points are outside DEM extent", {
     nrows = 10,
     ncols = 10,
     xmin = 1022600,
-    xmax = 1022700,  # 100m wide
+    xmax = 1022700, # 100m wide
     ymin = 574650,
-    ymax = 574750,   # 100m tall
+    ymax = 574750, # 100m tall
     crs = "EPSG:3005",
     vals = rep(250, 100)
   )
@@ -245,8 +269,8 @@ test_that("gla_load_points errors when points are outside DEM extent", {
   test_points <- sf::st_as_sf(
     data.frame(id = 1:2),
     geom = sf::st_sfc(
-      sf::st_point(c(1022650, 574700)),  # Inside DEM
-      sf::st_point(c(1023000, 575000)),  # Outside DEM (300m east, 250m north)
+      sf::st_point(c(1022650, 574700)), # Inside DEM
+      sf::st_point(c(1023000, 575000)), # Outside DEM (300m east, 250m north)
       crs = 3005
     )
   )
@@ -268,9 +292,9 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
     nrows = 10,
     ncols = 10,
     xmin = 1000000,
-    xmax = 1000100,  # 100m wide, 10m per cell
+    xmax = 1000100, # 100m wide, 10m per cell
     ymin = 500000,
-    ymax = 500100,   # 100m tall, 10m per cell
+    ymax = 500100, # 100m tall, 10m per cell
     crs = "EPSG:3005",
     vals = dem_vals
   )
@@ -282,7 +306,7 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
   test_points <- sf::st_as_sf(
     data.frame(id = 1),
     geom = sf::st_sfc(
-      sf::st_point(c(1000045, 500045)),  # Center of middle cell (should be NA)
+      sf::st_point(c(1000045, 500045)), # Center of middle cell (should be NA)
       crs = 3005
     )
   )
@@ -292,6 +316,44 @@ test_that("gla_load_points errors when points are on NoData cells inside extent"
     gla_load_points(test_points, dem_path),
     regexp = "NA elevation values.*NoData"
   )
+})
+
+test_that("gla_load_points with drop_na_dem = TRUE warns and drops NA-elevation points", {
+  dem_vals <- rep(250, 100)
+  dem_vals[45:55] <- NA
+
+  dem_rast <- terra::rast(
+    nrows = 10,
+    ncols = 10,
+    xmin = 1000000,
+    xmax = 1000100,
+    ymin = 500000,
+    ymax = 500100,
+    crs = "EPSG:3005",
+    vals = dem_vals
+  )
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(dem_rast, dem_path, overwrite = TRUE)
+
+  # One point on a valid cell, one on an NA cell
+  test_points <- sf::st_as_sf(
+    data.frame(id = 1:2),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000005, 500005)), # valid cell
+      sf::st_point(c(1000045, 500045)), # NA cell
+      crs = 3005
+    )
+  )
+
+  result <- withCallingHandlers(
+    gla_load_points(test_points, dem_path, drop_na_dem = TRUE),
+    warning = function(w) {
+      expect_match(conditionMessage(w), "1 point\\(s\\) dropped")
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_s3_class(result, "sf")
+  expect_equal(nrow(result), 1)
 })
 
 test_that("gla_load_points handles all points outside DEM extent", {
@@ -325,4 +387,166 @@ test_that("gla_load_points handles all points outside DEM extent", {
     gla_load_points(test_points, dem_path),
     regexp = "3 point\\(s\\) are outside the DEM extent"
   )
+})
+
+
+# point_id tests ----
+
+test_that("gla_load_points messages when auto-assigning point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 3,
+    output_path = stream_network_path
+  )
+
+  expect_message(
+    gla_load_points(stream_network_path, dem_path),
+    "Assigning sequential point_id \\(1 to 3\\)"
+  )
+})
+
+test_that("gla_load_points messages when honouring existing point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(10L, 20L, 30L)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      sf::st_point(c(1000540, 500540)),
+      crs = 3005
+    )
+  )
+
+  expect_message(
+    gla_load_points(pts, dem_path),
+    "Using existing point_id column \\(3 point"
+  )
+})
+
+test_that("gla_load_points auto-assigns sequential point_id when absent", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  stream_network_path <- withr::local_tempfile(fileext = ".gpkg")
+  create_test_points(
+    crs = 3005,
+    n_points = 3,
+    output_path = stream_network_path
+  )
+
+  result <- gla_load_points(stream_network_path, dem_path)
+
+  expect_true("point_id" %in% names(result))
+  expect_equal(result$point_id, 1:3)
+})
+
+test_that("gla_load_points honours an existing valid point_id column", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(10L, 20L, 30L)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      sf::st_point(c(1000540, 500540)),
+      crs = 3005
+    )
+  )
+
+  result <- gla_load_points(pts, dem_path)
+
+  expect_equal(result$point_id, c(10L, 20L, 30L))
+})
+
+test_that("gla_load_points errors on duplicate point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(1L, 1L)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      crs = 3005
+    )
+  )
+
+  expect_error(
+    gla_load_points(pts, dem_path),
+    "duplicate"
+  )
+})
+
+test_that("gla_load_points errors on NA point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(1L, NA_integer_)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      crs = 3005
+    )
+  )
+
+  expect_error(
+    gla_load_points(pts, dem_path),
+    "NA"
+  )
+})
+
+test_that("gla_load_points errors on non-numeric point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c("a", "b")),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      crs = 3005
+    )
+  )
+
+  expect_error(gla_load_points(pts, dem_path), "numeric")
+})
+
+test_that("gla_load_points errors on non-positive point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(0L, 1L)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      crs = 3005
+    )
+  )
+
+  expect_error(gla_load_points(pts, dem_path), "positive whole numbers")
+})
+
+test_that("gla_load_points errors on fractional point_id", {
+  dem_path <- withr::local_tempfile(fileext = ".tif")
+  create_test_dem(crs = 3005, output_path = dem_path)
+
+  pts <- sf::st_as_sf(
+    data.frame(point_id = c(1.5, 2.5)),
+    geom = sf::st_sfc(
+      sf::st_point(c(1000500, 500500)),
+      sf::st_point(c(1000520, 500520)),
+      crs = 3005
+    )
+  )
+
+  expect_error(gla_load_points(pts, dem_path), "positive whole numbers")
 })
