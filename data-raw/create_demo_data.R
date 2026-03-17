@@ -26,15 +26,13 @@ peaks <- list(
   list(cx = 50, cy = 160, height = 10, spread = 700) # SW peak
 )
 
+row_idx <- matrix(seq_len(nrows), nrow = nrows, ncol = ncols)
+col_idx <- matrix(seq_len(ncols), nrow = nrows, ncol = ncols, byrow = TRUE)
+
 elev_matrix <- matrix(100, nrow = nrows, ncol = ncols)
 for (pk in peaks) {
-  for (i in seq_len(nrows)) {
-    for (j in seq_len(ncols)) {
-      dist2 <- (i - pk$cy)^2 + (j - pk$cx)^2
-      elev_matrix[i, j] <- elev_matrix[i, j] +
-        pk$height * exp(-dist2 / pk$spread)
-    }
-  }
+  dist2 <- (row_idx - pk$cy)^2 + (col_idx - pk$cx)^2
+  elev_matrix <- elev_matrix + pk$height * exp(-dist2 / pk$spread)
 }
 
 dem <- terra::rast(
@@ -103,12 +101,12 @@ tree_clusters <- data.frame(
   r = c(18, 22, 20, 15, 18, 25, 28, 20)
 )
 
-# Helper: sample n points uniformly within a circle.
+# Helper: sample n points uniformly within a circle using the polar method.
+# Uniform area distribution requires r = sqrt(u) * radius, not u * radius.
 sample_circle <- function(n, cx, cy, r) {
-  x_try <- runif(n * 4, cx - r, cx + r)
-  y_try <- runif(n * 4, cy - r, cy + r)
-  keep <- sqrt((x_try - cx)^2 + (y_try - cy)^2) <= r
-  list(x = x_try[keep][seq_len(n)], y = y_try[keep][seq_len(n)])
+  theta <- runif(n, 0, 2 * pi)
+  rad <- r * sqrt(runif(n))
+  list(x = cx + rad * cos(theta), y = cy + rad * sin(theta))
 }
 
 # Generate LiDAR returns for a single conifer tree. The crown is modelled as a
