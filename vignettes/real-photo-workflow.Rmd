@@ -70,9 +70,10 @@ img_rotated <- imager::imrotate(img_crop, 90, interpolation = 0)
 # Split RGB and keep the blue channel (best contrast)
 img_blue <- imager::channel(img_rotated, 3)
 
-# Threshold to produce a binary sky mask. The adjust value of 1.75 is specific
-# to this photo; images taken under different conditions will need re-tuning.
-img_thresh <- imager::threshold(img_blue, adjust = 1.75)
+# Threshold to produce a binary sky mask. The threshold value of 1.75 is
+# specific to this photo; images taken under different conditions will need
+# re-tuning.
+img_thresh <- imager::threshold(img_blue, thr = 1.75)
 fisheye <- imager::as.cimg(img_thresh)
 
 plot(fisheye, axes = FALSE, main = "Thresholded fisheye (white = sky)")
