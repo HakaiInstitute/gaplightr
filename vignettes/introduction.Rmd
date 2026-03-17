@@ -40,9 +40,9 @@ library(gaplightr)
 library(terra)
 library(sf)
 
-dem_path <- system.file("demo", "dem.tif", package = "gaplightr")
-points_path <- system.file("demo", "points.geojson", package = "gaplightr")
-lidar_dir <- system.file("demo", "lidar", package = "gaplightr")
+dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+lidar_dir <- system.file("extdata", "lidar", package = "gaplightr")
 
 output_dir <- tempdir()
 ```
