@@ -63,7 +63,7 @@ img_crop <- imager::imsub(
   y %inr% c(2, 1448)
 )
 
-# # Rotate fisheye 90 degrees so that true north is up. Nearest-neighbour
+# Rotate fisheye 90 degrees so that true north is up. Nearest-neighbour
 # interpolation avoids mixing sky and canopy pixel values at boundaries.
 img_rotated <- imager::imrotate(img_crop, 90, interpolation = 0)
 
