@@ -12,7 +12,6 @@ skyarea <- function(n_elevation_rings, n_azimuth_sectors) {
   # Define ring and sector limits for sky region segments
   # Using elevation angle (90 degrees - zenith angle)
   elev_lim <- seq(0, rad_90(), rad_90() / n_elevation_rings)
-  azi_lim <- seq(0, two_pi(), two_pi() / n_azimuth_sectors)
   # Create array for sky-region area calculations
   sky_area <- array(0, dim = c(n_elevation_rings, n_azimuth_sectors))
   # Normalized sky area by ring
@@ -45,7 +44,6 @@ uoc <- function(n_elevation_rings, n_azimuth_sectors) {
   # Create vectors to store ring and sector limits
   # Using elevation angle (90 degrees - zenith angle)
   elev_lim <- seq(0, rad_90(), rad_90() / n_elevation_rings)
-  azi_lim <- seq(0, two_pi(), two_pi() / n_azimuth_sectors)
   # Create array to store UOC calculation for each sky region
   sky_rad_array <- array(0, dim = c(n_elevation_rings, n_azimuth_sectors))
   # By ring
