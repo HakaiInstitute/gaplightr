@@ -14,8 +14,11 @@ validate_radial_distortion(radial_distortion)
 
 - radial_distortion:
 
-  Either "equidistant" string or calibration list with radius and
-  elevation components
+  Lens projection method. Use "equidistant" (default) for standard
+  equidistant polar projection, or provide custom lens calibration data
+  (see
+  [`gla_lens_sigma_8mm`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
+  for format).
 
 ## Value
 

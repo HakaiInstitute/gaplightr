@@ -56,16 +56,15 @@ gla_extract_horizons(
 
 - camera_height_m:
 
-  Camera height above ground in meters (default: 1.37). The observer
-  elevation is calculated as ground elevation (from DEM) plus this
-  height.
+  Camera height above ground in meters. The observer elevation is
+  calculated as ground elevation (from DEM) plus this height.
 
 - parallel:
 
-  Logical indicating whether to process points in parallel (default:
-  TRUE). When TRUE, uses the future backend configured with
-  [`future::plan()`](https://future.futureverse.org/reference/plan.html).
-  When FALSE, processes sequentially.
+  Logical. If TRUE (default), use parallel processing via
+  `future.apply`. Set up parallel plan with
+  [`future::plan()`](https://future.futureverse.org/reference/plan.html)
+  before calling this function
 
 - resume:
 

@@ -73,7 +73,10 @@ gla_process_fisheye_photos(
 
 - parallel:
 
-  Use parallel processing (default TRUE)
+  Logical. If TRUE (default), use parallel processing via
+  `future.apply`. Set up parallel plan with
+  [`future::plan()`](https://future.futureverse.org/reference/plan.html)
+  before calling this function
 
 - keep_gap_fraction_data:
 

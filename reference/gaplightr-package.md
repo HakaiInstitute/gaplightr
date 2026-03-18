@@ -10,6 +10,10 @@ Useful links:
 
 - <https://hakaiinstitute.github.io/gaplightr/>
 
+- <https://github.com/HakaiInstitute/gaplightr>
+
+- Report bugs at <https://github.com/HakaiInstitute/gaplightr/issues>
+
 ## Author
 
 **Maintainer**: Sam Albers <sam.albers@hakai.org>

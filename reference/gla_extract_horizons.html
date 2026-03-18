@@ -98,14 +98,14 @@ sight (default: NULL, uses raster resolution)</p></dd>
 
 
 <dt id="arg-camera-height-m">camera_height_m<a class="anchor" aria-label="anchor" href="#arg-camera-height-m"></a></dt>
-<dd><p>Camera height above ground in meters (default: 1.37). The observer
-elevation is calculated as ground elevation (from DEM) plus this height.</p></dd>
+<dd><p>Camera height above ground in meters. The observer elevation
+is calculated as ground elevation (from DEM) plus this height.</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Logical indicating whether to process points in parallel
-(default: TRUE). When TRUE, uses the future backend configured with
-<code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code>. When FALSE, processes sequentially.</p></dd>
+<dd><p>Logical. If TRUE (default), use parallel processing via
+<code>future.apply</code>. Set up parallel plan with <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code> before
+calling this function</p></dd>
 
 
 <dt id="arg-resume">resume<a class="anchor" aria-label="anchor" href="#arg-resume"></a></dt>
@@ -114,8 +114,7 @@ cached horizon files (default: TRUE). When FALSE, recomputes all horizons.</p></
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
-<dd><p>Logical indicating whether to print progress messages
-(default: FALSE)</p></dd>
+<dd><p>Logical indicating whether to print progress messages (default: FALSE)</p></dd>
 
 </dl></div>
     <div class="section level2">

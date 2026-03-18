@@ -91,11 +91,9 @@ gla_create_fisheye_photos(
 
   Lens projection method. Use "equidistant" (default) for standard
   equidistant polar projection, or provide custom lens calibration data
-  with `radius` (normalized 0-1) and `elevation` (radians) components.
-  See
+  (see
   [`gla_lens_sigma_8mm`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
-  for example format. Applied to both LiDAR points and horizon mask
-  during photo creation.
+  for format).
 
 ## Value
 
