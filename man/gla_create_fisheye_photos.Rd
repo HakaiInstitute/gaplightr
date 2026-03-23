@@ -9,7 +9,6 @@ gla_create_fisheye_photos(
   output_dir,
   camera_height_m = 1.37,
   min_dist = 1,
-  max_dist = 220,
   img_res = 2800,
   max_cex = 0.2,
   min_cex = 0.05,
@@ -31,20 +30,18 @@ horizon_mask column.}
 \item{camera_height_m}{Camera height above ground in meters. Default is 1.37m}
 
 \item{min_dist}{Minimum distance from camera to include LiDAR points (meters).
-Points closer than this distance are excluded. Default is 1m}
-
-\item{max_dist}{Distance at which point symbols reach minimum size (meters).
-Point size (CEX) decays linearly from max_cex at min_dist to min_cex at
-max_dist. Points beyond max_dist are plotted with min_cex (smallest size).
-Default is 220m}
+Points closer than this distance are excluded. Must be greater than 0 -
+a value of 0 would allow rho = 0, causing division by zero in point size
+scaling. Default is 1m}
 
 \item{img_res}{Image resolution in pixels (width and height). Default is 2800}
 
 \item{max_cex}{Maximum symbol size for plotting points (CEX value). Controls
-the size of points closest to the camera (at min_dist). Default is 0.2}
+the size of points at rho = 1 (1 metre from camera) under the inverse-distance
+formula. Default is 0.2}
 
-\item{min_cex}{Minimum symbol size for plotting points (CEX value). Points at
-or beyond max_dist are plotted with this size. Default is 0.05}
+\item{min_cex}{Minimum symbol size for plotting points (CEX value). The
+asymptotic lower bound approached as distance increases. Default is 0.05}
 
 \item{pointsize}{Point size parameter for bitmap graphics device. Default is 10}
 
@@ -97,7 +94,6 @@ re-creating existing photos.
     points = stream_points,
     output_dir = "output/fisheye_photos",
     camera_height_m = 1.37,
-    max_dist = 220,
     parallel = TRUE,
     resume = TRUE
   )

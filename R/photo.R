@@ -7,7 +7,6 @@ fisheye_filename <- function(
   max_cex,
   min_cex,
   min_dist,
-  max_dist,
   res,
   width,
   radial_distortion
@@ -33,13 +32,12 @@ fisheye_filename <- function(
     "custom"
   }
   sprintf(
-    "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
+    "%s_ps%s_cex%s-%s_distmin%s_%sdpi_%spx_%s.bmp",
     safe(site_id),
     fmt(pointsize),
     fmt(max_cex),
     fmt(min_cex),
     fmt(min_dist),
-    fmt(max_dist),
     fmt(res),
     fmt(width),
     distortion_label
@@ -59,7 +57,6 @@ gla_create_fisheye_photo_single <- function(
   max_cex,
   min_cex,
   min_dist,
-  max_dist,
   width, # Required: image width for bmp() and filename
   pointsize, # Required: point size for bmp() and filename
   res, # Required: resolution for bmp() and filename
@@ -103,7 +100,6 @@ gla_create_fisheye_photo_single <- function(
     max_cex,
     min_cex,
     min_dist,
-    max_dist,
     res,
     width,
     radial_distortion
@@ -1062,16 +1058,15 @@ gla_process_fisheye_photos <- function(
 #' @param output_dir Directory path where fisheye photo BMP files will be saved
 #' @param camera_height_m Camera height above ground in meters. Default is 1.37m
 #' @param min_dist Minimum distance from camera to include LiDAR points (meters).
-#'   Points closer than this distance are excluded. Default is 1m
-#' @param max_dist Distance at which point symbols reach minimum size (meters).
-#'   Point size (CEX) decays linearly from max_cex at min_dist to min_cex at
-#'   max_dist. Points beyond max_dist are plotted with min_cex (smallest size).
-#'   Default is 220m
+#'   Points closer than this distance are excluded. Must be greater than 0 -
+#'   a value of 0 would allow rho = 0, causing division by zero in point size
+#'   scaling. Default is 1m
 #' @param img_res Image resolution in pixels (width and height). Default is 2800
 #' @param max_cex Maximum symbol size for plotting points (CEX value). Controls
-#'   the size of points closest to the camera (at min_dist). Default is 0.2
-#' @param min_cex Minimum symbol size for plotting points (CEX value). Points at
-#'   or beyond max_dist are plotted with this size. Default is 0.05
+#'   the size of points at rho = 1 (1 metre from camera) under the inverse-distance
+#'   formula. Default is 0.2
+#' @param min_cex Minimum symbol size for plotting points (CEX value). The
+#'   asymptotic lower bound approached as distance increases. Default is 0.05
 #' @param pointsize Point size parameter for bitmap graphics device. Default is 10
 #' @param dpi Resolution in dots per inch for output image. Default is 300
 #' @param parallel Logical. If TRUE (default), use parallel processing via
@@ -1114,7 +1109,6 @@ gla_process_fisheye_photos <- function(
 #'     points = stream_points,
 #'     output_dir = "output/fisheye_photos",
 #'     camera_height_m = 1.37,
-#'     max_dist = 220,
 #'     parallel = TRUE,
 #'     resume = TRUE
 #'   )
@@ -1125,7 +1119,6 @@ gla_create_fisheye_photos <- function(
   output_dir,
   camera_height_m = 1.37,
   min_dist = 1,
-  max_dist = 220,
   img_res = 2800,
   max_cex = 0.2,
   min_cex = 0.05,
@@ -1135,6 +1128,14 @@ gla_create_fisheye_photos <- function(
   resume = TRUE,
   radial_distortion = "equidistant"
 ) {
+  if (min_dist <= 0) {
+    stop(
+      "min_dist must be greater than 0. A value of 0 allows rho = 0, ",
+      "causing division by zero in point size scaling.",
+      call. = FALSE
+    )
+  }
+
   # Validate inputs
   validate_sf_object(points)
 
@@ -1194,7 +1195,6 @@ gla_create_fisheye_photos <- function(
         max_cex,
         min_cex,
         min_dist,
-        max_dist,
         dpi,
         img_res,
         radial_distortion
@@ -1317,7 +1317,6 @@ gla_create_fisheye_photos <- function(
               max_cex = max_cex,
               min_cex = min_cex,
               min_dist = min_dist,
-              max_dist = max_dist,
               width = img_res,
               pointsize = pointsize,
               res = dpi,
@@ -1370,7 +1369,6 @@ gla_create_fisheye_photos <- function(
               max_cex = max_cex,
               min_cex = min_cex,
               min_dist = min_dist,
-              max_dist = max_dist,
               width = img_res,
               pointsize = pointsize,
               res = dpi,
