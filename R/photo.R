@@ -66,14 +66,17 @@ gla_create_fisheye_photo_single <- function(
   radial_distortion = "equidistant",
   ...
 ) {
-  # Create variable point size for plotting using linear distance decay function
-  # Clamp to min_cex for points beyond max_dist
-  pt_size <- pmax(
-    (max_cex - min_cex) *
-      (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
-      min_cex,
-    min_cex
-  )
+  if (min_dist <= 0) {
+    stop(
+      "min_dist must be greater than 0. A value of 0 allows rho = 0, ",
+      "causing division by zero in point size scaling.",
+      call. = FALSE
+    )
+  }
+
+  # Scale point size by inverse distance (optical geometry): at rho = 1, cex = max_cex;
+  # approaches min_cex asymptotically with distance.
+  pt_size <- (max_cex - min_cex) / processed_lidar$rho + min_cex
 
   # Apply radial distortion if custom calibration provided
   if (!identical(radial_distortion, "equidistant")) {
