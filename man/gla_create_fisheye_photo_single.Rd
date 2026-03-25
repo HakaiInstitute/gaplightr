@@ -13,7 +13,6 @@ gla_create_fisheye_photo_single(
   max_cex,
   min_cex,
   min_dist,
-  max_dist,
   width,
   pointsize,
   res,

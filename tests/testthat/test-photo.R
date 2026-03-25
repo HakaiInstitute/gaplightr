@@ -117,14 +117,12 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
   max_cex <- 0.2
   min_cex <- 0.05
   min_dist <- 1
-  max_dist <- 50
 
   stream_points <- gla_create_fisheye_photos(
     points = stream_points,
     output_dir = output_dir_fisheye,
     camera_height_m = 1.37,
     min_dist = min_dist,
-    max_dist = max_dist,
     img_res = img_res,
     max_cex = max_cex,
     min_cex = min_cex,
@@ -151,7 +149,6 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
     max_cex,
     min_cex,
     min_dist,
-    max_dist,
     dpi,
     img_res,
     "equidistant"
