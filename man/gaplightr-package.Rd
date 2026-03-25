@@ -27,7 +27,10 @@ Authors:
 
 Other contributors:
 \itemize{
-  \item Hakai Institute [copyright holder]
+  \item Tula Foundation [funder, copyright holder]
+  \item Fisheries and Oceans Canada [funder]
+  \item Province of British Columbia [funder]
+  \item Nanwakolas Council [funder]
 }
 
 }

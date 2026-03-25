@@ -4,7 +4,10 @@ Version: 0.0.0.9000
 Authors@R:
     c(person("Gord", "Frazer", email = "gordonwfrazer@gmail.com", role = "aut", comment = "Conceptualization and original code"),
     person("Sam", "Albers", email = "sam.albers@hakai.org", role = c("aut", "cre")),
-    person("Hakai Institute", , role = "cph"))
+    person("Tula Foundation", , role = c("fnd", "cph")),
+    person("Fisheries and Oceans Canada", , role = "fnd"),
+    person("Province of British Columbia", , role = "fnd"),
+    person("Nanwakolas Council", , role = "fnd"))
 Description: Analyzes forest canopy gap light transmission using LiDAR point cloud
     data and hemispherical photography. Provides tools for processing LiDAR data,
     computing horizon angles, and calculating gap light metrics.
