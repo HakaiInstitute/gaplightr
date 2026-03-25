@@ -890,7 +890,7 @@ gla_create_fisheye_photo_single <- function(
   radial_distortion = "equidistant",
   ...
 ) {
-  if (min_dist == 0) {
+  if (min_dist <= 0) {
     stop(
       "min_dist must be greater than 0. A value of 0 allows rho = 0, ",
       "causing division by zero in point size scaling.",
