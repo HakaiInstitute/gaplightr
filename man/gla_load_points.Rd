@@ -2,7 +2,7 @@
 % Please edit documentation in R/points.R
 \name{gla_load_points}
 \alias{gla_load_points}
-\title{Load points}
+\title{Load and validate observation points against a DEM}
 \usage{
 gla_load_points(x, dem, drop_na_dem = FALSE, ...)
 }
@@ -19,7 +19,10 @@ a warning and processing continues with the remaining points.}
 \item{...}{Additional arguments passed to \code{sf::read_sf()} when \code{x} is a file path}
 }
 \description{
-Load points
+Loads point locations from a spatial file or sf object, validates them
+against a DEM, and enriches each point with elevation, projected coordinates,
+and WGS84 lat/lon. The result is the starting point for all downstream
+gaplightr workflows.
 }
 \details{
 This function performs strict validation:
@@ -43,8 +46,10 @@ calling this function.
 }
 }
 \examples{
-\dontrun{
-  points <- gla_load_points("stream_points.gpkg", "dem.tif")
+\donttest{
+  points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+  dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+  points <- gla_load_points(points_path, dem_path)
 }
 
 }

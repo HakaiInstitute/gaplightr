@@ -1,4 +1,9 @@
-#' Load points
+#' Load and validate observation points against a DEM
+#'
+#' Loads point locations from a spatial file or sf object, validates them
+#' against a DEM, and enriches each point with elevation, projected coordinates,
+#' and WGS84 lat/lon. The result is the starting point for all downstream
+#' gaplightr workflows.
 #'
 #' @param x Either a file path to any file that `sf::read_sf` can read, or an
 #'   sf object containing point geometries
@@ -30,8 +35,10 @@
 #' calling this function.
 #'
 #' @examples
-#' \dontrun{
-#'   points <- gla_load_points("stream_points.gpkg", "dem.tif")
+#' \donttest{
+#'   points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+#'   dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+#'   points <- gla_load_points(points_path, dem_path)
 #' }
 #'
 #' @export

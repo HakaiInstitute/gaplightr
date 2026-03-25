@@ -62,56 +62,21 @@ points and converts them to horizon masks suitable for fisheye photo creation.
 Supports caching to disk for efficient resume of interrupted workflows.
 }
 \details{
-This function:
-\enumerate{
-\item For sequential (parallel=FALSE): Loads DEM once, processes all points
-\item For parallel (parallel=TRUE): Each worker loads DEM independently from file
-\item Extracts horizon angles using \code{gla_extract_horizon_terra()}
-\item Converts to polar projection mask using \code{prepare_horizon_mask()}
-\item Cleans up DEM from memory
-}
-
-Memory usage: Each worker loads its own copy of the DEM from disk.
-For N points with a DEM of size M GB and W workers:
-\itemize{
-\item Sequential (parallel=FALSE): Peak memory ~M GB, Time ~40-60 sec/point
-\item Parallel: Peak memory ~W×M GB, Time ~(40-60 sec/point)/W
-}
-
-Set up parallel processing before calling this function:
+When \code{parallel = TRUE}, each worker loads the DEM independently from disk.
+Set up a parallel plan before calling this function:
 \code{future::plan(future::multisession, workers = 3)}
 }
 \examples{
 \dontrun{
-  # Load stream points
-  stream_points <- gla_load_stream_network(
-    stream_network_path,
-    dem_path,
-    HydroID = NULL
-  )
-
-  # Extract horizons with parallel processing and caching
-  future::plan(future::multisession, workers = 3)
-  stream_points <- gla_extract_horizons(
-    points = stream_points,
-    dem_path = dem_path,
-    output_dir = "output/horizons",
-    step = 5,
-    max_search_distance = NULL,
-    parallel = TRUE,
-    resume = TRUE
-  )
-
-  # Horizon masks are now stored in stream_points$horizon_mask
-  # Use in fisheye photo creation
-  stream_points <- gla_create_fisheye_photos(
-    points = stream_points,
-    output_dir = "output/fisheye_photos"
+  points <- gla_load_points("points.gpkg", "dem.tif")
+  points <- gla_extract_horizons(
+    points = points,
+    dem_path = "dem.tif",
+    output_dir = "output/horizons"
   )
 }
 
 }
 \seealso{
-\code{\link[=gla_extract_horizon_terra]{gla_extract_horizon_terra()}} for single-point horizon extraction,
 \code{\link[=gla_create_fisheye_photos]{gla_create_fisheye_photos()}} for using extracted horizons
 }
