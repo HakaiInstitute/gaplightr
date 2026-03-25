@@ -143,8 +143,9 @@ Tests use **lazy fixture generation** for on-demand test data creation:
 - All exported functions must have `@export` tag
 - Include `@param`, `@return`, `@examples`, and `@details` sections
 - Parameter names in documentation MUST match function signature exactly
-- Use `\code{\link{function_name}}` for internal package function references
-- Use `\code{package::function()}` or markdown `[package::function()]` for external references
+- Use `[function_name()]` for internal package function references
+- Use `[package::function()]` for external references
+- Use backticks for inline code: column names, parameter values, package names
 - Run `devtools::document()` after modifying roxygen comments
 - Verify with `devtools::check()` to catch documentation mismatches
 

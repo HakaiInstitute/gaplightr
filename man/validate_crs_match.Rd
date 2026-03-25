@@ -22,3 +22,4 @@ NULL (invisibly) if validation passes, otherwise stops with error
 Strict CRS validation to prevent spatial errors. Checks that both objects
 have defined CRS and that they match exactly.
 }
+\keyword{internal}

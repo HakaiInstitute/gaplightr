@@ -16,7 +16,7 @@ two columns: azimuth (degrees, 0-360) and elevation angle (degrees)}
 
 \item{radial_distortion}{Lens projection method. Use "equidistant" (default)
 for standard equidistant polar projection, or provide custom lens calibration
-data (see \code{\link{gla_lens_sigma_8mm}} for format).}
+data (see \code{\link[=gla_lens_sigma_8mm]{gla_lens_sigma_8mm()}} for format).}
 
 \item{verbose}{Logical indicating whether to print the processed data
 (default: FALSE)}

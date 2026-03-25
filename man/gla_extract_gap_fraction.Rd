@@ -24,7 +24,7 @@ gla_extract_gap_fraction(
 
 \item{radial_distortion}{Lens projection method. Use "equidistant" (default)
 for standard equidistant polar projection, or provide custom lens calibration
-data (see \code{\link{gla_lens_sigma_8mm}} for format).}
+data (see \code{\link[=gla_lens_sigma_8mm]{gla_lens_sigma_8mm()}} for format).}
 
 \item{threshold}{Threshold value for converting image to binary. Can be:
 \itemize{

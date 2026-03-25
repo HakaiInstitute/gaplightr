@@ -11,6 +11,7 @@
 #' @param obj2_name Name of second object for error message
 #'
 #' @return NULL (invisibly) if validation passes, otherwise stops with error
+#' @keywords internal
 validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   # Check if either CRS is NA/undefined
   if (is.na(obj1_crs)) {

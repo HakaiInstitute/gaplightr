@@ -66,8 +66,8 @@ This function:
 \enumerate{
 \item For sequential (parallel=FALSE): Loads DEM once, processes all points
 \item For parallel (parallel=TRUE): Each worker loads DEM independently from file
-\item Extracts horizon angles using \code{gla_extract_horizon_terra}
-\item Converts to polar projection mask using \code{prepare_horizon_mask}
+\item Extracts horizon angles using \code{gla_extract_horizon_terra()}
+\item Converts to polar projection mask using \code{prepare_horizon_mask()}
 \item Cleans up DEM from memory
 }
 
@@ -112,6 +112,6 @@ Set up parallel processing before calling this function:
 
 }
 \seealso{
-\code{\link{gla_extract_horizon_terra}} for single-point horizon extraction,
-\code{\link{gla_create_fisheye_photos}} for using extracted horizons
+\code{\link[=gla_extract_horizon_terra]{gla_extract_horizon_terra()}} for single-point horizon extraction,
+\code{\link[=gla_create_fisheye_photos]{gla_create_fisheye_photos()}} for using extracted horizons
 }

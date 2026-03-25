@@ -23,8 +23,8 @@ gla_create_fisheye_photos(
 \arguments{
 \item{points}{An sf object containing spatial points with required columns:
 \code{las_files}, \code{lat}, \code{lon}, \code{elevation}, and
-\code{horizon_mask}. Use \code{gla_extract_horizons()} to add the
-horizon_mask column.}
+\code{horizon_mask}. Use \code{\link[=gla_extract_horizons]{gla_extract_horizons()}} to add the
+\code{horizon_mask} column.}
 
 \item{output_dir}{Directory path where fisheye photo BMP files will be saved}
 
@@ -59,7 +59,7 @@ fisheye photos in the output directory}
 
 \item{radial_distortion}{Lens projection method. Use "equidistant" (default)
 for standard equidistant polar projection, or provide custom lens calibration
-data (see \code{\link{gla_lens_sigma_8mm}} for format).}
+data (see \code{\link[=gla_lens_sigma_8mm]{gla_lens_sigma_8mm()}} for format).}
 }
 \value{
 The input \code{points} sf object with an added column
@@ -104,5 +104,5 @@ re-creating existing photos.
 }
 }
 \seealso{
-\code{\link{gla_extract_horizons}} for extracting horizon masks
+\code{\link[=gla_extract_horizons]{gla_extract_horizons()}} for extracting horizon masks
 }

@@ -90,6 +90,7 @@ find_existing_horizons <- function(points, output_dir) {
 #'     camera_height_m = 1.37
 #'   )
 #' }
+#' @keywords internal
 gla_extract_horizon_terra <- function(
   dem_rast,
   x_meters,
@@ -446,8 +447,8 @@ prepare_horizon_mask <- function(
 #' \enumerate{
 #'   \item For sequential (parallel=FALSE): Loads DEM once, processes all points
 #'   \item For parallel (parallel=TRUE): Each worker loads DEM independently from file
-#'   \item Extracts horizon angles using \code{gla_extract_horizon_terra}
-#'   \item Converts to polar projection mask using \code{prepare_horizon_mask}
+#'   \item Extracts horizon angles using `gla_extract_horizon_terra()`
+#'   \item Converts to polar projection mask using `prepare_horizon_mask()`
 #'   \item Cleans up DEM from memory
 #' }
 #'
@@ -459,7 +460,7 @@ prepare_horizon_mask <- function(
 #' }
 #'
 #' Set up parallel processing before calling this function:
-#' \code{future::plan(future::multisession, workers = 3)}
+#' `future::plan(future::multisession, workers = 3)`
 #'
 #' @examples
 #' \dontrun{
@@ -491,8 +492,8 @@ prepare_horizon_mask <- function(
 #' }
 #'
 #' @seealso
-#' \code{\link{gla_extract_horizon_terra}} for single-point horizon extraction,
-#' \code{\link{gla_create_fisheye_photos}} for using extracted horizons
+#' [gla_extract_horizon_terra()] for single-point horizon extraction,
+#' [gla_create_fisheye_photos()] for using extracted horizons
 #'
 #' @export
 gla_extract_horizons <- function(

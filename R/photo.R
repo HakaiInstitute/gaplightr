@@ -381,7 +381,7 @@ gla_compute_solar_positions <- function(
 #' @param rotation_deg Rotation angle in degrees to align image with true north (default 0)
 #' @param radial_distortion Lens projection method. Use "equidistant" (default)
 #'   for standard equidistant polar projection, or provide custom lens calibration
-#'   data (see \code{\link{gla_lens_sigma_8mm}} for format).
+#'   data (see [gla_lens_sigma_8mm()] for format).
 #' @param threshold Threshold value for converting image to binary. Can be:
 #'   \itemize{
 #'     \item Numeric value (0-1): pixels below threshold become 0, above become 1. Default is 0 (matches original behavior).
@@ -537,9 +537,9 @@ gla_extract_gap_fraction <- function(
 #'   \item{radius}{Normalized radial distance from image center (0 to 1)}
 #'   \item{elevation}{Elevation angle in radians (0 at horizon, pi/2 at zenith)}
 #'
-#' @return A list with components \code{radius} (normalized image radius),
-#'   \code{elevation} (elevation angle in radians), and \code{name} (lens
-#'   identifier for this calibration; currently \code{"sigma8mm"}).
+#' @return A list with components `radius` (normalized image radius),
+#'   `elevation` (elevation angle in radians), and `name` (lens
+#'   identifier for this calibration; currently `"sigma8mm"`).
 #' @export
 gla_lens_sigma_8mm <- function() {
   # Image radius (mm) for Sigma 8mm lens sequenced by 0.5
@@ -810,7 +810,7 @@ gla_process_fisheye_photo_single <- function(
 #' hemispherical fisheye photos.
 #'
 #' @param points An sf object with point locations. Must contain columns:
-#'   \code{fisheye_photo_path}, \code{lat}, \code{lon}, and \code{elevation}.
+#'   `fisheye_photo_path`, `lat`, `lon`, and `elevation`.
 #' @param clearsky_coef Clear-sky transmission coefficient (default 0.65).
 #'   Proportion of extraterrestrial radiation reaching the surface under clear skies.
 #' @param time_step_min Time step in minutes for computing solar positions (default 2).
@@ -821,7 +821,7 @@ gla_process_fisheye_photo_single <- function(
 #'   Ratio of measured to extraterrestrial radiation.
 #' @inheritParams gla_create_fisheye_photos
 #' @param keep_gap_fraction_data Include gap fraction matrix in output (default FALSE).
-#'   If TRUE, adds \code{gap_fraction_data} column to output.
+#'   If TRUE, adds `gap_fraction_data` column to output.
 #' @param solar_constant Solar constant in W/m² (default 1367). The total solar
 #'   electromagnetic radiation per unit area at the top of Earth's atmosphere.
 #' @inheritParams gla_extract_gap_fraction
@@ -1053,9 +1053,9 @@ gla_process_fisheye_photos <- function(
 #' and can resume from previous runs.
 #'
 #' @param points An sf object containing spatial points with required columns:
-#'   \code{las_files}, \code{lat}, \code{lon}, \code{elevation}, and
-#'   \code{horizon_mask}. Use \code{gla_extract_horizons()} to add the
-#'   horizon_mask column.
+#'   `las_files`, `lat`, `lon`, `elevation`, and
+#'   `horizon_mask`. Use [gla_extract_horizons()] to add the
+#'   `horizon_mask` column.
 #' @param output_dir Directory path where fisheye photo BMP files will be saved
 #' @param camera_height_m Camera height above ground in meters. Default is 1.37m
 #' @param min_dist Minimum distance from camera to include LiDAR points (meters).
@@ -1072,14 +1072,14 @@ gla_process_fisheye_photos <- function(
 #' @param pointsize Point size parameter for bitmap graphics device. Default is 10
 #' @param dpi Resolution in dots per inch for output image. Default is 300
 #' @param parallel Logical. If TRUE (default), use parallel processing via
-#'   \code{future.apply}. Set up parallel plan with \code{future::plan()} before
+#'   `future.apply`. Set up parallel plan with `future::plan()` before
 #'   calling this function
 #' @param resume Logical. If TRUE (default), skip points that already have
 #'   fisheye photos in the output directory
 #' @inheritParams gla_extract_gap_fraction
 #'
-#' @return The input \code{points} sf object with an added column
-#'   \code{fisheye_photo_path} containing the file paths to the generated
+#' @return The input `points` sf object with an added column
+#'   `fisheye_photo_path` containing the file paths to the generated
 #'   fisheye photos
 #'
 #' @details
@@ -1094,13 +1094,13 @@ gla_process_fisheye_photos <- function(
 #'
 #' Parallel processing can significantly speed up processing for many points.
 #' Set up a parallel plan before calling this function:
-#' \code{future::plan(future::multisession, workers = 4)}
+#' `future::plan(future::multisession, workers = 4)`
 #'
 #' The resume feature allows you to interrupt and restart processing without
 #' re-creating existing photos.
 #'
 #' @seealso
-#' \code{\link{gla_extract_horizons}} for extracting horizon masks
+#' [gla_extract_horizons()] for extracting horizon masks
 #'
 #' @examples
 #' \dontrun{
