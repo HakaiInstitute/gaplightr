@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   introduction: introduction.html
   real-photo-workflow: real-photo-workflow.html
-last_built: 2026-03-25T17:27Z
+last_built: 2026-03-25T18:42Z
 urls:
   reference: https://hakaiinstitute.github.io/gaplightr/reference
   article: https://hakaiinstitute.github.io/gaplightr/articles

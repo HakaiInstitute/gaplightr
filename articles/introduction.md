@@ -86,7 +86,7 @@ points <- gla_create_virtual_plots(
   plot_radius = 25,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpZl8tVO/vp
+#> Creating output directory: /tmp/RtmpdceoeT/vp
 #> Clipping 3 circular plots with radius 25m
 #> Processing batch 1/1 (3 plots)
 #> Created 3 new plot files
@@ -149,7 +149,6 @@ points <- gla_create_fisheye_photos(
   output_dir = photo_dir,
   camera_height_m = 1.37,
   min_dist = 1,
-  max_dist = 70,
   img_res = 2800,
   max_cex = 0.5,
   min_cex = 0.03,
@@ -158,16 +157,16 @@ points <- gla_create_fisheye_photos(
   parallel = FALSE,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpZl8tVO/photos
+#> Creating output directory: /tmp/RtmpdceoeT/photos
 #> Processing 3 fisheye photos...
 ```
 
     #> Completed processing 3 new fisheye photos
 
     list.files(photo_dir)
-    #> [1] "1_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
-    #> [2] "2_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
-    #> [3] "3_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
+    #> [1] "1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
+    #> [2] "2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
+    #> [3] "3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
 
 ``` r
 photo_file <- points$fisheye_photo_path[[1]]
@@ -205,14 +204,14 @@ results <- gla_process_fisheye_photos(
 
 str(results)
 #> sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)
-#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpZl8tVO/photos/1_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpZl8tVO/photos/2_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpZl8tVO/photos/3_ps10_cex0pt500000-0pt030000_dist1-70_1200dpi_2800px_equidistant.bmp"
+#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpdceoeT/photos/1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpdceoeT/photos/2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpdceoeT/photos/3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
 #>  $ elevation                                 : num [1:3] 104 108 108
 #>  $ point_id                                  : int [1:3] 1 2 3
 #>  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06
 #>  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05
 #>  $ lon                                       : num [1:3] -126 -126 -126
 #>  $ lat                                       : num [1:3] 49.5 49.5 49.5
-#>  $ las_files                                 : chr [1:3] "/tmp/RtmpZl8tVO/vp/1.las" "/tmp/RtmpZl8tVO/vp/2.las" "/tmp/RtmpZl8tVO/vp/3.las"
+#>  $ las_files                                 : chr [1:3] "/tmp/RtmpdceoeT/vp/1.las" "/tmp/RtmpdceoeT/vp/2.las" "/tmp/RtmpdceoeT/vp/3.las"
 #>  $ horizon_mask                              :List of 3
 #>   ..$ :List of 4
 #>   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...
@@ -229,19 +228,19 @@ str(results)
 #>   .. ..$ horizon_height: num [1:72] 0 0 0 0 0 0 0 0 0 0 ...
 #>   .. ..$ x_msk         : num [1:72] -1.57 -1.56 -1.55 -1.52 -1.48 ...
 #>   .. ..$ y_msk         : num [1:72] 0 0.137 0.273 0.407 0.537 ...
-#>  $ canopy_openness_pct                       : num [1:3] 71.2 74.3 77.4
+#>  $ canopy_openness_pct                       : num [1:3] 95.1 97.2 97.2
 #>  $ mean_daily_extraterrestrial_irradiance_Wm2: num [1:3] 483 483 483
 #>  $ mean_daily_direct_irradiation_MJm2d       : num [1:3] 11.8 11.8 11.8
 #>  $ mean_daily_diffuse_irradiation_MJm2d      : num [1:3] 10.8 10.8 10.8
 #>  $ mean_daily_global_irradiation_MJm2d       : num [1:3] 22.5 22.5 22.5
-#>  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 5.24 4.79 6.51
-#>  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 6.34 6.49 7.05
-#>  $ transmitted_global_irradiation_MJm2d      : num [1:3] 11.6 11.3 13.6
-#>  $ transmitted_direct_irradiation_pct        : num [1:3] 44.6 40.8 55.4
-#>  $ transmitted_diffuse_irradiation_pct       : num [1:3] 58.8 60.3 65.5
-#>  $ transmitted_global_irradiation_pct        : num [1:3] 51.4 50.1 60.2
-#>  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 11.6 11.3 13.6
-#>  $ light_penetration_index                   : num [1:3] 0.514 0.501 0.602
+#>  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 10.8 10.9 10.9
+#>  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 10.2 10.3 10.3
+#>  $ transmitted_global_irradiation_MJm2d      : num [1:3] 21 21.2 21.2
+#>  $ transmitted_direct_irradiation_pct        : num [1:3] 92 92.6 92.3
+#>  $ transmitted_diffuse_irradiation_pct       : num [1:3] 94.6 95.6 95.7
+#>  $ transmitted_global_irradiation_pct        : num [1:3] 93.3 94.1 93.9
+#>  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 21 21.2 21.2
+#>  $ light_penetration_index                   : num [1:3] 0.933 0.941 0.939
 #>  $ geometry                                  :sfc_POINT of length 3; first list element:  'XY' num [1:2] 1e+06 5e+05
 #>  - attr(*, "sf_column")= chr "geometry"
 #>  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...

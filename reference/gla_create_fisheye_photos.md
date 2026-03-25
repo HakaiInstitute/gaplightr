@@ -12,7 +12,6 @@ gla_create_fisheye_photos(
   output_dir,
   camera_height_m = 1.37,
   min_dist = 1,
-  max_dist = 220,
   img_res = 2800,
   max_cex = 0.2,
   min_cex = 0.05,
@@ -44,14 +43,12 @@ gla_create_fisheye_photos(
 - min_dist:
 
   Minimum distance from camera to include LiDAR points (meters). Points
-  closer than this distance are excluded. Default is 1m
-
-- max_dist:
-
-  Distance at which point symbols reach minimum size (meters). Point
-  size (CEX) decays linearly from max_cex at min_dist to min_cex at
-  max_dist. Points beyond max_dist are plotted with min_cex (smallest
-  size). Default is 220m
+  closer than this distance are excluded. Must be greater than 0 - a
+  value of 0 would allow rho = 0, causing division by zero in point size
+  scaling. In addition, symbol size (cex) will exceed max_cex when
+  min_dist = 1 and rho is less than 1 but greater than 0. The size
+  increase is exponential and will create very large dots, which is not
+  desirable. min_dist must work in concert with max_cex. Default is 1m.
 
 - img_res:
 
@@ -60,12 +57,13 @@ gla_create_fisheye_photos(
 - max_cex:
 
   Maximum symbol size for plotting points (CEX value). Controls the size
-  of points closest to the camera (at min_dist). Default is 0.2
+  of points at rho = 1 (1 metre from camera) under the inverse-distance
+  formula. Default is 0.2
 
 - min_cex:
 
-  Minimum symbol size for plotting points (CEX value). Points at or
-  beyond max_dist are plotted with this size. Default is 0.05
+  Minimum symbol size for plotting points (CEX value). The asymptotic
+  lower bound approached as distance increases. Default is 0.05
 
 - pointsize:
 
@@ -136,7 +134,6 @@ if (FALSE) { # \dontrun{
     points = stream_points,
     output_dir = "output/fisheye_photos",
     camera_height_m = 1.37,
-    max_dist = 220,
     parallel = TRUE,
     resume = TRUE
   )
