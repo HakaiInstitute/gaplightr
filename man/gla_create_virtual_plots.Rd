@@ -52,3 +52,19 @@ Processes plots in batches to prevent memory exhaustion. With large datasets
 controls how many plots are clipped simultaneously. Default of 1000 works well
 for most systems. Reduce to 500 or lower if still encountering memory issues.
 }
+\examples{
+\donttest{
+  points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+  dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+  las_folder <- system.file("extdata", "lidar", package = "gaplightr")
+
+  points <- gla_load_points(points_path, dem_path)
+  points <- gla_create_virtual_plots(
+    points = points,
+    folder = las_folder,
+    output_dir = tempdir(),
+    plot_radius = 50
+  )
+}
+
+}

@@ -1,375 +1,3 @@
-# Construct the output filename for a synthetic fisheye photo. The name encodes
-# all parameters that affect pixel content so filenames are unambiguous and
-# caching semantics remain correct when any parameter changes.
-fisheye_filename <- function(
-  site_id,
-  pointsize,
-  max_cex,
-  min_cex,
-  min_dist,
-  max_dist,
-  res,
-  width,
-  radial_distortion
-) {
-  fmt <- function(x) {
-    if (is.numeric(x)) {
-      if (all(is.finite(x)) && all(x == as.integer(x))) {
-        s <- formatC(as.integer(x), format = "d")
-      } else {
-        s <- formatC(x, format = "f", digits = 6)
-      }
-    } else {
-      s <- as.character(x)
-    }
-    gsub("\\.", "pt", s)
-  }
-  safe <- function(x) gsub("[^A-Za-z0-9_-]", "_", as.character(x))
-  distortion_label <- if (identical(radial_distortion, "equidistant")) {
-    "equidistant"
-  } else if (is.list(radial_distortion) && !is.null(radial_distortion$name)) {
-    safe(radial_distortion$name)
-  } else {
-    "custom"
-  }
-  sprintf(
-    "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
-    safe(site_id),
-    fmt(pointsize),
-    fmt(max_cex),
-    fmt(min_cex),
-    fmt(min_dist),
-    fmt(max_dist),
-    fmt(res),
-    fmt(width),
-    distortion_label
-  )
-}
-
-
-#' Create fisheye image (single point)
-#' @inheritParams gla_extract_gap_fraction
-#' @keywords internal
-gla_create_fisheye_photo_single <- function(
-  processed_lidar,
-  x_msk,
-  y_msk,
-  site_id,
-  img_path,
-  max_cex,
-  min_cex,
-  min_dist,
-  max_dist,
-  width, # Required: image width for bmp() and filename
-  pointsize, # Required: point size for bmp() and filename
-  res, # Required: resolution for bmp() and filename
-  radial_distortion = "equidistant",
-  ...
-) {
-  # Create variable point size for plotting using linear distance decay function
-  # Clamp to min_cex for points beyond max_dist
-  pt_size <- pmax(
-    (max_cex - min_cex) *
-      (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
-      min_cex,
-    min_cex
-  )
-
-  # Apply radial distortion if custom calibration provided
-  if (!identical(radial_distortion, "equidistant")) {
-    # Convert zenith angle to elevation angle
-    elev_rad <- rad_90() - processed_lidar$phi
-
-    # Forward direction: elevation -> normalized radius (0-1)
-    norm_radius <- apply_radial_distortion_mapping(
-      elev_rad,
-      from = radial_distortion$elevation,
-      to = radial_distortion$radius
-    )
-
-    # Scale to image coordinates and convert to cartesian
-    # (matches Gord's phi.sigma approach)
-    phi_distorted <- norm_radius * rad_90()
-    processed_lidar$x <- phi_distorted * cos(processed_lidar$theta) * -1
-    processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
-  }
-
-  img_file <- fisheye_filename(
-    site_id,
-    pointsize,
-    max_cex,
-    min_cex,
-    min_dist,
-    max_dist,
-    res,
-    width,
-    radial_distortion
-  )
-  out_file <- paste0(img_path, "/", img_file)
-
-  # Convert R plot to bitmap and save as image file
-  bmp(
-    filename = out_file,
-    width = width,
-    pointsize = pointsize,
-    res = res,
-    bg = "white",
-    type = "cairo",
-    ...
-  )
-
-  # Set plotting window dimensions
-  par(mai = c(0, 0, 0, 0))
-
-  # create plot to hold topo mask and transformed lidar point cloud
-  plot(
-    x_msk,
-    y_msk,
-    cex = 0,
-    xlim = c(-pi / 2, pi / 2),
-    ylim = c(-pi / 2, pi / 2),
-    xaxt = "n",
-    yaxt = "n",
-    bty = "n",
-    xaxs = "i",
-    yaxs = "i",
-    xpd = TRUE,
-    asp = 1
-  )
-
-  # draw 180 FOV
-  plotrix::draw.circle(
-    0,
-    0,
-    rad = pi / 2,
-    nv = 1000,
-    border = NULL,
-    col = "black"
-  )
-
-  # draw topo mask
-  polygon(x_msk, y_msk, border = "white", col = "white")
-
-  # add canopy points to plot
-  points(
-    processed_lidar$x,
-    processed_lidar$y,
-    pch = 16,
-    cex = pt_size,
-    xlim = c(-pi / 2, pi / 2),
-    ylim = c(-pi / 2, pi / 2),
-    col = "black"
-  )
-
-  dev.off()
-
-  invisible(out_file)
-}
-
-
-#' Compute solar positions and radiation values
-#' @keywords internal
-gla_compute_solar_positions <- function(
-  lat_deg,
-  long_deg,
-  elev,
-  clearsky_coef,
-  time_step_min,
-  day_start,
-  day_end,
-  day_res,
-  elev_res,
-  azi_res,
-  solar_constant
-) {
-  # Convert coordinates to radians
-  lat_rad <- lat_deg * deg_to_rad()
-  long_rad <- long_deg * deg_to_rad()
-  time_zone <- timezone(long_deg = long_deg)[1]
-  std_meridian <- timezone(long_deg = long_deg)[2]
-
-  # Solar time step parameters
-  time_step_rad <- time_step_min * (two_pi() / 1440)
-  time_sample_rad <- seq(
-    from = 0,
-    to = 1440 - time_step_min,
-    by = time_step_min
-  ) *
-    (two_pi() / 1440)
-  time_sample_ha <- hrangle(solar_time_rad = time_sample_rad)
-
-  # Sky mask resolution
-  nRings <- 90 / elev_res
-  nSectors <- 360 / azi_res
-
-  # Conversion factors
-  c1 <- 1 / (two_pi() / time_step_rad)
-  c2 <- 3.6 / 1000 * 24 / two_pi() * time_step_rad
-
-  # Day parameters
-  day_numbers <- seq(from = day_start, to = day_end, by = day_res)
-  num_days <- length(day_numbers)
-
-  # Create arrays for solar calculations
-  beam_array <- array(0, dim = c(nRings, nSectors))
-
-  # Create storage matrices
-  nrow_max <- 24 * 60 / time_step_min * num_days
-  solar_mat <- matrix(
-    NA,
-    nrow = nrow_max,
-    ncol = 11,
-    dimnames = list(
-      c(1:nrow_max),
-      c(
-        "DAY_NUM",
-        "ZENITH",
-        "AZIMUTH",
-        "X_SUN",
-        "Y_SUN",
-        "EoT_MIN",
-        "TIME_CORR_MIN",
-        "SOLAR_TIME_HR",
-        "LOCAL_STD_TIME_HR",
-        "EXTRA_Wm2",
-        "REL_BEAM"
-      )
-    )
-  )
-  day_mat <- data.frame(
-    day_number = integer(num_days),
-    day_length = numeric(num_days),
-    wsr_lat = numeric(num_days),
-    wss_lat = numeric(num_days),
-    numSolarPos = integer(num_days),
-    Ho_Wm2 = numeric(num_days),
-    Ho_MJm2 = numeric(num_days)
-  )
-
-  # Initialize variables
-  Total_rbi <- 0
-  k <- 0
-
-  # Process each day
-  for (i in 1:length(day_numbers)) {
-    day_angle <- da(day_number = day_numbers[i])
-    ecf_dat <- ecf(day_angle_rad = day_angle)
-    sol_dec <- soldec(day_angle_rad = day_angle)
-    eot_dat <- eot(day_angle_rad = day_angle, long_deg = long_deg)
-    etm <- eot_dat[1]
-    time_offset <- eot_dat[2]
-    hour_angle <- sshourangle(
-      lat_rad = lat_rad,
-      solar_declination_rad = sol_dec
-    )
-    cos_ws <- hour_angle[1]
-    wsr <- hour_angle[2]
-    wss <- hour_angle[3]
-
-    # Check for polar night (sun never rises)
-    if (is.na(wsr)) {
-      day_mat$day_number[i] <- day_numbers[i]
-      day_mat$day_length[i] <- 0
-      day_mat$wsr_lat[i] <- NA_real_
-      day_mat$wss_lat[i] <- NA_real_
-      day_mat$numSolarPos[i] <- 0
-      day_mat$Ho_Wm2[i] <- 0
-      day_mat$Ho_MJm2[i] <- 0
-      next # Skip to next day
-    }
-
-    wsr_lat <- 12 - (wsr * rad_to_deg()) / 15
-    wss_lat <- 12 - (wss * rad_to_deg()) / 15
-    day_length <- 2 * wsr * rad_to_deg() / 15
-    ha_sample_pts <- time_sample_ha[which(
-      time_sample_ha >= wss & time_sample_ha <= wsr
-    )]
-    numSolarPos <- length(ha_sample_pts)
-    Daily_Io <- 0
-
-    # Process each solar position
-    for (j in 1:length(ha_sample_pts)) {
-      ha <- ha_sample_pts[j]
-      solar_lat <- (180 - ha * rad_to_deg()) / 15
-      solar_lst <- solar_lat - time_offset / 60
-      spd <- solpos(
-        solar_declination_rad = sol_dec,
-        lat_rad = lat_rad,
-        hour_angle_rad = ha
-      )
-      sza <- spd[1]
-      sea <- spd[2]
-      saa <- spd[4]
-      x_sun_pos <- spd[6]
-      y_sun_pos <- spd[7]
-      SR <- solrad(
-        solar_constant = solar_constant,
-        eccentricity_correction = ecf_dat,
-        solar_zenith_angle = sza,
-        site_elevation = elev,
-        clearsky_transmission = clearsky_coef
-      )
-      Io <- SR[1]
-      Daily_Io <- Daily_Io + Io
-      rel_beam_int <- SR[2]
-      Total_rbi <- Total_rbi + rel_beam_int
-
-      k <- k + 1
-      solar_mat[k, 1] <- day_numbers[i]
-      solar_mat[k, 2] <- sza * rad_to_deg()
-      solar_mat[k, 3] <- saa * rad_to_deg()
-      solar_mat[k, 4] <- x_sun_pos
-      solar_mat[k, 5] <- y_sun_pos
-      solar_mat[k, 6] <- etm
-      solar_mat[k, 7] <- time_offset
-      solar_mat[k, 8] <- solar_lat
-      solar_mat[k, 9] <- solar_lst
-      solar_mat[k, 10] <- Io
-      solar_mat[k, 11] <- rel_beam_int
-
-      beam_idx <- skyregidx(
-        solar_elevation_rad = sea,
-        solar_azimuth_rad = saa,
-        n_elevation_rings = nRings,
-        n_azimuth_sectors = nSectors
-      )
-      beam_array[beam_idx[1], beam_idx[2]] <- beam_array[
-        beam_idx[1],
-        beam_idx[2]
-      ] +
-        rel_beam_int
-    }
-
-    # Store daily results
-    Ho_Wm2 <- Daily_Io * c1
-    Ho_MJm2 <- Daily_Io * c2
-    day_mat$day_number[i] <- day_numbers[i]
-    day_mat$day_length[i] <- day_length
-    day_mat$wsr_lat[i] <- wsr_lat
-    day_mat$wss_lat[i] <- wss_lat
-    day_mat$numSolarPos[i] <- numSolarPos
-    day_mat$Ho_Wm2[i] <- Ho_Wm2
-    day_mat$Ho_MJm2[i] <- Ho_MJm2
-  }
-
-  # Return list with all computed values
-  # Handle case where k=0 (no solar positions calculated, e.g., polar night)
-  # Return 0-row matrix to maintain consistent structure with column names
-  if (k == 0) {
-    solar_mat_result <- solar_mat[0, , drop = FALSE]
-  } else {
-    solar_mat_result <- solar_mat[1:k, ]
-  }
-
-  list(
-    solar_mat = solar_mat_result,
-    beam_array = beam_array,
-    day_mat = day_mat,
-    Total_rbi = Total_rbi
-  )
-}
-
-
 #' Extract gap fraction from fisheye image
 #'
 #' Processes a fisheye image and computes gap fraction (proportion of sky visible)
@@ -583,223 +211,6 @@ gla_lens_sigma_8mm <- function() {
     elevation = sigma_elev_rad,
     name = "sigma8mm"
   )
-}
-
-
-#' Apply radial distortion mapping in either direction
-#'
-#' Performs linear interpolation for lens distortion calibration. Used
-#' bidirectionally: forward (elevation → radius) for synthetic photo creation,
-#' reverse (radius → elevation) for photo analysis.
-#'
-#' @param input_values Vector of input values to map
-#' @param from Vector of input reference values (from calibration)
-#' @param to Vector of output reference values (from calibration)
-#' @return Vector of mapped values
-#' @keywords internal
-apply_radial_distortion_mapping <- function(input_values, from, to) {
-  approx(
-    from,
-    to,
-    xout = input_values,
-    method = "linear",
-    rule = 2
-  )$y
-}
-
-
-#' Validate radial distortion calibration data
-#'
-#' Checks that radial_distortion is either "equidistant" (default) or a valid
-#' calibration list with required components and normalized radius values.
-#'
-#' @inheritParams gla_extract_gap_fraction
-#' @return TRUE invisibly if valid, otherwise stops with error
-#' @keywords internal
-validate_radial_distortion <- function(radial_distortion) {
-  # Allow "equidistant" as valid string value
-  if (is.character(radial_distortion) && length(radial_distortion) == 1) {
-    if (radial_distortion == "equidistant") {
-      return(invisible(TRUE))
-    } else {
-      stop(
-        "radial_distortion string must be 'equidistant'.\n",
-        "For custom calibration, provide a list with 'radius' and 'elevation' components.",
-        call. = FALSE
-      )
-    }
-  }
-
-  # Validate list structure
-  if (!is.list(radial_distortion)) {
-    stop(
-      "radial_distortion must be 'equidistant' or a calibration list",
-      call. = FALSE
-    )
-  }
-
-  if (!all(c("radius", "elevation") %in% names(radial_distortion))) {
-    stop(
-      "radial_distortion must have 'radius' and 'elevation' components.\n",
-      "See ?gla_lens_sigma_8mm for example format.",
-      call. = FALSE
-    )
-  }
-
-  # Check radius is normalized (0-1)
-  if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
-    stop(
-      "radial_distortion$radius must be normalized to 0-1 range.\n",
-      "Found values outside [0, 1]: min = ",
-      min(radial_distortion$radius),
-      ", max = ",
-      max(radial_distortion$radius),
-      "\n",
-      "Normalize by dividing by maximum physical radius.",
-      call. = FALSE
-    )
-  }
-
-  # Check vectors are same length
-  if (length(radial_distortion$radius) != length(radial_distortion$elevation)) {
-    stop(
-      "radial_distortion$radius and radial_distortion$elevation must have same length",
-      call. = FALSE
-    )
-  }
-
-  invisible(TRUE)
-}
-
-
-#' Process single fisheye photo and calculate SSR
-#' @keywords internal
-gla_process_fisheye_photo_single <- function(
-  solar_data,
-  img_file,
-  lat_deg,
-  long_deg,
-  Kt,
-  elev_res,
-  azi_res,
-  rotation_deg,
-  keep_gap_fraction_data = FALSE,
-  radial_distortion = "equidistant",
-  threshold = 0
-) {
-  # Extract computed values from solar_data
-  solar_mat <- solar_data$solar_mat
-  beam_array <- solar_data$beam_array
-  day_mat <- solar_data$day_mat
-  Total_rbi <- solar_data$Total_rbi
-
-  # Daily Kd ~ Kt decomposition model calibration
-  daily_kt_calib <- seq(0, 1, 0.05)
-  daily_kd_calib <- c(
-    0.9956545,
-    0.9891128,
-    0.9763180,
-    0.9577567,
-    0.9305954,
-    0.8929988,
-    0.8441450,
-    0.7817907,
-    0.7096211,
-    0.6301739,
-    0.5463198,
-    0.4610067,
-    0.3780925,
-    0.3029890,
-    0.2391789,
-    0.1869482,
-    0.1658167,
-    0.1658167,
-    0.1658167,
-    0.1658167,
-    0.1658167
-  )
-
-  # Compute gap fractions
-  gap_data <- gla_extract_gap_fraction(
-    img_file,
-    elev_res,
-    azi_res,
-    rotation_deg,
-    radial_distortion,
-    threshold
-  )
-  gap_frac <- gap_data$gap_fraction
-  nRings <- gap_data$nRings
-  nSectors <- gap_data$nSectors
-  norm_sky_area <- skyarea(
-    n_elevation_rings = nRings,
-    n_azimuth_sectors = nSectors
-  )
-  CO <- sum(gap_frac * norm_sky_area) * 100
-
-  # Build isotropic UOC sky irradiance model
-  sky_rad <- uoc(
-    n_elevation_rings = nRings,
-    n_azimuth_sectors = nSectors
-  )
-  # Sky view factor (also known as indirect site factor)
-  svf <- sum(sky_rad * gap_frac)
-
-  # Calculate final solar radiation values from day_mat
-  mean_Ho_Wm2 <- mean(day_mat$Ho_Wm2)
-  mean_Ho_MJm2 <- mean(day_mat$Ho_MJm2)
-  mean_H_MJm2 <- mean_Ho_MJm2 * Kt
-
-  Kd <- approx(
-    daily_kt_calib,
-    daily_kd_calib,
-    xout = Kt,
-    method = "linear",
-    rule = 2,
-    ties = "ordered"
-  )$y
-  mean_Hd_MJm2 <- mean_H_MJm2 * Kd
-  mean_Hb_MJm2 <- mean_H_MJm2 - mean_Hd_MJm2
-
-  # Calculate transmitted radiation
-  norm_rbi_wt <- beam_array / Total_rbi
-  trans_Hb_MJm2 <- sum(mean_Hb_MJm2 * norm_rbi_wt * gap_frac)
-  trans_Hd_MJm2 <- sum(mean_Hd_MJm2 * sky_rad * gap_frac)
-  trans_H_MJm2 <- trans_Hb_MJm2 + trans_Hd_MJm2
-
-  pct_trans_Hb <- trans_Hb_MJm2 / mean_Hb_MJm2 * 100
-  pct_trans_Hd <- trans_Hd_MJm2 / mean_Hd_MJm2 * 100
-  pct_trans_H <- trans_H_MJm2 / mean_H_MJm2 * 100
-
-  # Return results as dataframe
-  result <- data.frame(
-    fisheye_photo_path = img_file,
-    canopy_openness_pct = CO,
-    mean_daily_extraterrestrial_irradiance_Wm2 = mean_Ho_Wm2,
-    mean_daily_direct_irradiation_MJm2d = mean_Hb_MJm2,
-    mean_daily_diffuse_irradiation_MJm2d = mean_Hd_MJm2,
-    mean_daily_global_irradiation_MJm2d = mean_H_MJm2,
-    transmitted_direct_irradiation_MJm2d = trans_Hb_MJm2,
-    transmitted_diffuse_irradiation_MJm2d = trans_Hd_MJm2,
-    transmitted_global_irradiation_MJm2d = trans_H_MJm2,
-    transmitted_direct_irradiation_pct = pct_trans_Hb,
-    transmitted_diffuse_irradiation_pct = pct_trans_Hd,
-    transmitted_global_irradiation_pct = pct_trans_H,
-    subcanopy_solar_radiation_MJm2d = trans_H_MJm2,
-    light_penetration_index = (trans_H_MJm2 / mean_H_MJm2),
-    row.names = NULL
-  )
-
-  # Add gap fraction data if requested
-  if (keep_gap_fraction_data) {
-    result$nRings <- nRings
-    result$nSectors <- nSectors
-    result$gap_pixels <- list(gap_data$gap_pixels)
-    result$total_pixels <- list(gap_data$total_pixels)
-    result$gap_fraction <- list(gap_data$gap_fraction)
-  }
-
-  result
 }
 
 
@@ -1419,4 +830,593 @@ gla_create_fisheye_photos <- function(
   }
 
   points
+}
+
+
+# Construct the output filename for a synthetic fisheye photo. The name encodes
+# all parameters that affect pixel content so filenames are unambiguous and
+# caching semantics remain correct when any parameter changes.
+fisheye_filename <- function(
+  site_id,
+  pointsize,
+  max_cex,
+  min_cex,
+  min_dist,
+  max_dist,
+  res,
+  width,
+  radial_distortion
+) {
+  fmt <- function(x) {
+    if (is.numeric(x)) {
+      if (all(is.finite(x)) && all(x == as.integer(x))) {
+        s <- formatC(as.integer(x), format = "d")
+      } else {
+        s <- formatC(x, format = "f", digits = 6)
+      }
+    } else {
+      s <- as.character(x)
+    }
+    gsub("\\.", "pt", s)
+  }
+  safe <- function(x) gsub("[^A-Za-z0-9_-]", "_", as.character(x))
+  distortion_label <- if (identical(radial_distortion, "equidistant")) {
+    "equidistant"
+  } else if (is.list(radial_distortion) && !is.null(radial_distortion$name)) {
+    safe(radial_distortion$name)
+  } else {
+    "custom"
+  }
+  sprintf(
+    "%s_ps%s_cex%s-%s_dist%s-%s_%sdpi_%spx_%s.bmp",
+    safe(site_id),
+    fmt(pointsize),
+    fmt(max_cex),
+    fmt(min_cex),
+    fmt(min_dist),
+    fmt(max_dist),
+    fmt(res),
+    fmt(width),
+    distortion_label
+  )
+}
+
+
+#' Create fisheye image (single point)
+#' @inheritParams gla_extract_gap_fraction
+#' @keywords internal
+gla_create_fisheye_photo_single <- function(
+  processed_lidar,
+  x_msk,
+  y_msk,
+  site_id,
+  img_path,
+  max_cex,
+  min_cex,
+  min_dist,
+  max_dist,
+  width, # Required: image width for bmp() and filename
+  pointsize, # Required: point size for bmp() and filename
+  res, # Required: resolution for bmp() and filename
+  radial_distortion = "equidistant",
+  ...
+) {
+  # Create variable point size for plotting using linear distance decay function
+  # Clamp to min_cex for points beyond max_dist
+  pt_size <- pmax(
+    (max_cex - min_cex) *
+      (1 - (processed_lidar$rho - min_dist) / (max_dist - min_dist)) +
+      min_cex,
+    min_cex
+  )
+
+  # Apply radial distortion if custom calibration provided
+  if (!identical(radial_distortion, "equidistant")) {
+    # Convert zenith angle to elevation angle
+    elev_rad <- rad_90() - processed_lidar$phi
+
+    # Forward direction: elevation -> normalized radius (0-1)
+    norm_radius <- apply_radial_distortion_mapping(
+      elev_rad,
+      from = radial_distortion$elevation,
+      to = radial_distortion$radius
+    )
+
+    # Scale to image coordinates and convert to cartesian
+    # (matches Gord's phi.sigma approach)
+    phi_distorted <- norm_radius * rad_90()
+    processed_lidar$x <- phi_distorted * cos(processed_lidar$theta) * -1
+    processed_lidar$y <- phi_distorted * sin(processed_lidar$theta)
+  }
+
+  img_file <- fisheye_filename(
+    site_id,
+    pointsize,
+    max_cex,
+    min_cex,
+    min_dist,
+    max_dist,
+    res,
+    width,
+    radial_distortion
+  )
+  out_file <- paste0(img_path, "/", img_file)
+
+  # Convert R plot to bitmap and save as image file
+  bmp(
+    filename = out_file,
+    width = width,
+    pointsize = pointsize,
+    res = res,
+    bg = "white",
+    type = "cairo",
+    ...
+  )
+
+  # Set plotting window dimensions
+  par(mai = c(0, 0, 0, 0))
+
+  # create plot to hold topo mask and transformed lidar point cloud
+  plot(
+    x_msk,
+    y_msk,
+    cex = 0,
+    xlim = c(-pi / 2, pi / 2),
+    ylim = c(-pi / 2, pi / 2),
+    xaxt = "n",
+    yaxt = "n",
+    bty = "n",
+    xaxs = "i",
+    yaxs = "i",
+    xpd = TRUE,
+    asp = 1
+  )
+
+  # draw 180 FOV
+  plotrix::draw.circle(
+    0,
+    0,
+    rad = pi / 2,
+    nv = 1000,
+    border = NULL,
+    col = "black"
+  )
+
+  # draw topo mask
+  polygon(x_msk, y_msk, border = "white", col = "white")
+
+  # add canopy points to plot
+  points(
+    processed_lidar$x,
+    processed_lidar$y,
+    pch = 16,
+    cex = pt_size,
+    xlim = c(-pi / 2, pi / 2),
+    ylim = c(-pi / 2, pi / 2),
+    col = "black"
+  )
+
+  dev.off()
+
+  invisible(out_file)
+}
+
+
+#' Compute solar positions and radiation values
+#' @keywords internal
+gla_compute_solar_positions <- function(
+  lat_deg,
+  long_deg,
+  elev,
+  clearsky_coef,
+  time_step_min,
+  day_start,
+  day_end,
+  day_res,
+  elev_res,
+  azi_res,
+  solar_constant
+) {
+  # Convert coordinates to radians
+  lat_rad <- lat_deg * deg_to_rad()
+  long_rad <- long_deg * deg_to_rad()
+  time_zone <- timezone(long_deg = long_deg)[1]
+  std_meridian <- timezone(long_deg = long_deg)[2]
+
+  # Solar time step parameters
+  time_step_rad <- time_step_min * (two_pi() / 1440)
+  time_sample_rad <- seq(
+    from = 0,
+    to = 1440 - time_step_min,
+    by = time_step_min
+  ) *
+    (two_pi() / 1440)
+  time_sample_ha <- hrangle(solar_time_rad = time_sample_rad)
+
+  # Sky mask resolution
+  nRings <- 90 / elev_res
+  nSectors <- 360 / azi_res
+
+  # Conversion factors
+  c1 <- 1 / (two_pi() / time_step_rad)
+  c2 <- 3.6 / 1000 * 24 / two_pi() * time_step_rad
+
+  # Day parameters
+  day_numbers <- seq(from = day_start, to = day_end, by = day_res)
+  num_days <- length(day_numbers)
+
+  # Create arrays for solar calculations
+  beam_array <- array(0, dim = c(nRings, nSectors))
+
+  # Create storage matrices
+  nrow_max <- 24 * 60 / time_step_min * num_days
+  solar_mat <- matrix(
+    NA,
+    nrow = nrow_max,
+    ncol = 11,
+    dimnames = list(
+      c(1:nrow_max),
+      c(
+        "DAY_NUM",
+        "ZENITH",
+        "AZIMUTH",
+        "X_SUN",
+        "Y_SUN",
+        "EoT_MIN",
+        "TIME_CORR_MIN",
+        "SOLAR_TIME_HR",
+        "LOCAL_STD_TIME_HR",
+        "EXTRA_Wm2",
+        "REL_BEAM"
+      )
+    )
+  )
+  day_mat <- data.frame(
+    day_number = integer(num_days),
+    day_length = numeric(num_days),
+    wsr_lat = numeric(num_days),
+    wss_lat = numeric(num_days),
+    numSolarPos = integer(num_days),
+    Ho_Wm2 = numeric(num_days),
+    Ho_MJm2 = numeric(num_days)
+  )
+
+  # Initialize variables
+  Total_rbi <- 0
+  k <- 0
+
+  # Process each day
+  for (i in 1:length(day_numbers)) {
+    day_angle <- da(day_number = day_numbers[i])
+    ecf_dat <- ecf(day_angle_rad = day_angle)
+    sol_dec <- soldec(day_angle_rad = day_angle)
+    eot_dat <- eot(day_angle_rad = day_angle, long_deg = long_deg)
+    etm <- eot_dat[1]
+    time_offset <- eot_dat[2]
+    hour_angle <- sshourangle(
+      lat_rad = lat_rad,
+      solar_declination_rad = sol_dec
+    )
+    cos_ws <- hour_angle[1]
+    wsr <- hour_angle[2]
+    wss <- hour_angle[3]
+
+    # Check for polar night (sun never rises)
+    if (is.na(wsr)) {
+      day_mat$day_number[i] <- day_numbers[i]
+      day_mat$day_length[i] <- 0
+      day_mat$wsr_lat[i] <- NA_real_
+      day_mat$wss_lat[i] <- NA_real_
+      day_mat$numSolarPos[i] <- 0
+      day_mat$Ho_Wm2[i] <- 0
+      day_mat$Ho_MJm2[i] <- 0
+      next # Skip to next day
+    }
+
+    wsr_lat <- 12 - (wsr * rad_to_deg()) / 15
+    wss_lat <- 12 - (wss * rad_to_deg()) / 15
+    day_length <- 2 * wsr * rad_to_deg() / 15
+    ha_sample_pts <- time_sample_ha[which(
+      time_sample_ha >= wss & time_sample_ha <= wsr
+    )]
+    numSolarPos <- length(ha_sample_pts)
+    Daily_Io <- 0
+
+    # Process each solar position
+    for (j in 1:length(ha_sample_pts)) {
+      ha <- ha_sample_pts[j]
+      solar_lat <- (180 - ha * rad_to_deg()) / 15
+      solar_lst <- solar_lat - time_offset / 60
+      spd <- solpos(
+        solar_declination_rad = sol_dec,
+        lat_rad = lat_rad,
+        hour_angle_rad = ha
+      )
+      sza <- spd[1]
+      sea <- spd[2]
+      saa <- spd[4]
+      x_sun_pos <- spd[6]
+      y_sun_pos <- spd[7]
+      SR <- solrad(
+        solar_constant = solar_constant,
+        eccentricity_correction = ecf_dat,
+        solar_zenith_angle = sza,
+        site_elevation = elev,
+        clearsky_transmission = clearsky_coef
+      )
+      Io <- SR[1]
+      Daily_Io <- Daily_Io + Io
+      rel_beam_int <- SR[2]
+      Total_rbi <- Total_rbi + rel_beam_int
+
+      k <- k + 1
+      solar_mat[k, 1] <- day_numbers[i]
+      solar_mat[k, 2] <- sza * rad_to_deg()
+      solar_mat[k, 3] <- saa * rad_to_deg()
+      solar_mat[k, 4] <- x_sun_pos
+      solar_mat[k, 5] <- y_sun_pos
+      solar_mat[k, 6] <- etm
+      solar_mat[k, 7] <- time_offset
+      solar_mat[k, 8] <- solar_lat
+      solar_mat[k, 9] <- solar_lst
+      solar_mat[k, 10] <- Io
+      solar_mat[k, 11] <- rel_beam_int
+
+      beam_idx <- skyregidx(
+        solar_elevation_rad = sea,
+        solar_azimuth_rad = saa,
+        n_elevation_rings = nRings,
+        n_azimuth_sectors = nSectors
+      )
+      beam_array[beam_idx[1], beam_idx[2]] <- beam_array[
+        beam_idx[1],
+        beam_idx[2]
+      ] +
+        rel_beam_int
+    }
+
+    # Store daily results
+    Ho_Wm2 <- Daily_Io * c1
+    Ho_MJm2 <- Daily_Io * c2
+    day_mat$day_number[i] <- day_numbers[i]
+    day_mat$day_length[i] <- day_length
+    day_mat$wsr_lat[i] <- wsr_lat
+    day_mat$wss_lat[i] <- wss_lat
+    day_mat$numSolarPos[i] <- numSolarPos
+    day_mat$Ho_Wm2[i] <- Ho_Wm2
+    day_mat$Ho_MJm2[i] <- Ho_MJm2
+  }
+
+  # Return list with all computed values
+  # Handle case where k=0 (no solar positions calculated, e.g., polar night)
+  # Return 0-row matrix to maintain consistent structure with column names
+  if (k == 0) {
+    solar_mat_result <- solar_mat[0, , drop = FALSE]
+  } else {
+    solar_mat_result <- solar_mat[1:k, ]
+  }
+
+  list(
+    solar_mat = solar_mat_result,
+    beam_array = beam_array,
+    day_mat = day_mat,
+    Total_rbi = Total_rbi
+  )
+}
+
+
+#' Apply radial distortion mapping in either direction
+#'
+#' Performs linear interpolation for lens distortion calibration. Used
+#' bidirectionally: forward (elevation → radius) for synthetic photo creation,
+#' reverse (radius → elevation) for photo analysis.
+#'
+#' @param input_values Vector of input values to map
+#' @param from Vector of input reference values (from calibration)
+#' @param to Vector of output reference values (from calibration)
+#' @return Vector of mapped values
+#' @keywords internal
+apply_radial_distortion_mapping <- function(input_values, from, to) {
+  approx(
+    from,
+    to,
+    xout = input_values,
+    method = "linear",
+    rule = 2
+  )$y
+}
+
+
+#' Validate radial distortion calibration data
+#'
+#' Checks that radial_distortion is either "equidistant" (default) or a valid
+#' calibration list with required components and normalized radius values.
+#'
+#' @inheritParams gla_extract_gap_fraction
+#' @return TRUE invisibly if valid, otherwise stops with error
+#' @keywords internal
+validate_radial_distortion <- function(radial_distortion) {
+  # Allow "equidistant" as valid string value
+  if (is.character(radial_distortion) && length(radial_distortion) == 1) {
+    if (radial_distortion == "equidistant") {
+      return(invisible(TRUE))
+    } else {
+      stop(
+        "radial_distortion string must be 'equidistant'.\n",
+        "For custom calibration, provide a list with 'radius' and 'elevation' components.",
+        call. = FALSE
+      )
+    }
+  }
+
+  # Validate list structure
+  if (!is.list(radial_distortion)) {
+    stop(
+      "radial_distortion must be 'equidistant' or a calibration list",
+      call. = FALSE
+    )
+  }
+
+  if (!all(c("radius", "elevation") %in% names(radial_distortion))) {
+    stop(
+      "radial_distortion must have 'radius' and 'elevation' components.\n",
+      "See ?gla_lens_sigma_8mm for example format.",
+      call. = FALSE
+    )
+  }
+
+  # Check radius is normalized (0-1)
+  if (any(radial_distortion$radius < 0 | radial_distortion$radius > 1)) {
+    stop(
+      "radial_distortion$radius must be normalized to 0-1 range.\n",
+      "Found values outside [0, 1]: min = ",
+      min(radial_distortion$radius),
+      ", max = ",
+      max(radial_distortion$radius),
+      "\n",
+      "Normalize by dividing by maximum physical radius.",
+      call. = FALSE
+    )
+  }
+
+  # Check vectors are same length
+  if (length(radial_distortion$radius) != length(radial_distortion$elevation)) {
+    stop(
+      "radial_distortion$radius and radial_distortion$elevation must have same length",
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
+}
+
+
+#' Process single fisheye photo and calculate SSR
+#' @keywords internal
+gla_process_fisheye_photo_single <- function(
+  solar_data,
+  img_file,
+  lat_deg,
+  long_deg,
+  Kt,
+  elev_res,
+  azi_res,
+  rotation_deg,
+  keep_gap_fraction_data = FALSE,
+  radial_distortion = "equidistant",
+  threshold = 0
+) {
+  # Extract computed values from solar_data
+  solar_mat <- solar_data$solar_mat
+  beam_array <- solar_data$beam_array
+  day_mat <- solar_data$day_mat
+  Total_rbi <- solar_data$Total_rbi
+
+  # Daily Kd ~ Kt decomposition model calibration
+  daily_kt_calib <- seq(0, 1, 0.05)
+  daily_kd_calib <- c(
+    0.9956545,
+    0.9891128,
+    0.9763180,
+    0.9577567,
+    0.9305954,
+    0.8929988,
+    0.8441450,
+    0.7817907,
+    0.7096211,
+    0.6301739,
+    0.5463198,
+    0.4610067,
+    0.3780925,
+    0.3029890,
+    0.2391789,
+    0.1869482,
+    0.1658167,
+    0.1658167,
+    0.1658167,
+    0.1658167,
+    0.1658167
+  )
+
+  # Compute gap fractions
+  gap_data <- gla_extract_gap_fraction(
+    img_file,
+    elev_res,
+    azi_res,
+    rotation_deg,
+    radial_distortion,
+    threshold
+  )
+  gap_frac <- gap_data$gap_fraction
+  nRings <- gap_data$nRings
+  nSectors <- gap_data$nSectors
+  norm_sky_area <- skyarea(
+    n_elevation_rings = nRings,
+    n_azimuth_sectors = nSectors
+  )
+  CO <- sum(gap_frac * norm_sky_area) * 100
+
+  # Build isotropic UOC sky irradiance model
+  sky_rad <- uoc(
+    n_elevation_rings = nRings,
+    n_azimuth_sectors = nSectors
+  )
+  # Sky view factor (also known as indirect site factor)
+  svf <- sum(sky_rad * gap_frac)
+
+  # Calculate final solar radiation values from day_mat
+  mean_Ho_Wm2 <- mean(day_mat$Ho_Wm2)
+  mean_Ho_MJm2 <- mean(day_mat$Ho_MJm2)
+  mean_H_MJm2 <- mean_Ho_MJm2 * Kt
+
+  Kd <- approx(
+    daily_kt_calib,
+    daily_kd_calib,
+    xout = Kt,
+    method = "linear",
+    rule = 2,
+    ties = "ordered"
+  )$y
+  mean_Hd_MJm2 <- mean_H_MJm2 * Kd
+  mean_Hb_MJm2 <- mean_H_MJm2 - mean_Hd_MJm2
+
+  # Calculate transmitted radiation
+  norm_rbi_wt <- beam_array / Total_rbi
+  trans_Hb_MJm2 <- sum(mean_Hb_MJm2 * norm_rbi_wt * gap_frac)
+  trans_Hd_MJm2 <- sum(mean_Hd_MJm2 * sky_rad * gap_frac)
+  trans_H_MJm2 <- trans_Hb_MJm2 + trans_Hd_MJm2
+
+  pct_trans_Hb <- trans_Hb_MJm2 / mean_Hb_MJm2 * 100
+  pct_trans_Hd <- trans_Hd_MJm2 / mean_Hd_MJm2 * 100
+  pct_trans_H <- trans_H_MJm2 / mean_H_MJm2 * 100
+
+  # Return results as dataframe
+  result <- data.frame(
+    fisheye_photo_path = img_file,
+    canopy_openness_pct = CO,
+    mean_daily_extraterrestrial_irradiance_Wm2 = mean_Ho_Wm2,
+    mean_daily_direct_irradiation_MJm2d = mean_Hb_MJm2,
+    mean_daily_diffuse_irradiation_MJm2d = mean_Hd_MJm2,
+    mean_daily_global_irradiation_MJm2d = mean_H_MJm2,
+    transmitted_direct_irradiation_MJm2d = trans_Hb_MJm2,
+    transmitted_diffuse_irradiation_MJm2d = trans_Hd_MJm2,
+    transmitted_global_irradiation_MJm2d = trans_H_MJm2,
+    transmitted_direct_irradiation_pct = pct_trans_Hb,
+    transmitted_diffuse_irradiation_pct = pct_trans_Hd,
+    transmitted_global_irradiation_pct = pct_trans_H,
+    subcanopy_solar_radiation_MJm2d = trans_H_MJm2,
+    light_penetration_index = (trans_H_MJm2 / mean_H_MJm2),
+    row.names = NULL
+  )
+
+  # Add gap fraction data if requested
+  if (keep_gap_fraction_data) {
+    result$nRings <- nRings
+    result$nSectors <- nSectors
+    result$gap_pixels <- list(gap_data$gap_pixels)
+    result$total_pixels <- list(gap_data$total_pixels)
+    result$gap_fraction <- list(gap_data$gap_fraction)
+  }
+
+  result
 }

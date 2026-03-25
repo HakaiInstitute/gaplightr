@@ -1,19 +1,3 @@
-# Equations taken from Chapter 4, Geometry, CRC Standard Mathematical Tables and Formulae, 30th Edition
-# Function to reproject 3D cartesian to 3D spherical to 2D polar scaled to pi/2
-# 4.9.4 Relations between Cartesian, Cylindrical, and spherical coordinates, p. 299.
-lidar2hemi <- function(x, y, z) {
-  # spherical coordinates (rho, theta, phi)
-  rho <- sqrt(x^2 + y^2 + z^2) # distance from origin (0,0,0) to pt(x,y,z)
-  theta <- atan2(y, x) # angle in radians from east = 0, CCW convention
-  phi <- acos(z / rho) # zenith angle in radians from positive z-axis
-  # reproject 3D spherical coordinates onto 2D polar image plane scaled to pi/2
-  x <- phi * cos(theta) * -1 # multiple by -1 to flip image along N/S axis
-  y <- phi * sin(theta)
-  # Return data frame of output variables
-  data.frame(rho, theta, phi, x, y)
-}
-
-
 #' Process lidar data for hemispherical photo creation
 #' @keywords internal
 gla_transform_lidar <- function(
@@ -84,6 +68,21 @@ gla_transform_lidar <- function(
 #' (e.g., 5000+ plots), processing all at once can fail. The batch_size parameter
 #' controls how many plots are clipped simultaneously. Default of 1000 works well
 #' for most systems. Reduce to 500 or lower if still encountering memory issues.
+#'
+#' @examples
+#' \donttest{
+#'   points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
+#'   dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+#'   las_folder <- system.file("extdata", "lidar", package = "gaplightr")
+#'
+#'   points <- gla_load_points(points_path, dem_path)
+#'   points <- gla_create_virtual_plots(
+#'     points = points,
+#'     folder = las_folder,
+#'     output_dir = tempdir(),
+#'     plot_radius = 50
+#'   )
+#' }
 #'
 #' @export
 gla_create_virtual_plots <- function(
@@ -298,4 +297,19 @@ gla_create_virtual_plots <- function(
   }
 
   invisible(points)
+}
+
+# Equations taken from Chapter 4, Geometry, CRC Standard Mathematical Tables and Formulae, 30th Edition
+# Function to reproject 3D cartesian to 3D spherical to 2D polar scaled to pi/2
+# 4.9.4 Relations between Cartesian, Cylindrical, and spherical coordinates, p. 299.
+lidar2hemi <- function(x, y, z) {
+  # spherical coordinates (rho, theta, phi)
+  rho <- sqrt(x^2 + y^2 + z^2) # distance from origin (0,0,0) to pt(x,y,z)
+  theta <- atan2(y, x) # angle in radians from east = 0, CCW convention
+  phi <- acos(z / rho) # zenith angle in radians from positive z-axis
+  # reproject 3D spherical coordinates onto 2D polar image plane scaled to pi/2
+  x <- phi * cos(theta) * -1 # multiple by -1 to flip image along N/S axis
+  y <- phi * sin(theta)
+  # Return data frame of output variables
+  data.frame(rho, theta, phi, x, y)
 }

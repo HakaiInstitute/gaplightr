@@ -1,5 +1,322 @@
 # Pure R implementation of horizon angle calculation using terra
 
+#' Extract horizon masks for multiple points
+#'
+#' Extracts terrain horizon elevation angles from a DEM for multiple observation
+#' points and converts them to horizon masks suitable for fisheye photo creation.
+#' Supports caching to disk for efficient resume of interrupted workflows.
+#'
+#' @param points sf object containing observation points with point geometry.
+#'   Must have x_meters and y_meters columns. Coordinates will be extracted from
+#'   the geometry and transformed to WGS84 if necessary.
+#' @param dem_path Character path to the DEM raster file (GeoTIFF)
+#' @param output_dir Character path to directory for caching horizon CSV files.
+#'   Each point's horizon data is saved as x_y_horizon.csv. Required parameter.
+#' @param step Numeric azimuth step size in degrees for horizon calculation
+#'   (default: 5)
+#' @param max_search_distance Maximum search distance in meters for horizon detection
+#'   (default: NULL, uses full DEM extent)
+#' @param distance_step Distance step size in meters for sampling along line of
+#'   sight (default: NULL, uses raster resolution)
+#' @inheritParams gla_extract_horizon_terra
+#' @inheritParams gla_create_fisheye_photos
+#' @param resume Logical indicating whether to skip points that already have
+#'   cached horizon files (default: TRUE). When FALSE, recomputes all horizons.
+#'
+#' @return The input sf object with an added horizon_mask list-column. Each element
+#'   is a list containing:
+#'   \describe{
+#'     \item{x_msk}{Numeric vector of x-coordinates for horizon mask polygon}
+#'     \item{y_msk}{Numeric vector of y-coordinates for horizon mask polygon}
+#'   }
+#'
+#' @details
+#' This function:
+#' \enumerate{
+#'   \item For sequential (parallel=FALSE): Loads DEM once, processes all points
+#'   \item For parallel (parallel=TRUE): Each worker loads DEM independently from file
+#'   \item Extracts horizon angles using `gla_extract_horizon_terra()`
+#'   \item Converts to polar projection mask using `prepare_horizon_mask()`
+#'   \item Cleans up DEM from memory
+#' }
+#'
+#' Memory usage: Each worker loads its own copy of the DEM from disk.
+#' For N points with a DEM of size M GB and W workers:
+#' \itemize{
+#'   \item Sequential (parallel=FALSE): Peak memory ~M GB, Time ~40-60 sec/point
+#'   \item Parallel: Peak memory ~W×M GB, Time ~(40-60 sec/point)/W
+#' }
+#'
+#' Set up parallel processing before calling this function:
+#' `future::plan(future::multisession, workers = 3)`
+#'
+#' @examples
+#' \dontrun{
+#'   # Load stream points
+#'   stream_points <- gla_load_stream_network(
+#'     stream_network_path,
+#'     dem_path,
+#'     HydroID = NULL
+#'   )
+#'
+#'   # Extract horizons with parallel processing and caching
+#'   future::plan(future::multisession, workers = 3)
+#'   stream_points <- gla_extract_horizons(
+#'     points = stream_points,
+#'     dem_path = dem_path,
+#'     output_dir = "output/horizons",
+#'     step = 5,
+#'     max_search_distance = NULL,
+#'     parallel = TRUE,
+#'     resume = TRUE
+#'   )
+#'
+#'   # Horizon masks are now stored in stream_points$horizon_mask
+#'   # Use in fisheye photo creation
+#'   stream_points <- gla_create_fisheye_photos(
+#'     points = stream_points,
+#'     output_dir = "output/fisheye_photos"
+#'   )
+#' }
+#'
+#' @seealso
+#' [gla_extract_horizon_terra()] for single-point horizon extraction,
+#' [gla_create_fisheye_photos()] for using extracted horizons
+#'
+#' @export
+gla_extract_horizons <- function(
+  points,
+  dem_path,
+  output_dir,
+  step = 5,
+  max_search_distance = NULL,
+  distance_step = NULL,
+  camera_height_m = 1.37,
+  parallel = TRUE,
+  resume = TRUE,
+  verbose = FALSE
+) {
+  # Validate inputs
+  validate_sf_object(points)
+
+  if (!file.exists(dem_path)) {
+    stop("DEM file not found: ", dem_path, call. = FALSE)
+  }
+
+  n_points <- nrow(points)
+  message(
+    "Extracting horizons for ",
+    n_points,
+    " locations using terra method..."
+  )
+
+  validate_required_columns(
+    points,
+    "point_id",
+    hint = "Run gla_load_points() first"
+  )
+
+  # Ensure x_meters and y_meters columns exist (needed for coordinate passing)
+  if (!("x_meters" %in% names(points))) {
+    coords <- sf::st_coordinates(points)
+    points$x_meters <- coords[, 1]
+    points$y_meters <- coords[, 2]
+  }
+
+  # Check for cached horizons if resume=TRUE
+  has_cached <- rep(FALSE, n_points)
+  cached_horizons <- vector("list", n_points)
+
+  if (resume) {
+    has_cached <- find_existing_horizons(points, output_dir)
+    n_cached <- sum(has_cached)
+
+    if (n_cached > 0) {
+      message("Found ", n_cached, " cached horizon files, loading...")
+
+      for (i in which(has_cached)) {
+        horizon_df <- load_horizon_csv(points$point_id[i], output_dir)
+
+        if (!is.null(horizon_df)) {
+          # Convert cached horizon angles to cartesian coordinates
+          # Use first two columns which are azimuth and horizon_height
+          horizon_processed <- prepare_horizon_mask(
+            horizon_df[, 1:2],
+            radial_distortion = "equidistant",
+            verbose = FALSE
+          )
+
+          cached_horizons[[i]] <- list(
+            azimuth = horizon_processed$azimuth,
+            horizon_height = horizon_processed$horizon_height,
+            x_msk = horizon_processed$x_msk,
+            y_msk = horizon_processed$y_msk
+          )
+        }
+      }
+
+      message(
+        "Loaded ",
+        n_cached,
+        " cached horizons, will compute ",
+        n_points - n_cached,
+        " new ones"
+      )
+    }
+  }
+
+  # Indices of points that need computation
+  points_to_compute <- which(!has_cached)
+  n_to_compute <- length(points_to_compute)
+
+  # If all points are cached, return early
+  if (n_to_compute == 0) {
+    message("All horizons already cached, skipping computation")
+    points$horizon_mask <- cached_horizons
+    return(move_geom_col_to_end(points))
+  }
+
+  # Load DEM and validate CRS matches points
+  message("Loading DEM and validating CRS...")
+  dem_rast <- terra::rast(dem_path)
+
+  # Strict CRS validation to prevent spatial errors
+  dem_crs <- get_raster_crs(dem_rast)
+  pts_crs <- sf::st_crs(points)
+
+  validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
+
+  # Compute DEM max once for early termination optimization
+  message("Computing DEM maximum elevation for early termination...")
+  dem_max <- terra::global(dem_rast, "max", na.rm = TRUE)[1, 1]
+  message("DEM max elevation: ", round(dem_max, 1), " m")
+
+  if (parallel) {
+    message("Using parallel processing")
+
+    # Clean up DEM in main process (workers will load their own)
+    rm(dem_rast)
+    gc()
+
+    # Compute only the points that need it
+    computed_horizons <- future.apply::future_lapply(
+      points_to_compute,
+      function(
+        i,
+        dem_path,
+        step,
+        max_search_distance,
+        dist_step,
+        dem_max,
+        camera_height_m,
+        verbose,
+        x_meters,
+        y_meters,
+        point_ids,
+        output_dir
+      ) {
+        # Load DEM in worker (each worker loads independently)
+        dem_rast <- terra::rast(dem_path)
+
+        if (verbose && i %% 10 == 0) {
+          message("Processing point ", i)
+        }
+
+        # Extract horizon (pass cached dem_max)
+        horizon_df <- gla_extract_horizon_terra(
+          dem_rast = dem_rast,
+          x_meters = x_meters[i],
+          y_meters = y_meters[i],
+          step = step,
+          max_search_distance = max_search_distance,
+          distance_step = dist_step,
+          dem_max = dem_max,
+          camera_height_m = camera_height_m,
+          verbose = FALSE
+        ) |>
+          prepare_horizon_mask(
+            radial_distortion = "equidistant",
+            verbose = FALSE
+          )
+
+        # Save to CSV
+        save_horizon_csv(horizon_df, point_ids[i], output_dir)
+
+        list(
+          azimuth = horizon_df$azimuth,
+          horizon_height = horizon_df$horizon_height,
+          x_msk = horizon_df$x_msk,
+          y_msk = horizon_df$y_msk
+        )
+      },
+      dem_path = dem_path,
+      step = step,
+      max_search_distance = max_search_distance,
+      dist_step = distance_step,
+      dem_max = dem_max,
+      camera_height_m = camera_height_m,
+      verbose = verbose,
+      x_meters = points$x_meters,
+      y_meters = points$y_meters,
+      point_ids = points$point_id,
+      output_dir = output_dir,
+      future.seed = TRUE
+    )
+
+    # Merge cached and computed horizons
+    horizon_list <- cached_horizons
+    horizon_list[points_to_compute] <- computed_horizons
+  } else {
+    message("Using sequential processing")
+
+    # DEM already loaded above for dem_max calculation
+    # Extract horizons sequentially for points that need computation
+    computed_horizons <- lapply(points_to_compute, function(i) {
+      if (verbose && i %% 10 == 0) {
+        message("Processing point ", i, " of ", n_points)
+      }
+
+      horizon_df <- gla_extract_horizon_terra(
+        dem_rast = dem_rast,
+        x_meters = points$x_meters[i],
+        y_meters = points$y_meters[i],
+        step = step,
+        max_search_distance = max_search_distance,
+        distance_step = distance_step,
+        dem_max = dem_max,
+        camera_height_m = camera_height_m,
+        verbose = FALSE
+      ) |>
+        prepare_horizon_mask(
+          radial_distortion = "equidistant",
+          verbose = FALSE
+        )
+
+      # Save to CSV
+      save_horizon_csv(horizon_df, points$point_id[i], output_dir)
+
+      list(
+        azimuth = horizon_df$azimuth,
+        horizon_height = horizon_df$horizon_height,
+        x_msk = horizon_df$x_msk,
+        y_msk = horizon_df$y_msk
+      )
+    })
+
+    # Merge cached and computed horizons
+    horizon_list <- cached_horizons
+    horizon_list[points_to_compute] <- computed_horizons
+  }
+
+  # Clean up
+  gc()
+  message("Horizon extraction complete, DEM removed from memory")
+
+  # Add horizon masks as list-column to points
+  points$horizon_mask <- horizon_list
+  move_geom_col_to_end(points)
+}
+
 #' Save horizon data to CSV file
 #'
 #' @param horizon_df Data frame with horizon data (azimuth, horizon_height, x_msk, y_msk)
@@ -409,322 +726,4 @@ prepare_horizon_mask <- function(
   result <- as.data.frame(cbind(dat, x_msk, y_msk))
 
   return(result)
-}
-
-
-#' Extract horizon masks for multiple points
-#'
-#' Extracts terrain horizon elevation angles from a DEM for multiple observation
-#' points and converts them to horizon masks suitable for fisheye photo creation.
-#' Supports caching to disk for efficient resume of interrupted workflows.
-#'
-#' @param points sf object containing observation points with point geometry.
-#'   Must have x_meters and y_meters columns. Coordinates will be extracted from
-#'   the geometry and transformed to WGS84 if necessary.
-#' @param dem_path Character path to the DEM raster file (GeoTIFF)
-#' @param output_dir Character path to directory for caching horizon CSV files.
-#'   Each point's horizon data is saved as x_y_horizon.csv. Required parameter.
-#' @param step Numeric azimuth step size in degrees for horizon calculation
-#'   (default: 5)
-#' @param max_search_distance Maximum search distance in meters for horizon detection
-#'   (default: NULL, uses full DEM extent)
-#' @param distance_step Distance step size in meters for sampling along line of
-#'   sight (default: NULL, uses raster resolution)
-#' @inheritParams gla_extract_horizon_terra
-#' @inheritParams gla_create_fisheye_photos
-#' @param resume Logical indicating whether to skip points that already have
-#'   cached horizon files (default: TRUE). When FALSE, recomputes all horizons.
-#'
-#' @return The input sf object with an added horizon_mask list-column. Each element
-#'   is a list containing:
-#'   \describe{
-#'     \item{x_msk}{Numeric vector of x-coordinates for horizon mask polygon}
-#'     \item{y_msk}{Numeric vector of y-coordinates for horizon mask polygon}
-#'   }
-#'
-#' @details
-#' This function:
-#' \enumerate{
-#'   \item For sequential (parallel=FALSE): Loads DEM once, processes all points
-#'   \item For parallel (parallel=TRUE): Each worker loads DEM independently from file
-#'   \item Extracts horizon angles using `gla_extract_horizon_terra()`
-#'   \item Converts to polar projection mask using `prepare_horizon_mask()`
-#'   \item Cleans up DEM from memory
-#' }
-#'
-#' Memory usage: Each worker loads its own copy of the DEM from disk.
-#' For N points with a DEM of size M GB and W workers:
-#' \itemize{
-#'   \item Sequential (parallel=FALSE): Peak memory ~M GB, Time ~40-60 sec/point
-#'   \item Parallel: Peak memory ~W×M GB, Time ~(40-60 sec/point)/W
-#' }
-#'
-#' Set up parallel processing before calling this function:
-#' `future::plan(future::multisession, workers = 3)`
-#'
-#' @examples
-#' \dontrun{
-#'   # Load stream points
-#'   stream_points <- gla_load_stream_network(
-#'     stream_network_path,
-#'     dem_path,
-#'     HydroID = NULL
-#'   )
-#'
-#'   # Extract horizons with parallel processing and caching
-#'   future::plan(future::multisession, workers = 3)
-#'   stream_points <- gla_extract_horizons(
-#'     points = stream_points,
-#'     dem_path = dem_path,
-#'     output_dir = "output/horizons",
-#'     step = 5,
-#'     max_search_distance = NULL,
-#'     parallel = TRUE,
-#'     resume = TRUE
-#'   )
-#'
-#'   # Horizon masks are now stored in stream_points$horizon_mask
-#'   # Use in fisheye photo creation
-#'   stream_points <- gla_create_fisheye_photos(
-#'     points = stream_points,
-#'     output_dir = "output/fisheye_photos"
-#'   )
-#' }
-#'
-#' @seealso
-#' [gla_extract_horizon_terra()] for single-point horizon extraction,
-#' [gla_create_fisheye_photos()] for using extracted horizons
-#'
-#' @export
-gla_extract_horizons <- function(
-  points,
-  dem_path,
-  output_dir,
-  step = 5,
-  max_search_distance = NULL,
-  distance_step = NULL,
-  camera_height_m = 1.37,
-  parallel = TRUE,
-  resume = TRUE,
-  verbose = FALSE
-) {
-  # Validate inputs
-  validate_sf_object(points)
-
-  if (!file.exists(dem_path)) {
-    stop("DEM file not found: ", dem_path, call. = FALSE)
-  }
-
-  n_points <- nrow(points)
-  message(
-    "Extracting horizons for ",
-    n_points,
-    " locations using terra method..."
-  )
-
-  validate_required_columns(
-    points,
-    "point_id",
-    hint = "Run gla_load_points() first"
-  )
-
-  # Ensure x_meters and y_meters columns exist (needed for coordinate passing)
-  if (!("x_meters" %in% names(points))) {
-    coords <- sf::st_coordinates(points)
-    points$x_meters <- coords[, 1]
-    points$y_meters <- coords[, 2]
-  }
-
-  # Check for cached horizons if resume=TRUE
-  has_cached <- rep(FALSE, n_points)
-  cached_horizons <- vector("list", n_points)
-
-  if (resume) {
-    has_cached <- find_existing_horizons(points, output_dir)
-    n_cached <- sum(has_cached)
-
-    if (n_cached > 0) {
-      message("Found ", n_cached, " cached horizon files, loading...")
-
-      for (i in which(has_cached)) {
-        horizon_df <- load_horizon_csv(points$point_id[i], output_dir)
-
-        if (!is.null(horizon_df)) {
-          # Convert cached horizon angles to cartesian coordinates
-          # Use first two columns which are azimuth and horizon_height
-          horizon_processed <- prepare_horizon_mask(
-            horizon_df[, 1:2],
-            radial_distortion = "equidistant",
-            verbose = FALSE
-          )
-
-          cached_horizons[[i]] <- list(
-            azimuth = horizon_processed$azimuth,
-            horizon_height = horizon_processed$horizon_height,
-            x_msk = horizon_processed$x_msk,
-            y_msk = horizon_processed$y_msk
-          )
-        }
-      }
-
-      message(
-        "Loaded ",
-        n_cached,
-        " cached horizons, will compute ",
-        n_points - n_cached,
-        " new ones"
-      )
-    }
-  }
-
-  # Indices of points that need computation
-  points_to_compute <- which(!has_cached)
-  n_to_compute <- length(points_to_compute)
-
-  # If all points are cached, return early
-  if (n_to_compute == 0) {
-    message("All horizons already cached, skipping computation")
-    points$horizon_mask <- cached_horizons
-    return(move_geom_col_to_end(points))
-  }
-
-  # Load DEM and validate CRS matches points
-  message("Loading DEM and validating CRS...")
-  dem_rast <- terra::rast(dem_path)
-
-  # Strict CRS validation to prevent spatial errors
-  dem_crs <- get_raster_crs(dem_rast)
-  pts_crs <- sf::st_crs(points)
-
-  validate_crs_match(pts_crs, dem_crs, "Points", "DEM")
-
-  # Compute DEM max once for early termination optimization
-  message("Computing DEM maximum elevation for early termination...")
-  dem_max <- terra::global(dem_rast, "max", na.rm = TRUE)[1, 1]
-  message("DEM max elevation: ", round(dem_max, 1), " m")
-
-  if (parallel) {
-    message("Using parallel processing")
-
-    # Clean up DEM in main process (workers will load their own)
-    rm(dem_rast)
-    gc()
-
-    # Compute only the points that need it
-    computed_horizons <- future.apply::future_lapply(
-      points_to_compute,
-      function(
-        i,
-        dem_path,
-        step,
-        max_search_distance,
-        dist_step,
-        dem_max,
-        camera_height_m,
-        verbose,
-        x_meters,
-        y_meters,
-        point_ids,
-        output_dir
-      ) {
-        # Load DEM in worker (each worker loads independently)
-        dem_rast <- terra::rast(dem_path)
-
-        if (verbose && i %% 10 == 0) {
-          message("Processing point ", i)
-        }
-
-        # Extract horizon (pass cached dem_max)
-        horizon_df <- gla_extract_horizon_terra(
-          dem_rast = dem_rast,
-          x_meters = x_meters[i],
-          y_meters = y_meters[i],
-          step = step,
-          max_search_distance = max_search_distance,
-          distance_step = dist_step,
-          dem_max = dem_max,
-          camera_height_m = camera_height_m,
-          verbose = FALSE
-        ) |>
-          prepare_horizon_mask(
-            radial_distortion = "equidistant",
-            verbose = FALSE
-          )
-
-        # Save to CSV
-        save_horizon_csv(horizon_df, point_ids[i], output_dir)
-
-        list(
-          azimuth = horizon_df$azimuth,
-          horizon_height = horizon_df$horizon_height,
-          x_msk = horizon_df$x_msk,
-          y_msk = horizon_df$y_msk
-        )
-      },
-      dem_path = dem_path,
-      step = step,
-      max_search_distance = max_search_distance,
-      dist_step = distance_step,
-      dem_max = dem_max,
-      camera_height_m = camera_height_m,
-      verbose = verbose,
-      x_meters = points$x_meters,
-      y_meters = points$y_meters,
-      point_ids = points$point_id,
-      output_dir = output_dir,
-      future.seed = TRUE
-    )
-
-    # Merge cached and computed horizons
-    horizon_list <- cached_horizons
-    horizon_list[points_to_compute] <- computed_horizons
-  } else {
-    message("Using sequential processing")
-
-    # DEM already loaded above for dem_max calculation
-    # Extract horizons sequentially for points that need computation
-    computed_horizons <- lapply(points_to_compute, function(i) {
-      if (verbose && i %% 10 == 0) {
-        message("Processing point ", i, " of ", n_points)
-      }
-
-      horizon_df <- gla_extract_horizon_terra(
-        dem_rast = dem_rast,
-        x_meters = points$x_meters[i],
-        y_meters = points$y_meters[i],
-        step = step,
-        max_search_distance = max_search_distance,
-        distance_step = distance_step,
-        dem_max = dem_max,
-        camera_height_m = camera_height_m,
-        verbose = FALSE
-      ) |>
-        prepare_horizon_mask(
-          radial_distortion = "equidistant",
-          verbose = FALSE
-        )
-
-      # Save to CSV
-      save_horizon_csv(horizon_df, points$point_id[i], output_dir)
-
-      list(
-        azimuth = horizon_df$azimuth,
-        horizon_height = horizon_df$horizon_height,
-        x_msk = horizon_df$x_msk,
-        y_msk = horizon_df$y_msk
-      )
-    })
-
-    # Merge cached and computed horizons
-    horizon_list <- cached_horizons
-    horizon_list[points_to_compute] <- computed_horizons
-  }
-
-  # Clean up
-  gc()
-  message("Horizon extraction complete, DEM removed from memory")
-
-  # Add horizon masks as list-column to points
-  points$horizon_mask <- horizon_list
-  move_geom_col_to_end(points)
 }
