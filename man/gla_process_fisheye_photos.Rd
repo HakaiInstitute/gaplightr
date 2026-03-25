@@ -55,13 +55,13 @@ If TRUE, adds \code{gap_fraction_data} column to output.}
 
 \item{radial_distortion}{Lens projection method. Use "equidistant" (default)
 for standard equidistant polar projection, or provide custom lens calibration
-data (see \code{\link{gla_lens_sigma_8mm}} for format).}
+data (see \code{\link[=gla_lens_sigma_8mm]{gla_lens_sigma_8mm()}} for format).}
 
 \item{threshold}{Threshold value for converting image to binary. Can be:
 \itemize{
 \item Numeric value (0-1): pixels below threshold become 0, above become 1. Default is 0 (matches original behavior).
 \item "auto": automatic threshold detection using Otsu's method
-\item "XX\\%": percentile-based threshold (e.g., "95\\%")
+\item "XX\%": percentile-based threshold (e.g., "95\%")
 }}
 
 \item{solar_constant}{Solar constant in W/m² (default 1367). The total solar

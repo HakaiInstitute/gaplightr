@@ -74,3 +74,4 @@ The observer elevation is computed as: ground_elev (from DEM) + camera_height_m.
   )
 }
 }
+\keyword{internal}

@@ -375,30 +375,40 @@ skyregidx <- function(
 
 #' Degree to radian conversion factor
 #' @return pi / 180
+#' @keywords internal
+#' @noRd
 deg_to_rad <- function() {
   pi / 180
 }
 
 #' Radian to degree conversion factor
 #' @return 180 / pi
+#' @keywords internal
+#' @noRd
 rad_to_deg <- function() {
   180 / pi
 }
 
 #' 90 degrees in radians (pi/2)
 #' @return pi / 2
+#' @keywords internal
+#' @noRd
 rad_90 <- function() {
   pi / 2
 }
 
 #' 450 degrees in radians (2.5 * pi)
 #' @return 2 * pi * 450 / 360
+#' @keywords internal
+#' @noRd
 rad_450 <- function() {
   2 * pi * 450 / 360
 }
 
 #' 2*pi (full circle in radians)
 #' @return 2 * pi
+#' @keywords internal
+#' @noRd
 two_pi <- function() {
   2 * pi
 }
