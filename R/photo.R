@@ -14,25 +14,19 @@
 #'   \itemize{
 #'     \item Numeric value (0-1): pixels below threshold become 0, above become 1. Default is 0 (matches original behavior).
 #'     \item "auto": automatic threshold detection using Otsu's method
-#'     \item "XX\%": percentile-based threshold (e.g., "95\%")
+#'     \item "XX%": percentile-based threshold (e.g., "95%")
 #'   }
 #'
 #' @return A list with gap fraction matrix and metadata
 #'
 #' @examples
-#' \dontrun{
-#' # Default behavior (threshold = 0, any non-zero pixel becomes white)
-#' gla_extract_gap_fraction("photo.jpg")
+#' \donttest{
+#'   photo <- system.file("extdata", "example-photo.jpg", package = "gaplightr")
+#'   gla_extract_gap_fraction(photo)
 #'
-#' # Automatic threshold detection
-#' gla_extract_gap_fraction("photo.jpg", threshold = "auto")
-#'
-#' # Custom numeric threshold
-#' gla_extract_gap_fraction("photo.jpg", threshold = 0.5)
-#'
-#' # Use lens calibration
-#' sigma_cal <- gla_lens_sigma_8mm()
-#' gla_extract_gap_fraction("photo.jpg", radial_distortion = sigma_cal)
+#'   # Use lens calibration
+#'   sigma_cal <- gla_lens_sigma_8mm()
+#'   gla_extract_gap_fraction(photo, radial_distortion = sigma_cal)
 #' }
 #'
 #' @export
