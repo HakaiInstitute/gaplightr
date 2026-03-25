@@ -127,7 +127,6 @@ points <- gla_create_fisheye_photos(
   output_dir = photo_dir,
   camera_height_m = 1.37,
   min_dist = 1,
-  max_dist = 70,
   img_res = 2800,
   max_cex = 0.5,
   min_cex = 0.03,
