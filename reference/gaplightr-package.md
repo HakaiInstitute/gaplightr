@@ -25,4 +25,10 @@ Authors:
 
 Other contributors:
 
-- Hakai Institute \[copyright holder\]
+- Tula Foundation \[funder, copyright holder\]
+
+- Fisheries and Oceans Canada \[funder\]
+
+- Province of British Columbia \[funder\]
+
+- Nanwakolas Council \[funder\]

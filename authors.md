@@ -7,7 +7,13 @@
 
 - **Sam Albers**. Author, maintainer.
 
-- **Hakai Institute**. Copyright holder.
+- **Tula Foundation**. Funder, copyright holder.
+
+- **Fisheries and Oceans Canada**. Funder.
+
+- **Province of British Columbia**. Funder.
+
+- **Nanwakolas Council**. Funder.
 
 ## Citation
 
