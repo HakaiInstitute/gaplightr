@@ -129,13 +129,13 @@ If TRUE, adds <code>gap_fraction_data</code> column to output.</p></dd>
 <dt id="arg-radial-distortion">radial_distortion<a class="anchor" aria-label="anchor" href="#arg-radial-distortion"></a></dt>
 <dd><p>Lens projection method. Use "equidistant" (default)
 for standard equidistant polar projection, or provide custom lens calibration
-data (see <code><a href="gla_lens_sigma_8mm.html">gla_lens_sigma_8mm</a></code> for format).</p></dd>
+data (see <code><a href="gla_lens_sigma_8mm.html">gla_lens_sigma_8mm()</a></code> for format).</p></dd>
 
 
 <dt id="arg-threshold">threshold<a class="anchor" aria-label="anchor" href="#arg-threshold"></a></dt>
 <dd><p>Threshold value for converting image to binary. Can be:</p><ul><li><p>Numeric value (0-1): pixels below threshold become 0, above become 1. Default is 0 (matches original behavior).</p></li>
 <li><p>"auto": automatic threshold detection using Otsu's method</p></li>
-<li><p>"XX\<!-- %": percentile-based threshold (e.g., "95\\%") --></p></li>
+<li><p>"XX%": percentile-based threshold (e.g., "95%")</p></li>
 </ul></dd>
 
 

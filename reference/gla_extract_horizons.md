@@ -90,65 +90,24 @@ is a list containing:
 
 ## Details
 
-This function:
-
-1.  For sequential (parallel=FALSE): Loads DEM once, processes all
-    points
-
-2.  For parallel (parallel=TRUE): Each worker loads DEM independently
-    from file
-
-3.  Extracts horizon angles using `gla_extract_horizon_terra`
-
-4.  Converts to polar projection mask using `prepare_horizon_mask`
-
-5.  Cleans up DEM from memory
-
-Memory usage: Each worker loads its own copy of the DEM from disk. For N
-points with a DEM of size M GB and W workers:
-
-- Sequential (parallel=FALSE): Peak memory ~M GB, Time ~40-60 sec/point
-
-- Parallel: Peak memory ~W×M GB, Time ~(40-60 sec/point)/W
-
-Set up parallel processing before calling this function:
+When `parallel = TRUE`, each worker loads the DEM independently from
+disk. Set up a parallel plan before calling this function:
 `future::plan(future::multisession, workers = 3)`
 
 ## See also
 
-[`gla_extract_horizon_terra`](https://hakaiinstitute.github.io/gaplightr/reference/gla_extract_horizon_terra.md)
-for single-point horizon extraction,
-[`gla_create_fisheye_photos`](https://hakaiinstitute.github.io/gaplightr/reference/gla_create_fisheye_photos.md)
+[`gla_create_fisheye_photos()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_create_fisheye_photos.md)
 for using extracted horizons
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-  # Load stream points
-  stream_points <- gla_load_stream_network(
-    stream_network_path,
-    dem_path,
-    HydroID = NULL
-  )
-
-  # Extract horizons with parallel processing and caching
-  future::plan(future::multisession, workers = 3)
-  stream_points <- gla_extract_horizons(
-    points = stream_points,
-    dem_path = dem_path,
-    output_dir = "output/horizons",
-    step = 5,
-    max_search_distance = NULL,
-    parallel = TRUE,
-    resume = TRUE
-  )
-
-  # Horizon masks are now stored in stream_points$horizon_mask
-  # Use in fisheye photo creation
-  stream_points <- gla_create_fisheye_photos(
-    points = stream_points,
-    output_dir = "output/fisheye_photos"
+  points <- gla_load_points("points.gpkg", "dem.tif")
+  points <- gla_extract_horizons(
+    points = points,
+    dem_path = "dem.tif",
+    output_dir = "output/horizons"
   )
 } # }
 ```

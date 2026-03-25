@@ -9,7 +9,6 @@
 <url><loc>https://hakaiinstitute.github.io/gaplightr/authors.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/index.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/apply_radial_distortion_mapping.html</loc></url>
-<url><loc>https://hakaiinstitute.github.io/gaplightr/reference/deg_to_rad.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/find_existing_horizons.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/gaplightr-package.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/gla_compute_solar_positions.html</loc></url>
@@ -27,11 +26,7 @@
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/index.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/load_horizon_csv.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/prepare_horizon_mask.html</loc></url>
-<url><loc>https://hakaiinstitute.github.io/gaplightr/reference/rad_450.html</loc></url>
-<url><loc>https://hakaiinstitute.github.io/gaplightr/reference/rad_90.html</loc></url>
-<url><loc>https://hakaiinstitute.github.io/gaplightr/reference/rad_to_deg.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/save_horizon_csv.html</loc></url>
-<url><loc>https://hakaiinstitute.github.io/gaplightr/reference/two_pi.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/validate_crs_match.html</loc></url>
 <url><loc>https://hakaiinstitute.github.io/gaplightr/reference/validate_radial_distortion.html</loc></url>
 </urlset>

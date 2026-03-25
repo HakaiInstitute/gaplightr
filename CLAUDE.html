@@ -45,19 +45,17 @@
 <li>Always ask clarifying questions in planning mode</li>
 </ul></div>
 <div class="section level2">
-<h2 id="key-development-commands">Key development commands<a class="anchor" aria-label="anchor" href="#key-development-commands"></a></h2>
-<p>General advice: - When running R from the console, always run it with <code>--quiet --vanilla</code> - Always run <code>air format .</code> after generating code</p>
-</div>
-<div class="section level2">
 <h2 id="project-overview">Project Overview<a class="anchor" aria-label="anchor" href="#project-overview"></a></h2>
-<p><strong>gaplightr</strong> is an R package currently in early development (version 0.0.0.9000).</p>
+<p><strong>gaplightr</strong> analyzes forest canopy gap light transmission using LiDAR point cloud data and hemispherical photography. The package provides tools for processing LiDAR data, computing horizon angles, and calculating gap light metrics.</p>
+<p><strong>Key functionality:</strong> - Load and preprocess point locations from spatial files (<code><a href="reference/gla_load_points.html">gla_load_points()</a></code>) - Transform LiDAR data to hemispherical coordinates (<code>gla_transform_lidar</code>) - Create virtual LiDAR plots at point locations (<code><a href="reference/gla_create_virtual_plots.html">gla_create_virtual_plots()</a></code>) - Create synthetic fisheye photographs from LiDAR: - Single point: <code><a href="reference/gla_create_fisheye_photo_single.html">gla_create_fisheye_photo_single()</a></code> - Batch processing: <code><a href="reference/gla_create_fisheye_photos.html">gla_create_fisheye_photos()</a></code> (with parallel support) - Compute horizon angles from DEMs: - Single point: <code><a href="reference/gla_extract_horizon_terra.html">gla_extract_horizon_terra()</a></code> - Batch processing: <code><a href="reference/gla_extract_horizons.html">gla_extract_horizons()</a></code> (with parallel support and caching) - Process real fisheye photos for gap fraction analysis (<code><a href="reference/gla_process_fisheye_photos.html">gla_process_fisheye_photos()</a></code>)</p>
 </div>
 <div class="section level2">
 <h2 id="package-structure">Package Structure<a class="anchor" aria-label="anchor" href="#package-structure"></a></h2>
-<p>Standard R package layout: - <code>R/</code> - Package functions - <code>man/</code> - Documentation (auto-generated via roxygen2) - <code>DESCRIPTION</code> - Package metadata and dependencies - <code>NAMESPACE</code> - Package namespace (auto-generated via roxygen2)</p>
+<p>Standard R package layout: - <code>R/</code> - Package functions for gap light analysis - <code>lidar.R</code> - LiDAR processing, transformation, and virtual plot creation - <code>photo.R</code> - Fisheye photo creation and processing (single + batch) - <code>horizon.R</code> - Horizon angle computation using terra - <code>points.R</code> - Point loading and preprocessing - <code>gla-utils.R</code> - Gap light analysis utilities (sky area, irradiance) - <code>utils.R</code> - Helper functions - <code>is.R</code> - Validation functions - <code>gaplightr-package.R</code> - Package-level documentation and imports - <code>man/</code> - Documentation (auto-generated via roxygen2) - <code>tests/testthat/</code> - Test suite with lazy fixture generation - <code>testdata/</code> - Static test data (reference photos, processed results) - <code>setup.R</code> - Loads libraries and provides fixture factory functions for on-demand test data generation - <code>DESCRIPTION</code> - Package metadata and dependencies - <code>NAMESPACE</code> - Package namespace (auto-generated via roxygen2)</p>
 </div>
 <div class="section level2">
 <h2 id="development-commands">Development Commands<a class="anchor" aria-label="anchor" href="#development-commands"></a></h2>
+<p>General advice: - When running R from the console, always run it with <code>--quiet --vanilla</code> - Always run <code>air format .</code> after generating code (if available) - After making roxygen changes, run <code><a href="https://devtools.r-lib.org/reference/document.html" class="external-link">devtools::document()</a></code> then <code><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">devtools::check()</a></code></p>
 <div class="section level3">
 <h3 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a></h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -84,20 +82,124 @@
 <span></span>
 <span><span class="co"># Run tests with coverage</span></span>
 <span><span class="fu">covr</span><span class="fu">::</span><span class="fu">package_coverage</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>IMPORTANT</strong>: Never use <code>skip_if()</code> or similar to make a failing test pass. If a test doesn’t work: 1. Fix the underlying issue (e.g., fixture geometry, parameter values) 2. Ensure fixtures properly align (e.g., LAS point spread radius must match virtual plot radius) 3. Add explicit assertions to verify preconditions are met 4. A skipping test means you’re not testing anything - this is unacceptable</p>
+<p>Example of what NOT to do:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># BAD - hides the real problem</span></span>
+<span><span class="fu">skip_if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">stream_points</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0</span>, <span class="st">"No valid LAS files created"</span><span class="op">)</span></span></code></pre></div>
+<p>Example of what TO do:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># GOOD - fixes the root cause</span></span>
+<span><span class="va">stream_points</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/gla_create_virtual_plots.html">gla_create_virtual_plots</a></span><span class="op">(</span></span>
+<span>  plot_radius <span class="op">=</span> <span class="fl">50</span>, <span class="co"># Match LAS point spread radius</span></span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># Verify it worked</span></span>
+<span><span class="fu">expect_true</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">stream_points</span><span class="op">$</span><span class="va">las_files</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
+</div>
+<div class="section level2">
+<h2 id="test-architecture">Test Architecture<a class="anchor" aria-label="anchor" href="#test-architecture"></a></h2>
+<div class="section level3">
+<h3 id="fixture-management">Fixture Management<a class="anchor" aria-label="anchor" href="#fixture-management"></a></h3>
+<p>Tests use <strong>lazy fixture generation</strong> for on-demand test data creation:</p>
+<ul><li>
+<p><strong><code>setup.R</code></strong>: Runs once before all tests, providing:</p>
+<ul><li>Library loads (testthat, withr)</li>
+<li>Fixture factory functions available to all tests:
+<ul><li>
+<code>create_test_dem(crs, nrows, ncols, output_path)</code> - Generate minimal DEM</li>
+<li>
+<code>create_test_las(crs, n_points, output_path)</code> - Generate minimal LAS point cloud</li>
+<li>
+<code>create_test_points(crs, n_points, output_path)</code> - Generate minimal point locations</li>
+<li>
+<code>create_test_photo_points(fisheye_photo_path, ...)</code> - Create sf point dataframe for photo processing tests</li>
+</ul></li>
+<li>All functions use explicit package prefixes (<code>terra::</code>, <code>lidR::</code>, <code>sf::</code>)</li>
+<li>No camelCase in variable names</li>
+</ul></li>
+<li>
+<p><strong>Test files</strong>: Call fixture functions with <code><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">withr::local_tempfile()</a></code> for automatic cleanup</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Example: Create spatial fixtures</span></span>
+<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"example test"</span>, <span class="op">{</span></span>
+<span>  <span class="va">dem_path</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".tif"</span><span class="op">)</span></span>
+<span>  <span class="fu">create_test_dem</span><span class="op">(</span>crs <span class="op">=</span> <span class="fl">3005</span>, output_path <span class="op">=</span> <span class="va">dem_path</span><span class="op">)</span></span>
+<span>  <span class="co"># Test code here - file auto-deleted after test</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Example: Create sf point dataframe for photo tests</span></span>
+<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"photo processing test"</span>, <span class="op">{</span></span>
+<span>  <span class="va">test_photo</span> <span class="op">&lt;-</span> <span class="fu">test_path</span><span class="op">(</span><span class="st">"testdata"</span>, <span class="st">"some_photo.bmp"</span><span class="op">)</span></span>
+<span>  <span class="va">test_points</span> <span class="op">&lt;-</span> <span class="fu">create_test_photo_points</span><span class="op">(</span>fisheye_photo_path <span class="op">=</span> <span class="va">test_photo</span><span class="op">)</span></span>
+<span>  <span class="co"># All default coordinates, can override any parameter</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+</li>
+</ul></div>
+<div class="section level3">
+<h3 id="benefits-of-this-approach">Benefits of This Approach<a class="anchor" aria-label="anchor" href="#benefits-of-this-approach"></a></h3>
+<ul><li>
+<strong>Faster</strong>: Only create fixtures needed for tests that actually run</li>
+<li>
+<strong>Isolated</strong>: Each test gets fresh fixtures via <code>withr</code> temp files</li>
+<li>
+<strong>No cleanup needed</strong>: <code>withr</code> handles automatic deletion</li>
+<li>
+<strong>Easier debugging</strong>: Run single tests without global setup overhead</li>
+<li>
+<strong>Single file</strong>: All test infrastructure consolidated in <code>setup.R</code>
+</li>
+</ul></div>
 </div>
 <div class="section level2">
 <h2 id="documentation-standards">Documentation Standards<a class="anchor" aria-label="anchor" href="#documentation-standards"></a></h2>
 <ul><li>Use roxygen2 for function documentation with markdown enabled (<code>Roxygen: list(markdown = TRUE)</code>)</li>
 <li>All exported functions must have <code>@export</code> tag</li>
-<li>Include <code>@param</code>, <code>@return</code>, and <code>@examples</code> sections</li>
+<li>Include <code>@param</code>, <code>@return</code>, <code>@examples</code>, and <code>@details</code> sections</li>
+<li>Parameter names in documentation MUST match function signature exactly</li>
+<li>Use <code>[function_name()]</code> for internal package function references</li>
+<li>Use <code>[package::function()]</code> for external references</li>
+<li>Use backticks for inline code: column names, parameter values, package names</li>
 <li>Run <code><a href="https://devtools.r-lib.org/reference/document.html" class="external-link">devtools::document()</a></code> after modifying roxygen comments</li>
+<li>Verify with <code><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">devtools::check()</a></code> to catch documentation mismatches</li>
 </ul></div>
 <div class="section level2">
 <h2 id="adding-dependencies">Adding Dependencies<a class="anchor" aria-label="anchor" href="#adding-dependencies"></a></h2>
-<ul><li>Use <code>usethis::use_package("package_name")</code> to add dependencies to DESCRIPTION</li>
-<li>Use <code>usethis::use_package("package_name", "Suggests")</code> for suggested packages</li>
-<li>Reference external functions with <code>::</code> (e.g., <code>dplyr::filter()</code>) or import in NAMESPACE</li>
+<div class="section level3">
+<h3 id="in-description">In DESCRIPTION:<a class="anchor" aria-label="anchor" href="#in-description"></a></h3>
+<ul><li>
+<strong>Imports</strong>: Packages that code directly uses (e.g., <code>future.apply</code>, <code>terra</code>, <code>sf</code>)</li>
+<li>
+<strong>Suggests</strong>: Packages used in examples, tests, or optional features (e.g., <code>future</code>, <code>testthat</code>)</li>
+<li>
+<strong>Base packages</strong>: No need to declare (utils, stats, graphics, grDevices)</li>
+</ul></div>
+<div class="section level3">
+<h3 id="in-r-code">In R code:<a class="anchor" aria-label="anchor" href="#in-r-code"></a></h3>
+<ul><li>Base R functions: Use directly, no imports needed</li>
+<li>Non-base packages: Use <code>package::function()</code> OR add <code>@importFrom package function</code> in roxygen</li>
+<li>Package-level imports: Add to <code>R/gaplightr-package.R</code> with <code>@importFrom</code> tags</li>
+</ul></div>
+<div class="section level3">
+<h3 id="for-base-packages-requiring-imports">For base packages requiring imports:<a class="anchor" aria-label="anchor" href="#for-base-packages-requiring-imports"></a></h3>
+<p>Add to <code>R/gaplightr-package.R</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' @importFrom grDevices bmp dev.off</span></span>
+<span><span class="co">#' @importFrom graphics par points polygon</span></span>
+<span><span class="co">#' @importFrom stats approx</span></span>
+<span><span class="co">#' @importFrom utils read.csv write.csv</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="parallel-processing">Parallel Processing<a class="anchor" aria-label="anchor" href="#parallel-processing"></a></h2>
+<ul><li>Package uses <code><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future.apply::future_lapply()</a></code> for parallel operations</li>
+<li>Users configure parallelization with <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code> before calling functions</li>
+<li>Examples show <code>future::plan(future::multisession, workers = N)</code>
+</li>
+<li>
+<code>future</code> is in Suggests (users install it, not a hard dependency)</li>
+<li>Batch functions support <code>parallel = TRUE/FALSE</code> parameter</li>
 </ul></div>
 </div>
 

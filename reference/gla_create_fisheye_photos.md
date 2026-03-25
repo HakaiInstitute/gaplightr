@@ -31,7 +31,7 @@ gla_create_fisheye_photos(
   An sf object containing spatial points with required columns:
   `las_files`, `lat`, `lon`, `elevation`, and `horizon_mask`. Use
   [`gla_extract_horizons()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_extract_horizons.md)
-  to add the horizon_mask column.
+  to add the `horizon_mask` column.
 
 - output_dir:
 
@@ -92,7 +92,7 @@ gla_create_fisheye_photos(
   Lens projection method. Use "equidistant" (default) for standard
   equidistant polar projection, or provide custom lens calibration data
   (see
-  [`gla_lens_sigma_8mm`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
+  [`gla_lens_sigma_8mm()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
   for format).
 
 ## Value
@@ -122,7 +122,7 @@ without re-creating existing photos.
 
 ## See also
 
-[`gla_extract_horizons`](https://hakaiinstitute.github.io/gaplightr/reference/gla_extract_horizons.md)
+[`gla_extract_horizons()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_extract_horizons.md)
 for extracting horizon masks
 
 ## Examples

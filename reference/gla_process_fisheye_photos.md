@@ -88,7 +88,7 @@ gla_process_fisheye_photos(
   Lens projection method. Use "equidistant" (default) for standard
   equidistant polar projection, or provide custom lens calibration data
   (see
-  [`gla_lens_sigma_8mm`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
+  [`gla_lens_sigma_8mm()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_lens_sigma_8mm.md)
   for format).
 
 - threshold:
@@ -100,7 +100,7 @@ gla_process_fisheye_photos(
 
   - "auto": automatic threshold detection using Otsu's method
 
-  - "XX\\
+  - "XX%": percentile-based threshold (e.g., "95%")
 
 - solar_constant:
 
