@@ -86,7 +86,7 @@ points <- gla_create_virtual_plots(
   plot_radius = 25,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpVjHQzN/vp
+#> Creating output directory: /tmp/Rtmp9t5fla/vp
 #> Clipping 3 circular plots with radius 25m
 #> Processing batch 1/1 (3 plots)
 #> Created 3 new plot files
@@ -157,7 +157,7 @@ points <- gla_create_fisheye_photos(
   parallel = FALSE,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpVjHQzN/photos
+#> Creating output directory: /tmp/Rtmp9t5fla/photos
 #> Processing 3 fisheye photos...
 ```
 
@@ -204,14 +204,14 @@ results <- gla_process_fisheye_photos(
 
 str(results)
 #> sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)
-#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpVjHQzN/photos/1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpVjHQzN/photos/2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpVjHQzN/photos/3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
+#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/Rtmp9t5fla/photos/1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmp9t5fla/photos/2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmp9t5fla/photos/3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
 #>  $ elevation                                 : num [1:3] 104 108 108
 #>  $ point_id                                  : int [1:3] 1 2 3
 #>  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06
 #>  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05
 #>  $ lon                                       : num [1:3] -126 -126 -126
 #>  $ lat                                       : num [1:3] 49.5 49.5 49.5
-#>  $ las_files                                 : chr [1:3] "/tmp/RtmpVjHQzN/vp/1.las" "/tmp/RtmpVjHQzN/vp/2.las" "/tmp/RtmpVjHQzN/vp/3.las"
+#>  $ las_files                                 : chr [1:3] "/tmp/Rtmp9t5fla/vp/1.las" "/tmp/Rtmp9t5fla/vp/2.las" "/tmp/Rtmp9t5fla/vp/3.las"
 #>  $ horizon_mask                              :List of 3
 #>   ..$ :List of 4
 #>   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...

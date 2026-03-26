@@ -43,11 +43,11 @@ Indigenous-led science partnership to monitor and develop tools to
 address the threats posed by climate change and forest management on
 salmon populations and their habitat in the territories of the
 Nanwakolas member First Nations. The Nanwakolas 50 Watersheds Project
-was led by the Nanwakolas Council and five of its member Nations (Wei
-Wai Kai, Wei Wai Kum, Tlowitsis, Mamalilikulla and K’ómoks First
-Nations) in close partnership with the Hakai Institute. Funding for the
-Nanwakolas 50 Watersheds Project was provided by Fisheries and Oceans
-Canada and the Province of British Columbia through the BC Salmon
-Restoration and Innovation Fund. Nanwakolas Council, the Nanwakolas
-member First Nations, and the Hakai Institute (Tula Foundation)
-contributed significant in-kind contributions to the project.
+was led by the Nanwakolas Council and five of its member Nations (We Wai
+Kai, Wei Wai Kum, Tlowitsis, Mamalilikulla and K’ómoks First Nations) in
+close partnership with the Hakai Institute. Funding for the Nanwakolas
+50 Watersheds Project was provided by Fisheries and Oceans Canada and
+the Province of British Columbia through the BC Salmon Restoration and
+Innovation Fund. Nanwakolas Council, the Nanwakolas member First
+Nations, and the Hakai Institute (Tula Foundation) contributed
+significant in-kind contributions to the project.
