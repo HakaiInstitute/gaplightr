@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2025
-    COPYRIGHT HOLDER: Hakai Institute
+    COPYRIGHT HOLDER: Tula Foundation
