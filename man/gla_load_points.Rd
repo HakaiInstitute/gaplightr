@@ -8,7 +8,9 @@ gla_load_points(x, dem, drop_na_dem = FALSE, ...)
 }
 \arguments{
 \item{x}{Either a file path to any file that \code{sf::read_sf} can read, or an
-sf object containing point geometries}
+sf object containing point geometries. If \code{x} contains a \code{point_id} column
+of unique positive integers, those values are used as-is for all downstream
+file naming; otherwise sequential IDs are assigned automatically.}
 
 \item{dem}{Either a file path to a DEM raster file, or a \code{SpatRaster} object}
 
@@ -50,6 +52,18 @@ calling this function.
   points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
   dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
   points <- gla_load_points(points_path, dem_path)
+}
+
+\donttest{
+  # Supply your own point_id values to keep cached outputs stable across
+  # re-runs or to match an existing site numbering scheme.
+  dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+  my_points <- sf::st_read(
+    system.file("extdata", "points.geojson", package = "gaplightr"),
+    quiet = TRUE
+  )
+  my_points$point_id <- c(101L, 202L, 303L)  # user-defined IDs
+  points <- gla_load_points(my_points, dem_path)
 }
 
 }
