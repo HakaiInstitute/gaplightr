@@ -17,7 +17,10 @@ gla_load_points(x, dem, drop_na_dem = FALSE, ...)
 
   Either a file path to any file that
   [`sf::read_sf`](https://r-spatial.github.io/sf/reference/st_read.html)
-  can read, or an sf object containing point geometries
+  can read, or an sf object containing point geometries. If `x` contains
+  a `point_id` column of unique positive integers, those values are used
+  as-is for all downstream file naming; otherwise sequential IDs are
+  assigned automatically.
 
 - dem:
 
@@ -68,5 +71,18 @@ positive integers before calling this function.
   dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
   points <- gla_load_points(points_path, dem_path)
 #> Assigning sequential point_id (1 to 3).
+# }
+
+# \donttest{
+  # Supply your own point_id values to keep cached outputs stable across
+  # re-runs or to match an existing site numbering scheme.
+  dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
+  my_points <- sf::st_read(
+    system.file("extdata", "points.geojson", package = "gaplightr"),
+    quiet = TRUE
+  )
+  my_points$point_id <- c(101L, 202L, 303L)  # user-defined IDs
+  points <- gla_load_points(my_points, dem_path)
+#> Using existing point_id column (3 point(s)).
 # }
 ```

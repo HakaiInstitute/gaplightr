@@ -61,7 +61,9 @@ gaplightr workflows.</p>
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>Either a file path to any file that <code><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">sf::read_sf</a></code> can read, or an
-sf object containing point geometries</p></dd>
+sf object containing point geometries. If <code>x</code> contains a <code>point_id</code> column
+of unique positive integers, those values are used as-is for all downstream
+file naming; otherwise sequential IDs are assigned automatically.</p></dd>
 
 
 <dt id="arg-dem">dem<a class="anchor" aria-label="anchor" href="#arg-dem"></a></dt>
@@ -108,6 +110,19 @@ calling this function.</p>
 <span class="r-in"><span>  <span class="va">dem_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"dem.tif"</span>, package <span class="op">=</span> <span class="st">"gaplightr"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">points</span> <span class="op">&lt;-</span> <span class="fu">gla_load_points</span><span class="op">(</span><span class="va">points_path</span>, <span class="va">dem_path</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Assigning sequential point_id (1 to 3).</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Supply your own point_id values to keep cached outputs stable across</span></span></span>
+<span class="r-in"><span>  <span class="co"># re-runs or to match an existing site numbering scheme.</span></span></span>
+<span class="r-in"><span>  <span class="va">dem_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"dem.tif"</span>, package <span class="op">=</span> <span class="st">"gaplightr"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">my_points</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"points.geojson"</span>, package <span class="op">=</span> <span class="st">"gaplightr"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    quiet <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">my_points</span><span class="op">$</span><span class="va">point_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">101L</span>, <span class="fl">202L</span>, <span class="fl">303L</span><span class="op">)</span>  <span class="co"># user-defined IDs</span></span></span>
+<span class="r-in"><span>  <span class="va">points</span> <span class="op">&lt;-</span> <span class="fu">gla_load_points</span><span class="op">(</span><span class="va">my_points</span>, <span class="va">dem_path</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Using existing point_id column (3 point(s)).</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
