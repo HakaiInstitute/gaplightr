@@ -938,7 +938,7 @@ gla_create_fisheye_photo_single <- function(
     width = width,
     pointsize = pointsize,
     res = res,
-    bg = "white",
+    bg = "black",
     type = "cairo",
     ...
   )
