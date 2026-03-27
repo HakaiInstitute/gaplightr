@@ -91,7 +91,7 @@ gaplightr pipeline:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://hakaiinstitute.github.io/gaplightr/">gaplightr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; terra 1.9.1</span></span>
+<span><span class="co">#&gt; terra 1.9.11</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE</span></span>
 <span></span>
@@ -145,7 +145,7 @@ around each point and saves one <code>.las</code> file per point.</p>
 <span>  plot_radius <span class="op">=</span> <span class="fl">25</span>,</span>
 <span>  resume <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Creating output directory: /tmp/RtmpA8bgb3/vp</span></span>
+<span><span class="co">#&gt; Creating output directory: /tmp/RtmpkcPJBZ/vp</span></span>
 <span><span class="co">#&gt; Clipping 3 circular plots with radius 25m</span></span>
 <span><span class="co">#&gt; Processing batch 1/1 (3 plots)</span></span>
 <span><span class="co">#&gt; Created 3 new plot files</span></span>
@@ -204,21 +204,21 @@ onto a hemispherical plane, overlays the horizon mask, and writes a
 <span>  camera_height_m <span class="op">=</span> <span class="fl">1.37</span>,</span>
 <span>  min_dist <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  img_res <span class="op">=</span> <span class="fl">2800</span>,</span>
-<span>  max_cex <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  max_cex <span class="op">=</span> <span class="fl">1.0</span>,</span>
 <span>  min_cex <span class="op">=</span> <span class="fl">0.03</span>,</span>
-<span>  pointsize <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  pointsize <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  dpi <span class="op">=</span> <span class="fl">1200</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  resume <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Creating output directory: /tmp/RtmpA8bgb3/photos</span></span>
+<span><span class="co">#&gt; Creating output directory: /tmp/RtmpkcPJBZ/photos</span></span>
 <span><span class="co">#&gt; Processing 3 fisheye photos...</span></span></code></pre></div>
 <pre><code><span><span class="co">#&gt; Completed processing 3 new fisheye photos</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">photo_dir</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
-<span><span class="co">#&gt; [2] "2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
-<span><span class="co">#&gt; [3] "3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span></code></pre>
+<span><span class="co">#&gt; [1] "1_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
+<span><span class="co">#&gt; [2] "2_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
+<span><span class="co">#&gt; [3] "3_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span></code></pre>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">photo_file</span> <span class="op">&lt;-</span> <span class="va">points</span><span class="op">$</span><span class="va">fisheye_photo_path</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">img</span> <span class="op">&lt;-</span> <span class="fu">imager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/imager/man/load.image.html" class="external-link">load.image</a></span><span class="op">(</span><span class="va">photo_file</span><span class="op">)</span></span>
@@ -252,14 +252,14 @@ automated checks.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
 <span><span class="co">#&gt; sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)</span></span>
-<span><span class="co">#&gt;  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpA8bgb3/photos/1_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpA8bgb3/photos/2_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpA8bgb3/photos/3_ps10_cex0pt500000-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
+<span><span class="co">#&gt;  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpkcPJBZ/photos/1_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpkcPJBZ/photos/2_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpkcPJBZ/photos/3_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"</span></span>
 <span><span class="co">#&gt;  $ elevation                                 : num [1:3] 104 108 108</span></span>
 <span><span class="co">#&gt;  $ point_id                                  : int [1:3] 1 2 3</span></span>
 <span><span class="co">#&gt;  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06</span></span>
 <span><span class="co">#&gt;  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05</span></span>
 <span><span class="co">#&gt;  $ lon                                       : num [1:3] -126 -126 -126</span></span>
 <span><span class="co">#&gt;  $ lat                                       : num [1:3] 49.5 49.5 49.5</span></span>
-<span><span class="co">#&gt;  $ las_files                                 : chr [1:3] "/tmp/RtmpA8bgb3/vp/1.las" "/tmp/RtmpA8bgb3/vp/2.las" "/tmp/RtmpA8bgb3/vp/3.las"</span></span>
+<span><span class="co">#&gt;  $ las_files                                 : chr [1:3] "/tmp/RtmpkcPJBZ/vp/1.las" "/tmp/RtmpkcPJBZ/vp/2.las" "/tmp/RtmpkcPJBZ/vp/3.las"</span></span>
 <span><span class="co">#&gt;  $ horizon_mask                              :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ :List of 4</span></span>
 <span><span class="co">#&gt;   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...</span></span>
@@ -276,19 +276,19 @@ automated checks.</p>
 <span><span class="co">#&gt;   .. ..$ horizon_height: num [1:72] 0 0 0 0 0 0 0 0 0 0 ...</span></span>
 <span><span class="co">#&gt;   .. ..$ x_msk         : num [1:72] -1.57 -1.56 -1.55 -1.52 -1.48 ...</span></span>
 <span><span class="co">#&gt;   .. ..$ y_msk         : num [1:72] 0 0.137 0.273 0.407 0.537 ...</span></span>
-<span><span class="co">#&gt;  $ canopy_openness_pct                       : num [1:3] 95.1 97.2 97.2</span></span>
+<span><span class="co">#&gt;  $ canopy_openness_pct                       : num [1:3] 83.6 86.7 87.5</span></span>
 <span><span class="co">#&gt;  $ mean_daily_extraterrestrial_irradiance_Wm2: num [1:3] 483 483 483</span></span>
 <span><span class="co">#&gt;  $ mean_daily_direct_irradiation_MJm2d       : num [1:3] 11.8 11.8 11.8</span></span>
 <span><span class="co">#&gt;  $ mean_daily_diffuse_irradiation_MJm2d      : num [1:3] 10.8 10.8 10.8</span></span>
 <span><span class="co">#&gt;  $ mean_daily_global_irradiation_MJm2d       : num [1:3] 22.5 22.5 22.5</span></span>
-<span><span class="co">#&gt;  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 10.8 10.9 10.9</span></span>
-<span><span class="co">#&gt;  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 10.2 10.3 10.3</span></span>
-<span><span class="co">#&gt;  $ transmitted_global_irradiation_MJm2d      : num [1:3] 21 21.2 21.2</span></span>
-<span><span class="co">#&gt;  $ transmitted_direct_irradiation_pct        : num [1:3] 92 92.6 92.3</span></span>
-<span><span class="co">#&gt;  $ transmitted_diffuse_irradiation_pct       : num [1:3] 94.6 95.6 95.7</span></span>
-<span><span class="co">#&gt;  $ transmitted_global_irradiation_pct        : num [1:3] 93.3 94.1 93.9</span></span>
-<span><span class="co">#&gt;  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 21 21.2 21.2</span></span>
-<span><span class="co">#&gt;  $ light_penetration_index                   : num [1:3] 0.933 0.941 0.939</span></span>
+<span><span class="co">#&gt;  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 7.75 7.58 8.26</span></span>
+<span><span class="co">#&gt;  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 8.29 8.51 8.7</span></span>
+<span><span class="co">#&gt;  $ transmitted_global_irradiation_MJm2d      : num [1:3] 16 16.1 17</span></span>
+<span><span class="co">#&gt;  $ transmitted_direct_irradiation_pct        : num [1:3] 65.9 64.5 70.3</span></span>
+<span><span class="co">#&gt;  $ transmitted_diffuse_irradiation_pct       : num [1:3] 76.9 79 80.7</span></span>
+<span><span class="co">#&gt;  $ transmitted_global_irradiation_pct        : num [1:3] 71.2 71.4 75.3</span></span>
+<span><span class="co">#&gt;  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 16 16.1 17</span></span>
+<span><span class="co">#&gt;  $ light_penetration_index                   : num [1:3] 0.712 0.714 0.753</span></span>
 <span><span class="co">#&gt;  $ geometry                                  :sfc_POINT of length 3; first list element:  'XY' num [1:2] 1e+06 5e+05</span></span>
 <span><span class="co">#&gt;  - attr(*, "sf_column")= chr "geometry"</span></span>
 <span><span class="co">#&gt;  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...</span></span>
