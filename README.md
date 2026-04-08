@@ -24,6 +24,18 @@ You can install the development version of gaplightr from GitHub:
 pak::pak("HakaiInstitute/gaplightr")
 ```
 
+## Previous work
+
+The gaplightr package is an R implementation of the [Gap Light Analyzer](https://www.caryinstitute.org/science/our-scientists/dr-charles-d-canham/gap-light-analyzer-gla) (GLA) software.   
+
+```
+Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. Gap Light Analyzer (GLA), Version 2.0: Imaging software to extract canopy structure and gap light transmission indices from true-colour fisheye photographs. Simon Fraser University, Burnaby, BC, and the Cary Institute of Ecosystem Studies, Millbrook, NY.
+```
+
+```
+Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. GAP LIGHT ANALYZER, VERSION 2.0. Bulletin of the Ecological Society of American, Technological Tools, July 2000: 191-197.
+```
+
 ## License
 
 MIT License - see [LICENSE.md](LICENSE.md) for details
