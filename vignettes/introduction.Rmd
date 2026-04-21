@@ -128,8 +128,8 @@ points <- gla_create_fisheye_photos(
   camera_height_m = 1.37,
   min_dist = 1,
   img_res = 2800,
-  max_cex = 1.0,
-  min_cex = 0.03,
+  max_cex = 1.5,
+  min_cex = 0.04,
   pointsize = 20,
   dpi = 1200,
   parallel = FALSE,
@@ -194,6 +194,25 @@ results_with_gf <- gla_process_fisheye_photos(
 
 str(results_with_gf$gap_fraction_data[[1]])
 ```
+
+## Graphical parameter calibration
+
+The synthetic fisheye photo is produced in two stages: first, the LiDAR point
+cloud is rendered using the R graphics system; second, that rendering is written to disk as a
+bitmap via `grDevices::bmp()`. Each stage has its own parameters, and they
+interact: changing `dpi` or `pointsize` on the device side shifts how `max_cex`
+and `min_cex` render on the graphics side.
+
+The default values (`img_res = 2800`, `pointsize = 20`, `min_cex = 0.04`,
+`max_cex = 1.5`, `dpi = 1200`) were derived from calibration against real
+hemispherical photographs collected in a coastal temperate rainforest. They
+should not be treated as universal. Forest structure, canopy density, and LiDAR
+point density all influence which parameter values produce synthetic photos that
+best match local conditions. Users working in other forest types or with
+different LiDAR acquisitions should calibrate these parameters for their study
+region - either formally by optimizing against co-located real photos, or
+informally through visual trial and error comparing synthetic and real images
+from the same locations.
 
 ## Next steps
 
