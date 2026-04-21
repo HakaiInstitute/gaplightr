@@ -86,7 +86,7 @@ points <- gla_create_virtual_plots(
   plot_radius = 25,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpzLPPmM/vp
+#> Creating output directory: /tmp/Rtmpv1xXsB/vp
 #> Clipping 3 circular plots with radius 25m
 #> Processing batch 1/1 (3 plots)
 #> Created 3 new plot files
@@ -150,23 +150,23 @@ points <- gla_create_fisheye_photos(
   camera_height_m = 1.37,
   min_dist = 1,
   img_res = 2800,
-  max_cex = 1.0,
-  min_cex = 0.03,
+  max_cex = 1.5,
+  min_cex = 0.04,
   pointsize = 20,
   dpi = 1200,
   parallel = FALSE,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpzLPPmM/photos
+#> Creating output directory: /tmp/Rtmpv1xXsB/photos
 #> Processing 3 fisheye photos...
 ```
 
     #> Completed processing 3 new fisheye photos
 
     list.files(photo_dir)
-    #> [1] "1_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
-    #> [2] "2_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
-    #> [3] "3_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
+    #> [1] "1_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
+    #> [2] "2_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
+    #> [3] "3_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
 
 ``` r
 photo_file <- points$fisheye_photo_path[[1]]
@@ -204,14 +204,14 @@ results <- gla_process_fisheye_photos(
 
 str(results)
 #> sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)
-#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpzLPPmM/photos/1_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpzLPPmM/photos/2_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpzLPPmM/photos/3_ps20_cex1-0pt030000_distmin1_1200dpi_2800px_equidistant.bmp"
+#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/Rtmpv1xXsB/photos/1_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpv1xXsB/photos/2_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpv1xXsB/photos/3_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
 #>  $ elevation                                 : num [1:3] 104 108 108
 #>  $ point_id                                  : int [1:3] 1 2 3
 #>  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06
 #>  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05
 #>  $ lon                                       : num [1:3] -126 -126 -126
 #>  $ lat                                       : num [1:3] 49.5 49.5 49.5
-#>  $ las_files                                 : chr [1:3] "/tmp/RtmpzLPPmM/vp/1.las" "/tmp/RtmpzLPPmM/vp/2.las" "/tmp/RtmpzLPPmM/vp/3.las"
+#>  $ las_files                                 : chr [1:3] "/tmp/Rtmpv1xXsB/vp/1.las" "/tmp/Rtmpv1xXsB/vp/2.las" "/tmp/Rtmpv1xXsB/vp/3.las"
 #>  $ horizon_mask                              :List of 3
 #>   ..$ :List of 4
 #>   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...
@@ -228,19 +228,19 @@ str(results)
 #>   .. ..$ horizon_height: num [1:72] 0 0 0 0 0 0 0 0 0 0 ...
 #>   .. ..$ x_msk         : num [1:72] -1.57 -1.56 -1.55 -1.52 -1.48 ...
 #>   .. ..$ y_msk         : num [1:72] 0 0.137 0.273 0.407 0.537 ...
-#>  $ canopy_openness_pct                       : num [1:3] 83.6 86.7 87.5
+#>  $ canopy_openness_pct                       : num [1:3] 78 81.2 82.9
 #>  $ mean_daily_extraterrestrial_irradiance_Wm2: num [1:3] 483 483 483
 #>  $ mean_daily_direct_irradiation_MJm2d       : num [1:3] 11.8 11.8 11.8
 #>  $ mean_daily_diffuse_irradiation_MJm2d      : num [1:3] 10.8 10.8 10.8
 #>  $ mean_daily_global_irradiation_MJm2d       : num [1:3] 22.5 22.5 22.5
-#>  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 7.75 7.58 8.26
-#>  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 8.29 8.51 8.7
-#>  $ transmitted_global_irradiation_MJm2d      : num [1:3] 16 16.1 17
-#>  $ transmitted_direct_irradiation_pct        : num [1:3] 65.9 64.5 70.3
-#>  $ transmitted_diffuse_irradiation_pct       : num [1:3] 76.9 79 80.7
-#>  $ transmitted_global_irradiation_pct        : num [1:3] 71.2 71.4 75.3
-#>  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 16 16.1 17
-#>  $ light_penetration_index                   : num [1:3] 0.712 0.714 0.753
+#>  $ transmitted_direct_irradiation_MJm2d      : num [1:3] 6.53 6.15 7.43
+#>  $ transmitted_diffuse_irradiation_MJm2d     : num [1:3] 7.39 7.59 7.94
+#>  $ transmitted_global_irradiation_MJm2d      : num [1:3] 13.9 13.7 15.4
+#>  $ transmitted_direct_irradiation_pct        : num [1:3] 55.5 52.3 63.1
+#>  $ transmitted_diffuse_irradiation_pct       : num [1:3] 68.6 70.5 73.7
+#>  $ transmitted_global_irradiation_pct        : num [1:3] 61.8 61 68.2
+#>  $ subcanopy_solar_radiation_MJm2d           : num [1:3] 13.9 13.7 15.4
+#>  $ light_penetration_index                   : num [1:3] 0.618 0.61 0.682
 #>  $ geometry                                  :sfc_POINT of length 3; first list element:  'XY' num [1:2] 1e+06 5e+05
 #>  - attr(*, "sf_column")= chr "geometry"
 #>  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
@@ -272,6 +272,28 @@ str(results_with_gf$gap_fraction_data[[1]])
 #> Warning: Unknown or uninitialised column: `gap_fraction_data`.
 #>  NULL
 ```
+
+## Graphical parameter calibration
+
+The synthetic fisheye photo is produced in two stages: first, the LiDAR
+point cloud is rendered using the R graphics system; second, that
+rendering is written to disk as a bitmap via
+[`grDevices::bmp()`](https://rdrr.io/r/grDevices/png.html). Each stage
+has its own parameters, and they interact: changing `dpi` or `pointsize`
+on the device side shifts how `max_cex` and `min_cex` render on the
+graphics side.
+
+The default values (`img_res = 2800`, `pointsize = 20`,
+`min_cex = 0.04`, `max_cex = 1.5`, `dpi = 1200`) were derived from
+calibration against real hemispherical photographs collected in a
+coastal temperate rainforest. They should not be treated as universal.
+Forest structure, canopy density, and LiDAR point density all influence
+which parameter values produce synthetic photos that best match local
+conditions. Users working in other forest types or with different LiDAR
+acquisitions should calibrate these parameters for their study region -
+either formally by optimizing against co-located real photos, or
+informally through visual trial and error comparing synthetic and real
+images from the same locations.
 
 ## Next steps
 

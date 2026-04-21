@@ -13,10 +13,10 @@ gla_create_fisheye_photos(
   camera_height_m = 1.37,
   min_dist = 1,
   img_res = 2800,
-  max_cex = 0.2,
-  min_cex = 0.05,
-  pointsize = 10,
-  dpi = 300,
+  max_cex = 1.5,
+  min_cex = 0.04,
+  pointsize = 20,
+  dpi = 1200,
   parallel = TRUE,
   resume = TRUE,
   radial_distortion = "equidistant"
@@ -54,26 +54,26 @@ gla_create_fisheye_photos(
 
 - img_res:
 
-  Image resolution in pixels (width and height). Default is 2800
+  Image resolution in pixels (width and height). Default is 2800.
 
 - max_cex:
 
   Maximum symbol size for plotting points (CEX value). Controls the size
   of points at rho = 1 (1 metre from camera) under the inverse-distance
-  formula. Default is 0.2
+  formula. Default is 1.5.
 
 - min_cex:
 
   Minimum symbol size for plotting points (CEX value). The asymptotic
-  lower bound approached as distance increases. Default is 0.05
+  lower bound approached as distance increases. Default is 0.04.
 
 - pointsize:
 
-  Point size parameter for bitmap graphics device. Default is 10
+  Point size parameter for bitmap graphics device. Default is 20.
 
 - dpi:
 
-  Resolution in dots per inch for output image. Default is 300
+  Resolution in dots per inch for output image. Default is 1200.
 
 - parallel:
 
@@ -112,6 +112,16 @@ data into synthetic hemispherical photographs. For each point, it:
 3.  Creates a bitmap image with distance-weighted point sizes
 
 4.  Saves the result as a BMP file
+
+**Graphical parameter calibration:** The default values for `img_res`,
+`pointsize`, `min_cex`, `max_cex`, and `dpi` were derived from
+calibration against real hemispherical photographs collected in a
+coastal temperate rainforest. Because optimal values depend on forest
+structure, canopy density, and LiDAR point density, users working in
+other forest types or with different LiDAR acquisitions should expect to
+calibrate these parameters for their study region. Calibration can be
+done formally (e.g., optimizing against co-located real photos) or
+informally through visual trial and error.
 
 Parallel processing can significantly speed up processing for many
 points. Set up a parallel plan before calling this function:

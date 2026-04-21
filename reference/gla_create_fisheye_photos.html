@@ -56,10 +56,10 @@ and can resume from previous runs.</p>
 <span>  camera_height_m <span class="op">=</span> <span class="fl">1.37</span>,</span>
 <span>  min_dist <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  img_res <span class="op">=</span> <span class="fl">2800</span>,</span>
-<span>  max_cex <span class="op">=</span> <span class="fl">0.2</span>,</span>
-<span>  min_cex <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>  pointsize <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  dpi <span class="op">=</span> <span class="fl">300</span>,</span>
+<span>  max_cex <span class="op">=</span> <span class="fl">1.5</span>,</span>
+<span>  min_cex <span class="op">=</span> <span class="fl">0.04</span>,</span>
+<span>  pointsize <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>  dpi <span class="op">=</span> <span class="fl">1200</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  resume <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  radial_distortion <span class="op">=</span> <span class="st">"equidistant"</span></span>
@@ -97,26 +97,26 @@ in concert with max_cex. Default is 1m.</p></dd>
 
 
 <dt id="arg-img-res">img_res<a class="anchor" aria-label="anchor" href="#arg-img-res"></a></dt>
-<dd><p>Image resolution in pixels (width and height). Default is 2800</p></dd>
+<dd><p>Image resolution in pixels (width and height). Default is 2800.</p></dd>
 
 
 <dt id="arg-max-cex">max_cex<a class="anchor" aria-label="anchor" href="#arg-max-cex"></a></dt>
 <dd><p>Maximum symbol size for plotting points (CEX value). Controls
 the size of points at rho = 1 (1 metre from camera) under the inverse-distance
-formula. Default is 0.2</p></dd>
+formula. Default is 1.5.</p></dd>
 
 
 <dt id="arg-min-cex">min_cex<a class="anchor" aria-label="anchor" href="#arg-min-cex"></a></dt>
 <dd><p>Minimum symbol size for plotting points (CEX value). The
-asymptotic lower bound approached as distance increases. Default is 0.05</p></dd>
+asymptotic lower bound approached as distance increases. Default is 0.04.</p></dd>
 
 
 <dt id="arg-pointsize">pointsize<a class="anchor" aria-label="anchor" href="#arg-pointsize"></a></dt>
-<dd><p>Point size parameter for bitmap graphics device. Default is 10</p></dd>
+<dd><p>Point size parameter for bitmap graphics device. Default is 20.</p></dd>
 
 
 <dt id="arg-dpi">dpi<a class="anchor" aria-label="anchor" href="#arg-dpi"></a></dt>
-<dd><p>Resolution in dots per inch for output image. Default is 300</p></dd>
+<dd><p>Resolution in dots per inch for output image. Default is 1200.</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
@@ -149,7 +149,15 @@ into synthetic hemispherical photographs. For each point, it:</p><ol><li><p>Read
 <li><p>Projects points onto a hemispherical image plane</p></li>
 <li><p>Creates a bitmap image with distance-weighted point sizes</p></li>
 <li><p>Saves the result as a BMP file</p></li>
-</ol><p>Parallel processing can significantly speed up processing for many points.
+</ol><p><strong>Graphical parameter calibration:</strong> The default values for <code>img_res</code>,
+<code>pointsize</code>, <code>min_cex</code>, <code>max_cex</code>, and <code>dpi</code> were derived from calibration
+against real hemispherical photographs collected in a coastal temperate
+rainforest. Because optimal values depend on forest structure, canopy
+density, and LiDAR point density, users working in other forest types or
+with different LiDAR acquisitions should expect to calibrate these parameters
+for their study region. Calibration can be done formally (e.g., optimizing
+against co-located real photos) or informally through visual trial and error.</p>
+<p>Parallel processing can significantly speed up processing for many points.
 Set up a parallel plan before calling this function:
 <code>future::plan(future::multisession, workers = 4)</code></p>
 <p>The resume feature allows you to interrupt and restart processing without
