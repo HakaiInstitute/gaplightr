@@ -2,6 +2,8 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/HakaiInstitute/gaplightr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/HakaiInstitute/gaplightr/actions/workflows/R-CMD-check.yaml)
+[![R-universe version](https://HakaiInstitute.r-universe.dev/gaplightr/badges/version)](https://HakaiInstitute.r-universe.dev/gaplightr)
+[![r-universe status](https://HakaiInstitute.r-universe.dev/gaplightr/badges/checks)](https://HakaiInstitute.r-universe.dev/gaplightr)
 <!-- badges: end -->
 
 ## Overview
@@ -17,23 +19,26 @@ This package was originally developed by Gord Frazer for watershed-scale forest 
 
 ## Installation
 
-You can install the development version of gaplightr from GitHub:
+You can install the development version of gaplightr from the Hakai Institute r-universe server:
 
 ```r
-# install.packages("pak")
-pak::pak("HakaiInstitute/gaplightr")
+install.packages("gaplightr", repos = "https://hakaiinstitute.r-universe.dev")
 ```
 
 ## Previous work
 
-The gaplightr package is an R implementation of the [Gap Light Analyzer](https://www.caryinstitute.org/science/our-scientists/dr-charles-d-canham/gap-light-analyzer-gla) (GLA) software.   
+The gaplightr package is an R implementation of the [Gap Light Analyzer](https://www.caryinstitute.org/science/our-scientists/dr-charles-d-canham/gap-light-analyzer-gla) (GLA) software.
 
 ```
-Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. Gap Light Analyzer (GLA), Version 2.0: Imaging software to extract canopy structure and gap light transmission indices from true-colour fisheye photographs. Simon Fraser University, Burnaby, BC, and the Cary Institute of Ecosystem Studies, Millbrook, NY.
-```
+Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. Gap Light Analyzer (GLA),
+Version 2.0: Imaging software to extract canopy structure and gap light
+transmission indices from true-colour fisheye photographs. Simon Fraser
+University, Burnaby, BC, and the Cary Institute of Ecosystem Studies,
+Millbrook, NY.
 
-```
-Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. GAP LIGHT ANALYZER, VERSION 2.0. Bulletin of the Ecological Society of American, Technological Tools, July 2000: 191-197.
+Frazer, G.W., Canham, C.D., Lertzman, K.P., 1999. GAP LIGHT ANALYZER,
+VERSION 2.0. Bulletin of the Ecological Society of American, Technological
+Tools, July 2000: 191-197.
 ```
 
 ## License
