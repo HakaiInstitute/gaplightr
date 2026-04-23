@@ -2,6 +2,8 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/HakaiInstitute/gaplightr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/HakaiInstitute/gaplightr/actions/workflows/R-CMD-check.yaml)
+[![R-universe version](https://HakaiInstitute.r-universe.dev/gaplightr/badges/version)](https://HakaiInstitute.r-universe.dev/gaplightr)
+[![r-universe status](https://HakaiInstitute.r-universe.dev/gaplightr/badges/checks)](https://HakaiInstitute.r-universe.dev/gaplightr)
 <!-- badges: end -->
 
 ## Overview
@@ -17,11 +19,10 @@ This package was originally developed by Gord Frazer for watershed-scale forest 
 
 ## Installation
 
-You can install the development version of gaplightr from GitHub:
+You can install the development version of gaplightr from the Hakai Institute r-universe server:
 
 ```r
-# install.packages("pak")
-pak::pak("HakaiInstitute/gaplightr")
+install.packages("gaplightr", repos = "https://hakaiinstitute.r-universe.dev")
 ```
 
 ## Previous work
