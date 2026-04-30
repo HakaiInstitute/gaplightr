@@ -121,7 +121,7 @@ gla_extract_gap_fraction <- function(
   azi_bin_idx <- angular_bin_idx(azi_rad, two_pi(), nSectors)
 
   # Count pixels in each bin
-  for (i in 1:length(elev_bin_idx)) {
+  for (i in seq_along(elev_bin_idx)) {
     total_pixels[elev_bin_idx[i], azi_bin_idx[i]] <- total_pixels[
       elev_bin_idx[i],
       azi_bin_idx[i]
@@ -1085,7 +1085,7 @@ gla_compute_solar_positions <- function(
   k <- 0
 
   # Process each day
-  for (i in 1:length(day_numbers)) {
+  for (i in seq_along(day_numbers)) {
     day_angle <- da(day_number = day_numbers[i])
     ecf_dat <- ecf(day_angle_rad = day_angle)
     sol_dec <- soldec(day_angle_rad = day_angle)
@@ -1122,7 +1122,7 @@ gla_compute_solar_positions <- function(
     Daily_Io <- 0
 
     # Process each solar position
-    for (j in 1:length(ha_sample_pts)) {
+    for (j in seq_along(ha_sample_pts)) {
       ha <- ha_sample_pts[j]
       solar_lat <- (180 - ha * rad_to_deg()) / 15
       solar_lst <- solar_lat - time_offset / 60

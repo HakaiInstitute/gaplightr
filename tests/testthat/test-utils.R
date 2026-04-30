@@ -87,7 +87,7 @@ test_that("gla_create_virtual_plots gives distinct files to points with collidin
   )
 
   # Both points get distinct files; {ID} eliminates the coordinate collision.
-  expect_true(all(!is.na(result$las_files)))
+  expect_true(!anyNA(result$las_files))
   expect_equal(length(result$las_files), length(unique(result$las_files)))
 })
 
