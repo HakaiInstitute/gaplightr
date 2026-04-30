@@ -61,26 +61,6 @@ validate_crs_match <- function(obj1_crs, obj2_crs, obj1_name, obj2_name) {
   invisible(NULL)
 }
 
-write_points_gpkg <- function(points, output_dir, prefix = "stream_points") {
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-
-  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-  output_file <- file.path(output_dir, paste0(prefix, "_", timestamp, ".gpkg"))
-
-  tryCatch(
-    {
-      sf::write_sf(points, output_file)
-      message("Results saved to ", output_file)
-    },
-    error = function(e) {
-      message("Failed to write points: ", e$message)
-    }
-  )
-}
-
-
 move_geom_col_to_end <- function(sf_object) {
   geom_col <- attr(sf_object, "sf_column")
   other_cols <- setdiff(names(sf_object), geom_col)
