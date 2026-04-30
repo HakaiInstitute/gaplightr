@@ -87,7 +87,7 @@ test_that("gla_create_virtual_plots gives distinct files to points with collidin
   )
 
   # Both points get distinct files; {ID} eliminates the coordinate collision.
-  expect_true(!anyNA(result$las_files))
+  expect_false(anyNA(result$las_files))
   expect_equal(length(result$las_files), length(unique(result$las_files)))
 })
 
@@ -102,7 +102,7 @@ test_that("sshourangle handles polar night (cos_ws > 1)", {
   result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
-  expect_equal(length(result), 3)
+  expect_length(result, 3)
 
   cos_ws <- result[1]
   sunrise <- result[2]
@@ -124,7 +124,7 @@ test_that("sshourangle handles polar day (cos_ws < -1)", {
   result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
-  expect_equal(length(result), 3)
+  expect_length(result, 3)
 
   cos_ws <- result[1]
   sunrise <- result[2]
@@ -146,7 +146,7 @@ test_that("sshourangle handles normal case (-1 <= cos_ws <= 1)", {
   result <- sshourangle(lat_rad = lat_rad, solar_declination_rad = dec_rad)
 
   # Should return: cos_ws, sunrise, sunset
-  expect_equal(length(result), 3)
+  expect_length(result, 3)
 
   cos_ws <- result[1]
   sunrise <- result[2]
@@ -185,7 +185,7 @@ test_that("solpos handles sun directly overhead (SZA = 0)", {
   )
 
   # Should return: sz, se, sa, sa_rot, sa_rot_ccw, x_sun, y_sun
-  expect_equal(length(result), 7)
+  expect_length(result, 7)
 
   sz <- result[1] # Solar zenith
   se <- result[2] # Solar elevation
@@ -246,7 +246,7 @@ test_that("angular_bin_idx handles vector input", {
   angles <- c(0, pi / 4, pi / 2)
   result <- angular_bin_idx(angles, pi / 2, 9)
 
-  expect_equal(length(result), 3)
+  expect_length(result, 3)
 
   expect_equal(result[1], 1L)
   expect_equal(result[2], 5L) # pi/4 is halfway, bin 5 of 9

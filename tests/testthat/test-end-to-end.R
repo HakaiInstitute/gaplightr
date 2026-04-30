@@ -63,7 +63,7 @@ test_that("End-to-end terra workflow completes successfully", {
   )
 
   expect_true("horizon_mask" %in% names(stream_points))
-  expect_equal(length(stream_points$horizon_mask), nrow(stream_points))
+  expect_length(stream_points$horizon_mask, nrow(stream_points))
 
   # Step 4: Create fisheye photos (reduced resolution for speed)
   stream_points <- gla_create_fisheye_photos(
@@ -318,7 +318,7 @@ test_that("End-to-end workflow works with 26912", {
   )
 
   expect_true("horizon_mask" %in% names(stream_points))
-  expect_equal(length(stream_points$horizon_mask), nrow(stream_points))
+  expect_length(stream_points$horizon_mask, nrow(stream_points))
 
   # Step 4: Create fisheye photos (reduced resolution for speed)
   stream_points <- gla_create_fisheye_photos(

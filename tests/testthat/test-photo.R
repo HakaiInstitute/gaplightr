@@ -97,7 +97,7 @@ test_that("gla_create_fisheye_photos generates expected filename format", {
 
   # Verify we have valid LAS files
   expect_true("las_files" %in% names(stream_points))
-  expect_true(!is.na(stream_points$las_files[1]))
+  expect_false(is.na(stream_points$las_files[1]))
   expect_true(file.exists(stream_points$las_files[1]))
 
   # Extract horizons
@@ -304,9 +304,9 @@ test_that("gla_process_fisheye_photos with keep_gap_fraction_data = TRUE", {
   expect_true("gap_pixels" %in% names(result))
 
   # Check they are list-columns
-  expect_true(is.list(result$gap_fraction))
-  expect_true(is.list(result$total_pixels))
-  expect_true(is.list(result$gap_pixels))
+  expect_type(result$gap_fraction, "list")
+  expect_type(result$total_pixels, "list")
+  expect_type(result$gap_pixels, "list")
 
   # Check matrix dimensions
   expect_equal(dim(result$gap_fraction[[1]]), c(18, 72))
@@ -380,8 +380,8 @@ test_that("gla_lens_sigma_8mm returns correct structure", {
   expect_named(sigma_cal, c("radius", "elevation", "name"))
 
   # Check dimensions - 24 calibration points
-  expect_equal(length(sigma_cal$radius), 24)
-  expect_equal(length(sigma_cal$elevation), 24)
+  expect_length(sigma_cal$radius, 24)
+  expect_length(sigma_cal$elevation, 24)
 
   # Check range
   expect_equal(sigma_cal$radius[1], 0)
