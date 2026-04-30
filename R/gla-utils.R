@@ -281,7 +281,7 @@ solrad <- function(
   clearsky_transmission
 ) {
   # Only compute SR when sun is visible
-  if (solar_zenith_angle >= 0 & solar_zenith_angle <= rad_90()) {
+  if (solar_zenith_angle >= 0 && solar_zenith_angle <= rad_90()) {
     # Instantaneous extraterrestrial irradiance (W/m2) on a horizontal surface at time t
     Io <- solar_constant * eccentricity_correction * cos(solar_zenith_angle)
     # Relative optical airmass at sea level (Kasten and Young, 1989)
