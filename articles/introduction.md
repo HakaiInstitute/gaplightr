@@ -23,9 +23,10 @@ gaplightr pipeline:
 - a matching LiDAR tile
 
 ``` r
+
 library(gaplightr)
 library(terra)
-#> terra 1.9.11
+#> terra 1.9.27
 library(sf)
 #> Linking to GEOS 3.12.1, GDAL 3.8.4, PROJ 9.4.0; sf_use_s2() is TRUE
 
@@ -37,6 +38,7 @@ output_dir <- tempdir()
 ```
 
 ``` r
+
 dem <- terra::rast(dem_path)
 pts <- sf::read_sf(points_path)
 
@@ -54,6 +56,7 @@ validates the CRS, extracts elevation from the DEM, and assigns a
 `point_id` used to name all downstream output files.
 
 ``` r
+
 points <- gla_load_points(points_path, dem_path)
 #> Assigning sequential point_id (1 to 3).
 str(points)
@@ -77,6 +80,7 @@ clips a circular LiDAR plot around each point and saves one `.las` file
 per point.
 
 ``` r
+
 vp_dir <- file.path(output_dir, "vp")
 
 points <- gla_create_virtual_plots(
@@ -86,7 +90,7 @@ points <- gla_create_virtual_plots(
   plot_radius = 25,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpFhDCT0/vp
+#> Creating output directory: /tmp/Rtmpb5J6UY/vp
 #> Clipping 3 circular plots with radius 25m
 #> Processing batch 1/1 (3 plots)
 #> Created 3 new plot files
@@ -103,6 +107,7 @@ caches the result as a `_horizon.csv` file. This mask prevents terrain
 from being counted as sky in the fisheye photo.
 
 ``` r
+
 hz_dir <- file.path(output_dir, "hz")
 
 points <- gla_extract_horizons(
@@ -127,6 +132,7 @@ The `horizon_mask` list-column stores polar-projected horizon
 coordinates for each point:
 
 ``` r
+
 str(points$horizon_mask[[1]])
 #> List of 4
 #>  $ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...
@@ -142,6 +148,7 @@ projects the clipped LiDAR onto a hemispherical plane, overlays the
 horizon mask, and writes a `.bmp` image per point.
 
 ``` r
+
 photo_dir <- file.path(output_dir, "photos")
 
 points <- gla_create_fisheye_photos(
@@ -157,7 +164,7 @@ points <- gla_create_fisheye_photos(
   parallel = FALSE,
   resume = FALSE
 )
-#> Creating output directory: /tmp/RtmpFhDCT0/photos
+#> Creating output directory: /tmp/Rtmpb5J6UY/photos
 #> Processing 3 fisheye photos...
 ```
 
@@ -169,6 +176,7 @@ points <- gla_create_fisheye_photos(
     #> [3] "3_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
 
 ``` r
+
 photo_file <- points$fisheye_photo_path[[1]]
 img <- imager::load.image(photo_file)
 plot(img, axes = FALSE, main = "Synthetic fisheye photo - point 1")
@@ -187,6 +195,7 @@ around the summer solstice) and a coarser time step to keep computation
 fast during automated checks.
 
 ``` r
+
 results <- gla_process_fisheye_photos(
   points = points,
   clearsky_coef = 0.65,
@@ -204,14 +213,14 @@ results <- gla_process_fisheye_photos(
 
 str(results)
 #> sf [3 × 23] (S3: sf/tbl_df/tbl/data.frame)
-#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/RtmpFhDCT0/photos/1_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpFhDCT0/photos/2_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/RtmpFhDCT0/photos/3_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
+#>  $ fisheye_photo_path                        : chr [1:3] "/tmp/Rtmpb5J6UY/photos/1_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpb5J6UY/photos/2_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp" "/tmp/Rtmpb5J6UY/photos/3_ps20_cex1pt500000-0pt040000_distmin1_1200dpi_2800px_equidistant.bmp"
 #>  $ elevation                                 : num [1:3] 104 108 108
 #>  $ point_id                                  : int [1:3] 1 2 3
 #>  $ x_meters                                  : num [1:3] 1e+06 1e+06 1e+06
 #>  $ y_meters                                  : num [1:3] 5e+05 5e+05 5e+05
 #>  $ lon                                       : num [1:3] -126 -126 -126
 #>  $ lat                                       : num [1:3] 49.5 49.5 49.5
-#>  $ las_files                                 : chr [1:3] "/tmp/RtmpFhDCT0/vp/1.las" "/tmp/RtmpFhDCT0/vp/2.las" "/tmp/RtmpFhDCT0/vp/3.las"
+#>  $ las_files                                 : chr [1:3] "/tmp/Rtmpb5J6UY/vp/1.las" "/tmp/Rtmpb5J6UY/vp/2.las" "/tmp/Rtmpb5J6UY/vp/3.las"
 #>  $ horizon_mask                              :List of 3
 #>   ..$ :List of 4
 #>   .. ..$ azimuth       : num [1:72] 0 5 10 15 20 25 30 35 40 45 ...
@@ -252,6 +261,7 @@ matrix for each point as a list-column, which is useful for diagnostic
 plots or custom downstream analyses.
 
 ``` r
+
 results_with_gf <- gla_process_fisheye_photos(
   points = points,
   clearsky_coef = 0.65,
@@ -301,6 +311,7 @@ For larger datasets, enable parallel processing by configuring a
 `future` plan before any pipeline step:
 
 ``` r
+
 future::plan(future::multisession, workers = 4)
 
 points <- gla_extract_horizons(

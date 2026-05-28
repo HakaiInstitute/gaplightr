@@ -1,11 +1,11 @@
-pandoc: 3.1.11
+pandoc: 3.8.3
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   faq: faq.html
   introduction: introduction.html
   real-photo-workflow: real-photo-workflow.html
-last_built: 2026-04-28T22:03Z
+last_built: 2026-05-28T21:36Z
 urls:
   reference: https://hakaiinstitute.github.io/gaplightr/reference
   article: https://hakaiinstitute.github.io/gaplightr/articles

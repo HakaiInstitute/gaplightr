@@ -18,7 +18,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/HakaiInstitute/gaplightr/blob/main/DESCRIPTION)
+[`inst/CITATION`](https://github.com/HakaiInstitute/gaplightr/blob/main/inst/CITATION)
 
 Frazer G, Albers S (2026). *gaplightr: Gap Light Analysis of Virtual and
 Real Fisheye Photography*. R package version 0.0.0.9000,

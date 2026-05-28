@@ -15,6 +15,7 @@ canopy.
 ## Step 1: Load the raw photo
 
 ``` r
+
 library(gaplightr)
 library(imager, warn.conflicts = FALSE)
 #> Loading required package: magrittr
@@ -41,6 +42,7 @@ must be determined visually for each image:
 - **Threshold**: convert to a binary sky/canopy mask
 
 ``` r
+
 # Crop to the circular fisheye area. These pixel bounds are specific to
 # example-photo.jpg (2184 x 1456 px) and were determined by visual inspection.
 img_crop <- imager::imsub(
@@ -72,6 +74,7 @@ Save the preprocessed image as a BMP file. BMP is required by
 [`gla_process_fisheye_photos()`](https://hakaiinstitute.github.io/gaplightr/reference/gla_process_fisheye_photos.md).
 
 ``` r
+
 preprocessed_path <- file.path(tempdir(), "example-photo-preprocessed.bmp")
 w <- imager::width(fisheye)
 h <- imager::height(fisheye)
@@ -98,6 +101,7 @@ elevation and coordinates. We take a single point and attach the path to
 the preprocessed fisheye image.
 
 ``` r
+
 dem_path <- system.file("extdata", "dem.tif", package = "gaplightr")
 points_path <- system.file("extdata", "points.geojson", package = "gaplightr")
 
@@ -115,7 +119,7 @@ str(points)
 #>  $ lon               : num -126
 #>  $ lat               : num 49.5
 #>  $ geometry          :sfc_POINT of length 1; first list element:  'XY' num [1:2] 1e+06 5e+05
-#>  $ fisheye_photo_path: chr "/tmp/Rtmp93hmHB/example-photo-preprocessed.bmp"
+#>  $ fisheye_photo_path: chr "/tmp/RtmprDqWDh/example-photo-preprocessed.bmp"
 #>  - attr(*, "sf_column")= chr "geometry"
 #>  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA
 #>   ..- attr(*, "names")= chr [1:7] "elevation" "point_id" "x_meters" "y_meters" ...
@@ -138,6 +142,7 @@ returns the corresponding radial distortion calibration.
 orientation and true north for this particular photo.
 
 ``` r
+
 sigma_cal <- gla_lens_sigma_8mm()
 
 gap_result <- gla_extract_gap_fraction(
@@ -645,6 +650,7 @@ openness and irradiance metrics. We use Julian days 172-182 (around the
 summer solstice) with a coarser time step to keep computation fast.
 
 ``` r
+
 results <- gla_process_fisheye_photos(
   points = points,
   clearsky_coef = 0.65,

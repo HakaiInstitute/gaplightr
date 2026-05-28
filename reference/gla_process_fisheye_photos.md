@@ -113,47 +113,67 @@ An sf object with computed solar radiation metrics:
 
 - canopy_openness_pct:
 
-  Canopy openness percentage
+  Canopy openness percentage derived from the fisheye photo gap fraction
 
 - mean_daily_extraterrestrial_irradiance_Wm2:
 
-  Mean daily extraterrestrial irradiance (W/m²)
+  Mean daily irradiance above the atmosphere (W/m²). Computed from
+  astronomical parameters only - no atmospheric, canopy, or topographic
+  effects.
 
 - mean_daily_direct_irradiation_MJm2d:
 
-  Mean daily direct irradiation (MJ/m²/day)
+  Mean daily direct irradiation on a flat open surface (MJ/m²/day).
+  Computed from extraterrestrial irradiance and `Kt` only - no canopy or
+  topographic shading.
 
 - mean_daily_diffuse_irradiation_MJm2d:
 
-  Mean daily diffuse irradiation (MJ/m²/day)
+  Mean daily diffuse irradiation on a flat open surface (MJ/m²/day).
+  Computed from extraterrestrial irradiance and `Kt` only - no canopy or
+  topographic shading.
 
 - mean_daily_global_irradiation_MJm2d:
 
-  Mean daily global irradiation (MJ/m²/day)
+  Mean daily global irradiation on a flat open surface (MJ/m²/day).
+  Computed from extraterrestrial irradiance and `Kt` only - no canopy or
+  topographic shading.
 
 - transmitted_direct_irradiation_MJm2d:
 
-  Transmitted direct irradiation (MJ/m²/day)
+  Direct irradiation reaching the sensor (MJ/m²/day), accounting for
+  both canopy and topographic shading encoded in the fisheye photo.
 
 - transmitted_diffuse_irradiation_MJm2d:
 
-  Transmitted diffuse irradiation (MJ/m²/day)
+  Diffuse irradiation reaching the sensor (MJ/m²/day), accounting for
+  both canopy and topographic shading encoded in the fisheye photo.
 
 - transmitted_global_irradiation_MJm2d:
 
-  Transmitted global irradiation (MJ/m²/day)
+  Global irradiation reaching the sensor (MJ/m²/day), accounting for
+  both canopy and topographic shading encoded in the fisheye photo.
 
 - transmitted_direct_irradiation_pct:
 
-  Transmitted direct irradiation percentage
+  Transmitted direct irradiation as a percentage of the flat open-sky
+  reference (`mean_daily_direct_irradiation_MJm2d`). The denominator
+  does not account for topographic shading, so this value reflects the
+  combined effect of canopy and terrain.
 
 - transmitted_diffuse_irradiation_pct:
 
-  Transmitted diffuse irradiation percentage
+  Transmitted diffuse irradiation as a percentage of the flat open-sky
+  reference (`mean_daily_diffuse_irradiation_MJm2d`). The denominator
+  does not account for topographic shading, so this value reflects the
+  combined effect of canopy and terrain.
 
 - transmitted_global_irradiation_pct:
 
-  Transmitted global irradiation percentage
+  Transmitted global irradiation as a percentage of the flat open-sky
+  reference (`mean_daily_global_irradiation_MJm2d`). The denominator
+  does not account for topographic shading, so this value reflects the
+  combined effect of canopy and terrain.
 
 ## Examples
 

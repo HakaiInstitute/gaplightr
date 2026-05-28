@@ -21,6 +21,7 @@ You can install the development version of gaplightr from the Hakai
 Institute r-universe server:
 
 ``` r
+
 install.packages("gaplightr", repos = "https://hakaiinstitute.r-universe.dev")
 ```
 

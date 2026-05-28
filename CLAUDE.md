@@ -63,6 +63,7 @@ then
 ### Documentation
 
 ``` r
+
 # Generate documentation from roxygen2 comments
 devtools::document()
 ```
@@ -70,6 +71,7 @@ devtools::document()
 ### Building and Checking
 
 ``` r
+
 # Load package for interactive development
 devtools::load_all()
 
@@ -83,6 +85,7 @@ devtools::install()
 ### Testing
 
 ``` r
+
 # Run all tests (when tests/ exists)
 devtools::test()
 
@@ -100,6 +103,7 @@ you’re not testing anything - this is unacceptable
 Example of what NOT to do:
 
 ``` r
+
 # BAD - hides the real problem
 skip_if(nrow(stream_points) == 0, "No valid LAS files created")
 ```
@@ -107,6 +111,7 @@ skip_if(nrow(stream_points) == 0, "No valid LAS files created")
 Example of what TO do:
 
 ``` r
+
 # GOOD - fixes the root cause
 stream_points <- gla_create_virtual_plots(
   plot_radius = 50, # Match LAS point spread radius
@@ -143,6 +148,7 @@ Tests use **lazy fixture generation** for on-demand test data creation:
   for automatic cleanup
 
   ``` r
+
   # Example: Create spatial fixtures
   test_that("example test", {
     dem_path <- withr::local_tempfile(fileext = ".tif")
@@ -208,6 +214,7 @@ Tests use **lazy fixture generation** for on-demand test data creation:
 Add to `R/gaplightr-package.R`:
 
 ``` r
+
 #' @importFrom grDevices bmp dev.off
 #' @importFrom graphics par points polygon
 #' @importFrom stats approx
