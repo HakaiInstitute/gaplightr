@@ -111,8 +111,8 @@ create_test_las <- function(crs = 3005, n_points = 100, output_path = NULL) {
   ))
 
   # Generate consistent return numbers
-  number_of_returns <- as.integer(sample(1:3, n_points, replace = TRUE))
-  return_number <- sapply(number_of_returns, function(n) sample(1:n, 1))
+  number_of_returns <- as.integer(sample.int(3, n_points, replace = TRUE))
+  return_number <- sapply(number_of_returns, function(n) sample.int(n, 1))
 
   # Create LAS object (suppress lidR messages about header)
   las_data <- data.frame(

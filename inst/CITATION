@@ -1,0 +1,11 @@
+bibentry(
+  bibtype = "Manual",
+  title = "gaplightr: Gap Light Analysis of Virtual and Real Fisheye Photography",
+  author = c(
+    person("Gord", "Frazer", comment = "Conceptualization and original code"),
+    person("Sam", "Albers")
+  ),
+  year = 2026,
+  note = "R package version 0.0.0.9000",
+  url = "https://hakaiinstitute.github.io/gaplightr/"
+)

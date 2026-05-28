@@ -121,7 +121,7 @@ gla_extract_gap_fraction <- function(
   azi_bin_idx <- angular_bin_idx(azi_rad, two_pi(), nSectors)
 
   # Count pixels in each bin
-  for (i in 1:length(elev_bin_idx)) {
+  for (i in seq_along(elev_bin_idx)) {
     total_pixels[elev_bin_idx[i], azi_bin_idx[i]] <- total_pixels[
       elev_bin_idx[i],
       azi_bin_idx[i]
@@ -232,17 +232,30 @@ gla_lens_sigma_8mm <- function() {
 #' @inheritParams gla_extract_gap_fraction
 #'
 #' @return An sf object with computed solar radiation metrics:
-#'   \item{canopy_openness_pct}{Canopy openness percentage}
-#'   \item{mean_daily_extraterrestrial_irradiance_Wm2}{Mean daily extraterrestrial irradiance (W/m²)}
-#'   \item{mean_daily_direct_irradiation_MJm2d}{Mean daily direct irradiation (MJ/m²/day)}
-#'   \item{mean_daily_diffuse_irradiation_MJm2d}{Mean daily diffuse irradiation (MJ/m²/day)}
-#'   \item{mean_daily_global_irradiation_MJm2d}{Mean daily global irradiation (MJ/m²/day)}
-#'   \item{transmitted_direct_irradiation_MJm2d}{Transmitted direct irradiation (MJ/m²/day)}
-#'   \item{transmitted_diffuse_irradiation_MJm2d}{Transmitted diffuse irradiation (MJ/m²/day)}
-#'   \item{transmitted_global_irradiation_MJm2d}{Transmitted global irradiation (MJ/m²/day)}
-#'   \item{transmitted_direct_irradiation_pct}{Transmitted direct irradiation percentage}
-#'   \item{transmitted_diffuse_irradiation_pct}{Transmitted diffuse irradiation percentage}
-#'   \item{transmitted_global_irradiation_pct}{Transmitted global irradiation percentage}
+#'   \item{canopy_openness_pct}{Canopy openness percentage derived from the fisheye photo gap fraction}
+#'   \item{mean_daily_extraterrestrial_irradiance_Wm2}{Mean daily irradiance above the atmosphere (W/m²).
+#'     Computed from astronomical parameters only - no atmospheric, canopy, or topographic effects.}
+#'   \item{mean_daily_direct_irradiation_MJm2d}{Mean daily direct irradiation on a flat open surface (MJ/m²/day).
+#'     Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+#'   \item{mean_daily_diffuse_irradiation_MJm2d}{Mean daily diffuse irradiation on a flat open surface (MJ/m²/day).
+#'     Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+#'   \item{mean_daily_global_irradiation_MJm2d}{Mean daily global irradiation on a flat open surface (MJ/m²/day).
+#'     Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+#'   \item{transmitted_direct_irradiation_MJm2d}{Direct irradiation reaching the sensor (MJ/m²/day),
+#'     accounting for both canopy and topographic shading encoded in the fisheye photo.}
+#'   \item{transmitted_diffuse_irradiation_MJm2d}{Diffuse irradiation reaching the sensor (MJ/m²/day),
+#'     accounting for both canopy and topographic shading encoded in the fisheye photo.}
+#'   \item{transmitted_global_irradiation_MJm2d}{Global irradiation reaching the sensor (MJ/m²/day),
+#'     accounting for both canopy and topographic shading encoded in the fisheye photo.}
+#'   \item{transmitted_direct_irradiation_pct}{Transmitted direct irradiation as a percentage of the flat
+#'     open-sky reference (\code{mean_daily_direct_irradiation_MJm2d}). The denominator does not account
+#'     for topographic shading, so this value reflects the combined effect of canopy and terrain.}
+#'   \item{transmitted_diffuse_irradiation_pct}{Transmitted diffuse irradiation as a percentage of the flat
+#'     open-sky reference (\code{mean_daily_diffuse_irradiation_MJm2d}). The denominator does not account
+#'     for topographic shading, so this value reflects the combined effect of canopy and terrain.}
+#'   \item{transmitted_global_irradiation_pct}{Transmitted global irradiation as a percentage of the flat
+#'     open-sky reference (\code{mean_daily_global_irradiation_MJm2d}). The denominator does not account
+#'     for topographic shading, so this value reflects the combined effect of canopy and terrain.}
 #'
 #' @examples
 #' \dontrun{
@@ -1085,7 +1098,7 @@ gla_compute_solar_positions <- function(
   k <- 0
 
   # Process each day
-  for (i in 1:length(day_numbers)) {
+  for (i in seq_along(day_numbers)) {
     day_angle <- da(day_number = day_numbers[i])
     ecf_dat <- ecf(day_angle_rad = day_angle)
     sol_dec <- soldec(day_angle_rad = day_angle)
@@ -1122,7 +1135,7 @@ gla_compute_solar_positions <- function(
     Daily_Io <- 0
 
     # Process each solar position
-    for (j in 1:length(ha_sample_pts)) {
+    for (j in seq_along(ha_sample_pts)) {
       ha <- ha_sample_pts[j]
       solar_lat <- (180 - ha * rad_to_deg()) / 15
       solar_lst <- solar_lat - time_offset / 60

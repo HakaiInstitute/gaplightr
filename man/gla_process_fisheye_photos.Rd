@@ -69,17 +69,30 @@ electromagnetic radiation per unit area at the top of Earth's atmosphere.}
 }
 \value{
 An sf object with computed solar radiation metrics:
-\item{canopy_openness_pct}{Canopy openness percentage}
-\item{mean_daily_extraterrestrial_irradiance_Wm2}{Mean daily extraterrestrial irradiance (W/m²)}
-\item{mean_daily_direct_irradiation_MJm2d}{Mean daily direct irradiation (MJ/m²/day)}
-\item{mean_daily_diffuse_irradiation_MJm2d}{Mean daily diffuse irradiation (MJ/m²/day)}
-\item{mean_daily_global_irradiation_MJm2d}{Mean daily global irradiation (MJ/m²/day)}
-\item{transmitted_direct_irradiation_MJm2d}{Transmitted direct irradiation (MJ/m²/day)}
-\item{transmitted_diffuse_irradiation_MJm2d}{Transmitted diffuse irradiation (MJ/m²/day)}
-\item{transmitted_global_irradiation_MJm2d}{Transmitted global irradiation (MJ/m²/day)}
-\item{transmitted_direct_irradiation_pct}{Transmitted direct irradiation percentage}
-\item{transmitted_diffuse_irradiation_pct}{Transmitted diffuse irradiation percentage}
-\item{transmitted_global_irradiation_pct}{Transmitted global irradiation percentage}
+\item{canopy_openness_pct}{Canopy openness percentage derived from the fisheye photo gap fraction}
+\item{mean_daily_extraterrestrial_irradiance_Wm2}{Mean daily irradiance above the atmosphere (W/m²).
+Computed from astronomical parameters only - no atmospheric, canopy, or topographic effects.}
+\item{mean_daily_direct_irradiation_MJm2d}{Mean daily direct irradiation on a flat open surface (MJ/m²/day).
+Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+\item{mean_daily_diffuse_irradiation_MJm2d}{Mean daily diffuse irradiation on a flat open surface (MJ/m²/day).
+Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+\item{mean_daily_global_irradiation_MJm2d}{Mean daily global irradiation on a flat open surface (MJ/m²/day).
+Computed from extraterrestrial irradiance and \code{Kt} only - no canopy or topographic shading.}
+\item{transmitted_direct_irradiation_MJm2d}{Direct irradiation reaching the sensor (MJ/m²/day),
+accounting for both canopy and topographic shading encoded in the fisheye photo.}
+\item{transmitted_diffuse_irradiation_MJm2d}{Diffuse irradiation reaching the sensor (MJ/m²/day),
+accounting for both canopy and topographic shading encoded in the fisheye photo.}
+\item{transmitted_global_irradiation_MJm2d}{Global irradiation reaching the sensor (MJ/m²/day),
+accounting for both canopy and topographic shading encoded in the fisheye photo.}
+\item{transmitted_direct_irradiation_pct}{Transmitted direct irradiation as a percentage of the flat
+open-sky reference (\code{mean_daily_direct_irradiation_MJm2d}). The denominator does not account
+for topographic shading, so this value reflects the combined effect of canopy and terrain.}
+\item{transmitted_diffuse_irradiation_pct}{Transmitted diffuse irradiation as a percentage of the flat
+open-sky reference (\code{mean_daily_diffuse_irradiation_MJm2d}). The denominator does not account
+for topographic shading, so this value reflects the combined effect of canopy and terrain.}
+\item{transmitted_global_irradiation_pct}{Transmitted global irradiation as a percentage of the flat
+open-sky reference (\code{mean_daily_global_irradiation_MJm2d}). The denominator does not account
+for topographic shading, so this value reflects the combined effect of canopy and terrain.}
 }
 \description{
 Batch processes fisheye photos for multiple points, computing gap fractions and

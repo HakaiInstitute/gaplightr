@@ -125,16 +125,6 @@ soldec <- function(day_angle_rad) {
   return(soldec)
 }
 
-#' SOLAR TIME (LAT - local apparent time or TST - true solar time) in radians
-#'
-#' @param decimal_hours time in decimal hours (0-24 hr.)
-#' @keywords internal
-#' @noRd
-soltime <- function(decimal_hours) {
-  st <- 15 * decimal_hours * deg_to_rad()
-  return(st)
-}
-
 #' HOUR ANGLE in radians
 #'
 #' @param solar_time_rad solar time in radians
@@ -291,7 +281,7 @@ solrad <- function(
   clearsky_transmission
 ) {
   # Only compute SR when sun is visible
-  if (solar_zenith_angle >= 0 & solar_zenith_angle <= rad_90()) {
+  if (solar_zenith_angle >= 0 && solar_zenith_angle <= rad_90()) {
     # Instantaneous extraterrestrial irradiance (W/m2) on a horizontal surface at time t
     Io <- solar_constant * eccentricity_correction * cos(solar_zenith_angle)
     # Relative optical airmass at sea level (Kasten and Young, 1989)
