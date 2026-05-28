@@ -6,6 +6,8 @@
 \alias{gaplightr-package}
 \title{gaplightr: Gap Light Analysis of Virtual and Real Fisheye Photography}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Analyzes forest canopy gap light transmission using LiDAR point cloud data and hemispherical photography. Provides tools for processing LiDAR data, computing horizon angles, and calculating gap light metrics.
 }
 \seealso{
