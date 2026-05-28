@@ -611,6 +611,9 @@ gla_create_fisheye_photos <- function(
       pattern = "\\.bmp$",
       full.names = TRUE
     )
+    # Exclude zero-byte files left by previously failed renders so they are
+    # retried rather than silently skipped on every subsequent run.
+    existing_photos <- existing_photos[file.size(existing_photos) > 0]
 
     if (length(existing_photos) > 0) {
       expected_filenames <- fisheye_filename(
@@ -964,6 +967,14 @@ gla_create_fisheye_photo_single <- function(
     type = "cairo",
     ...
   )
+  # Ensure the device is closed and any zero-byte output from a failed render
+  # is removed so the resume logic does not permanently skip this point.
+  on.exit({
+    dev.off()
+    if (file.exists(out_file) && file.size(out_file) == 0) {
+      file.remove(out_file)
+    }
+  }, add = TRUE)
 
   # Set plotting window dimensions
   par(mai = c(0, 0, 0, 0))
@@ -1007,8 +1018,6 @@ gla_create_fisheye_photo_single <- function(
     ylim = c(-pi / 2, pi / 2),
     col = "black"
   )
-
-  dev.off()
 
   invisible(out_file)
 }
